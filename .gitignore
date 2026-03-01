@@ -51,3 +51,7 @@ git_status.txt
 
 frontend/
 stitch_design.html
+
+# Automated Setup Caches
+.cron_setup_cached
+*.txt

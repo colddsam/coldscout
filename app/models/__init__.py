@@ -1,9 +1,13 @@
+import os
 from sqlalchemy import MetaData
 from sqlalchemy.orm import declarative_base
 
 # Shared Base Model for Alembic to detect
-# Force 'public' schema to prevent Supabase from defaulting to 'extensions'
-metadata_obj = MetaData(schema="public")
+# Force 'public' schema to prevent Supabase from defaulting to 'extensions', except for sqlite tests
+db_url = os.environ.get("DATABASE_URL", "")
+schema = None if "sqlite" in db_url else "public"
+
+metadata_obj = MetaData(schema=schema)
 Base = declarative_base(metadata=metadata_obj)
 
 # Import all models here so they get registered with Base

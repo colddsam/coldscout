@@ -24,9 +24,15 @@ async def scrape_contact_email(url: str) -> Optional[str]:
         url = "http://" + url
         
     try:
-        async with httpx.AsyncClient(verify=False) as client:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
+        async with httpx.AsyncClient(verify=False, headers=headers) as client:
             response = await client.get(url, timeout=10.0, follow_redirects=True)
             if response.status_code != 200:
+                logger.debug(f"Email scrape skipped for {url}: HTTP {response.status_code}")
                 return None
             
             email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
@@ -42,5 +48,5 @@ async def scrape_contact_email(url: str) -> Optional[str]:
             return valid_emails[0] if valid_emails else None
             
     except Exception as e:
-        logger.warning(f"Failed to scrape email for {url}")
+        logger.debug(f"Failed to scrape email for {url}: {repr(e)}")
         return None

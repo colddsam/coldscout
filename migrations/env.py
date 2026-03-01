@@ -10,7 +10,7 @@ from alembic import context
 from app.config import get_settings
 settings = get_settings()
 from app.models import Base
-from app.models.lead import Lead, TargetLocation
+from app.models.lead import Lead, SearchHistory, LeadSocialNetwork
 from app.models.campaign import Campaign, EmailOutreach
 from app.models.email_event import EmailEvent
 from app.models.daily_report import DailyReport

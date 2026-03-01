@@ -2,24 +2,31 @@ import os
 import pytest
 import pytest_asyncio
 
+from sqlalchemy import pool
+
 # MUST SET BEFORE IMPORTING APP OR SETTINGS
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+os.environ["DATABASE_URL"] = TEST_DB_URL
 
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core import database
 from app.models import Base
-from app.models.lead import Lead, TargetLocation
+from app.models.lead import Lead, SearchHistory
 from app.models.campaign import Campaign
 from app.models.email_event import EmailEvent
 from app.main import app
 
+connect_args = {}
+if "sqlite" in TEST_DB_URL:
+    connect_args["check_same_thread"] = False
+
 test_engine = create_async_engine(
-    "sqlite+aiosqlite:///./test.db",
+    TEST_DB_URL,
     echo=False,
     future=True,
-    # SQLite specific
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
+    poolclass=pool.NullPool,
 )
 
 TestingSessionLocal = async_sessionmaker(

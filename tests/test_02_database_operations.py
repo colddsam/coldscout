@@ -1,14 +1,13 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.lead import Lead, TargetLocation
+from app.models.lead import Lead, SearchHistory
 
 @pytest.mark.asyncio
 async def test_create_target_location(db_session: AsyncSession):
-    new_location = TargetLocation(
+    new_location = SearchHistory(
         city="Test City",
-        state="Test State",
-        country="Test Country"
+        category="Test Category"
     )
     db_session.add(new_location)
     await db_session.commit()
@@ -20,10 +19,9 @@ async def test_create_target_location(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_create_lead(db_session: AsyncSession):
     # Setup Location
-    new_location = TargetLocation(
+    new_location = SearchHistory(
         city="Lead City",
-        state="LS",
-        country="Test Country"
+        category="Test Category"
     )
     db_session.add(new_location)
     await db_session.commit()
@@ -44,10 +42,9 @@ async def test_create_lead(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_get_lead(db_session: AsyncSession):
     # Setup Location
-    new_location = TargetLocation(
+    new_location = SearchHistory(
         city="Get City",
-        state="GS",
-        country="Test Country"
+        category="Test Category"
     )
     db_session.add(new_location)
     await db_session.commit()

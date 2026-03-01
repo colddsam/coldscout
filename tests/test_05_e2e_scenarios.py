@@ -2,17 +2,16 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.lead import TargetLocation, Lead
+from app.models.lead import SearchHistory, Lead
 from unittest.mock import patch
 
 @pytest.mark.asyncio
 async def test_e2e_scenario_api_to_db(client: AsyncClient, db_session: AsyncSession):
     # Scenario 1: Add target location and mock the background discovery process
     # First, let's create a target location directly in DB to simulate standard setup
-    location = TargetLocation(
+    location = SearchHistory(
         city="Detroit",
-        state="MI",
-        country="USA"
+        category="Industrial Services"
     )
     db_session.add(location)
     await db_session.commit()

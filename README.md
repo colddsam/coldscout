@@ -113,6 +113,7 @@ graph TD;
 | :----------------------------------- | :------------------------------------------------------------------------------------------------------------------------ |
 | **🔍 Multi-Radius Discovery**  | Uses Google Places API to search for specific niches (e.g., "roofers in Austin") within a calculated geographical radius. |
 | **🧠 Deep AI Qualification**   | Scrapes the business's website and feeds the text to Groq LLM to answer:*Does this business need our services?*         |
+| **🌐 Social Media Extraction** | Autonomously detects and associates social media footprints (LinkedIn, Instagram, Facebook, etc.) with lead profiles for deep enrichment. |
 | **✍️ Hyper-Personalization** | Generates completely unique subject lines and email bodies referencing the prospect's specific website services.          |
 | **📄 Dynamic PDF Proposals**   | Auto-generates customized business proposals for each qualified lead and attaches them to outreach emails.                |
 | **🔔 Telegram Alerting**       | Real-time notifications for discovered leads, pipeline errors, and direct replies.                                        |
@@ -195,12 +196,22 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 > *API Documentation is available at: [http://localhost:8000/docs](http://localhost:8000/docs)*
 
+### Manual Pipeline Execution
+
+For debugging or immediate execution, you can bypass the APScheduler and run the pipeline stages sequentially via the standalone script:
+
+```bash
+python test.py
+```
+
+This ensures the database tables exist and immediately triggers the configured stages (e.g., Discovery, Qualification).
+
 ---
 
 ## 🧪 Automated Testing
 
 We enforce a strict 100% test coverage expectation across the system.
-Our End-to-End test suite automatically spins up an asynchronous SQLite memory database (`test.db`) to safely perform operations.
+Our End-to-End test suite automatically spins up an asynchronous SQLite memory database (`test.db`) to safely perform operations. Models dynamically adapt schema bindings to ensure cross-compatibility between production PostgreSQL and local SQLite testing environments.
 
 To run the entire suite:
 
@@ -210,7 +221,7 @@ pytest -v tests/
 
 **Testing coverage includes:**
 
-- ✅ Database Schema & ORM capabilities (w/ SQLite compatibility logic for `postgresql.ARRAY`).
+- ✅ Database Schema & ORM capabilities (w/ schema-agnostic adaptations).
 - ✅ Discovery Module (Mocks Google API & DOM Scrapers).
 - ✅ Asynchronous Task Pipeline validation.
 - ✅ System integration & Error handling cases.

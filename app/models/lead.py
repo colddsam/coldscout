@@ -66,3 +66,20 @@ class Lead(Base):
     
     outreach = relationship("EmailOutreach", back_populates="lead", cascade="all, delete-orphan")
     events = relationship("EmailEvent", back_populates="lead", cascade="all, delete-orphan")
+    social_networks = relationship("LeadSocialNetwork", back_populates="lead", cascade="all, delete-orphan")
+
+class LeadSocialNetwork(Base):
+    """
+    Stores individual social media profiles for a lead.
+    """
+    __tablename__ = "lead_social_networks"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), nullable=False, index=True)
+    platform_name = Column(String(50), nullable=False, index=True) # e.g. facebook, instagram, linkedin, twitter
+    profile_url = Column(String, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    lead = relationship("Lead", back_populates="social_networks")

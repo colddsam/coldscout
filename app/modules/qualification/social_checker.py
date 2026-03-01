@@ -1,7 +1,6 @@
 """
 Social media presence verification module.
-Analyzes target domain Document Object Models (DOM) to identify configured 
-social media properties (e.g., Facebook, Instagram) indicative of digital activity.
+Analyzes target domain DOMs to identify social media profiles.
 """
 import httpx
 from bs4 import BeautifulSoup
@@ -9,14 +8,7 @@ from typing import Tuple
 
 async def check_social_media(url: str) -> Tuple[bool, str]:
     """
-    Executes an asynchronous HTTP GET request and parses the target DOM
-    to ascertain the existence of external links to validated social media platforms.
-    
-    Args:
-        url (str): The primary domain URL to examine.
-        
-    Returns:
-        Tuple[bool, str]: A boolean indicating presence of specific social links and associated diagnostic notes.
+    Asynchronously fetches and parses a website's DOM for validated social media platform links.
     """
     if not url:
         return False, "No website to check."
@@ -34,21 +26,76 @@ async def check_social_media(url: str) -> Tuple[bool, str]:
             links = soup.find_all('a', href=True)
             
             social_found = False
-            notes = []
+            social_profiles = []
             
             for link in links:
                 href = link['href'].lower()
-                if 'facebook.com' in href or 'fb.com' in href:
-                    notes.append("Facebook found.")
-                    social_found = True
-                if 'instagram.com' in href:
-                    notes.append("Instagram found.")
-                    social_found = True
-                    
-            if not social_found:
-                notes.append("No common social media links found on homepage.")
                 
-            return social_found, " ".join(set(notes))
+                # Check for Facebook
+                if 'facebook.com' in href or 'fb.com' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "facebook",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for Instagram
+                elif 'instagram.com' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "instagram",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for LinkedIn
+                elif 'linkedin.com' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "linkedin",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for Twitter / X
+                elif 'twitter.com' in href or 'x.com' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "twitter",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for YouTube
+                elif 'youtube.com' in href or 'youtu.be' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "youtube",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for TikTok
+                elif 'tiktok.com' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "tiktok",
+                        "profile_url": link['href']
+                    })
+                    
+                # Check for Pinterest
+                elif 'pinterest.com' in href or 'pin.it' in href:
+                    social_found = True
+                    social_profiles.append({
+                        "platform_name": "pinterest",
+                        "profile_url": link['href']
+                    })
+                    
+            # Deduplicate the profiles based on URL
+            unique_profiles = []
+            seen_urls = set()
+            for profile in social_profiles:
+                if profile["profile_url"] not in seen_urls:
+                    seen_urls.add(profile["profile_url"])
+                    unique_profiles.append(profile)
+
+            return social_found, unique_profiles
             
     except Exception as e:
-        return False, f"Error checking social media: {str(e)}"
+        return False, []

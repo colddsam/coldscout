@@ -87,12 +87,24 @@ async def verify_tables_exist():
             # Check for Postgres ('does not exist') or SQLite ('no such table') errors
             error_str = str(e).lower()
             if "does not exist" in error_str or "no such table" in error_str:
-                error_msg = (
-                    "Database tables are missing or uninitialized! 🛑\n"
-                    "Please run: 'python create_tables.py' to set up the database schema."
-                )
-                logger.error(error_msg)
+                logger.warning("Database tables are missing or uninitialized. Attempting auto-creation... 🛠️")
+                
                 import sys
-                sys.exit(error_msg)
-            # If it's a different exception (e.g. auth failed), surface it
-            raise
+                import subprocess
+                try:
+                    # Run alembic upgrade head programmatically using the current python executable
+                    result = subprocess.run(
+                        [sys.executable, "-m", "alembic", "upgrade", "head"],
+                        check=True,
+                        capture_output=True,
+                        text=True
+                    )
+                    logger.info("Successfully provisioned database schema using Alembic! 🚀")
+                    logger.debug(f"Alembic output: {result.stdout}")
+                except subprocess.CalledProcessError as sub_e:
+                    error_msg = f"Auto-creation failed during alembic upgrade: {sub_e.stderr}"
+                    logger.error(error_msg)
+                    sys.exit(error_msg)
+            else:
+                # If it's a different exception (e.g. auth failed), surface it
+                raise

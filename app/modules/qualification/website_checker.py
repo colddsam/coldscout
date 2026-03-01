@@ -1,7 +1,6 @@
 """
 Domain validity and HTTP accessibility verification module.
-Performs asynchronous DNS resolution and HTTP health checks to ascertain 
-the operational status of target lead domains.
+Performs DNS resolution and HTTP health checks on target domains.
 """
 import httpx
 import dns.resolver
@@ -10,13 +9,7 @@ from loguru import logger
 
 async def dns_resolves(domain: str) -> bool:
     """
-    Performs an asynchronous DNS query for A records against the provided domain string.
-    
-    Args:
-        domain (str): The fully qualified domain name (FQDN) to test.
-        
-    Returns:
-        bool: True if the domain successfully resolves, False otherwise.
+    Asynchronously queries DNS for A records of a given domain.
     """
     if not domain:
         return False
@@ -39,13 +32,7 @@ async def dns_resolves(domain: str) -> bool:
 
 async def website_responds(url: str) -> bool:
     """
-    Executes an asynchronous HTTP GET request to verify non-error HTTP status codes.
-    
-    Args:
-        url (str): The target URL to establish an HTTP connection with.
-        
-    Returns:
-        bool: True if the web server responds with a sub-400 status code, False otherwise.
+    Asynchronously executes an HTTP GET request to verify non-error status codes.
     """
     if not url:
         return False
@@ -54,23 +41,21 @@ async def website_responds(url: str) -> bool:
         url = 'http://' + url
         
     try:
-        async with httpx.AsyncClient(verify=False) as client:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        }
+        async with httpx.AsyncClient(verify=False, headers=headers) as client:
             response = await client.get(url, timeout=5.0, follow_redirects=True)
             return response.status_code < 400
     except Exception as e:
-        logger.debug(f"HTTP Check failed for {url}")
+        logger.debug(f"HTTP Check failed for {url}: {repr(e)}")
         return False
 
 async def check_website(url: str) -> Tuple[bool, bool, str]:
     """
-    Orchestrates sequential validation of a domain via DNS resolution followed by 
-    an HTTP accessibility check.
-    
-    Args:
-        url (str): The target URL string associated with the lead.
-        
-    Returns:
-        Tuple[bool, bool, str]: A tuple of booleans indicating DNS validity and HTTP accessibility, plus the evaluated URL.
+    Orchestrates validation of a domain via DNS resolution followed by an HTTP check.
     """
     if not url:
         return False, False, url

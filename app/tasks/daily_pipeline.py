@@ -152,7 +152,7 @@ async def run_qualification_stage():
         leads = result.scalars().all()
         
         for lead in leads:
-            is_qualified, score, notes = await qualify_lead(lead)
+            is_qualified, score, notes = await qualify_lead(lead, db)
             lead.qualification_score = score
             lead.web_presence_notes = notes
             
