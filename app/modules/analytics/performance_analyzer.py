@@ -13,7 +13,7 @@ from app.models.campaign import Campaign, EmailOutreach
 from app.models.prompt_config import PromptConfig
 from app.modules.personalization.groq_client import GroqClient
 
-async def run_weekly_optimization(db: AsyncSession):
+async def _run_weekly_optimization_core(db: AsyncSession):
     """
     Cron-triggered performance analyzer. Evaluates the previous week's aggregate 
     email metrics (open, click, and reply rates). If reply rates fall below target 
@@ -97,3 +97,13 @@ Return ONLY the new prompt text.
                 except Exception as e:
                     logger.error(f"Error optimizing prompt: {e}")
                     await db.rollback()
+
+async def run_weekly_optimization():
+    """
+    Wrapper function for APScheduler to run without arguments.
+    Acquires its own database session and calls the core logic.
+    """
+    from app.core.database import get_session_maker
+    async_session = get_session_maker()
+    async with async_session() as db:
+        await _run_weekly_optimization_core(db)
