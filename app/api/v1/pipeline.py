@@ -15,6 +15,7 @@ from app.tasks.daily_pipeline import (
     generate_daily_report,
     is_pipeline_active
 )
+from app.modules.analytics.performance_analyzer import run_weekly_optimization
 from app.core.scheduler import scheduler
 
 router = APIRouter(dependencies=[Depends(get_api_key)])
@@ -27,7 +28,7 @@ class TriggerRequest(BaseModel):
 async def trigger_pipeline(request: TriggerRequest = Body(...)):
     """
     Triggers a specific pipeline stage immediately.
-    Accepts: 'all' | 'discovery' | 'qualification' | 'personalization' | 'outreach' | 'report'
+    Accepts: 'all' | 'discovery' | 'qualification' | 'personalization' | 'outreach' | 'report' | 'optimization'
     """
     valid_stages = {
         "all": [
@@ -41,7 +42,8 @@ async def trigger_pipeline(request: TriggerRequest = Body(...)):
         "qualification": [run_qualification_stage],
         "personalization": [run_personalization_stage],
         "outreach": [run_outreach_stage],
-        "report": [generate_daily_report]
+        "report": [generate_daily_report],
+        "optimization": [run_weekly_optimization]
     }
     
     if request.stage not in valid_stages:
