@@ -124,7 +124,7 @@ graph TD;
 | **📊 ROI & Excel Reporting**   | Compiles daily and weekly outreach metrics and sends an Excel overview directly to the administrator.                                |
 | **🛡 API Key Security**        | All management endpoints are protected by `X-API-Key` headers.                                                          |
 | **💸 Serverless Optimized**    | In-process APScheduler execution optimized for restrictive free-tiers (e.g., Render) by minimizing external connections. |
-| **⏸ Dynamic Pipeline Control**| Edit `.env` to instantly `HOLD` or `RUN` operations without requiring a full server deployment manually tracking configurations. |
+| **⏸ Dynamic Pipeline Control**| API-driven `jobs_config.json` system allows granular `HOLD`/`RUN` and schedule adjustments for individual pipeline stages without a server reboot, paired with a global `.env` kill-switch. |
 | **🏢 Enterprise-Grade Code**   | Fully documented, strictly typed codebase featuring professional Python docstrings, dependency injection (`lru_cache`), and comprehensive testing. |
 
 ---
@@ -146,7 +146,7 @@ cp .env.example .env
 ```
 
 Ensure you have set `DATABASE_URL`, `GROQ_API_KEY`, SMTP credentials, Telegram `TELEGRAM_BOT_TOKEN`, `IMAP_SERVER` credentials, and `CRON_JOB_API_KEY` (if utilizing the automated free-tier external trigger). 
-You may also set `PRODUCTION_STATUS=HOLD` to safely pause all automated daily operations.
+You may also set `PRODUCTION_STATUS=HOLD` to safely pause all automated daily operations globally. Granular control is managed dynamically via the API and `config/jobs_config.json`.
 
 ### 3. Local Installation (Recommended for Development)
 

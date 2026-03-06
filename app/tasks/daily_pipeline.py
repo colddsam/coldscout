@@ -7,20 +7,7 @@ import base64
 import os
 from datetime import date, datetime, timedelta
 from loguru import logger
-from dotenv import dotenv_values
-
-
-def is_pipeline_active() -> bool:
-    """
-    Dynamically evaluates the .env configuration to determine if pipeline execution is permitted.
-    Supports pausing execution without requiring a server reboot.
-    """
-    env_vars = dotenv_values(".env")
-    if "PRODUCTION_STATUS" in env_vars:
-        return env_vars["PRODUCTION_STATUS"].upper() == "RUN"
-    
-    # Fallback to system env (e.g. Render Dashboard config)
-    return os.environ.get("PRODUCTION_STATUS", "RUN").upper() == "RUN"
+from app.core.job_manager import job_manager
 
 
 from sqlalchemy import select, func, update
@@ -62,8 +49,8 @@ async def run_discovery_stage():
     """
     logger.info("Starting Dynamic Discovery")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping discovery stage.")
+    if not job_manager.is_job_active("discovery"):
+        logger.warning("🚨 [discovery] is HOLD. Skipping discovery stage.")
         return
 
     discovered_count = 0
@@ -206,8 +193,8 @@ async def run_qualification_stage():
     """
     logger.info("Starting Qualification")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping qualification stage.")
+    if not job_manager.is_job_active("qualification"):
+        logger.warning("🚨 [qualification] is HOLD. Skipping qualification stage.")
         return
 
     qualified_count      = 0
@@ -313,8 +300,8 @@ async def run_personalization_stage():
     """
     logger.info("Starting Personalization")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping personalization stage.")
+    if not job_manager.is_job_active("personalization"):
+        logger.warning("🚨 [personalization] is HOLD. Skipping personalization stage.")
         return
 
     pers_count  = 0
@@ -444,8 +431,8 @@ async def run_outreach_stage():
     """
     logger.info("Starting Outreach Dispatch")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping outreach stage.")
+    if not job_manager.is_job_active("outreach"):
+        logger.warning("🚨 [outreach] is HOLD. Skipping outreach stage.")
         return
 
     sent_count = 0
@@ -536,8 +523,8 @@ async def poll_replies():
     """
     logger.info("Polling for replies")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping reply polling.")
+    if not job_manager.is_job_active("reply_poll"):
+        logger.warning("🚨 [reply_poll] is HOLD. Skipping reply polling.")
         return
 
     replies = await fetch_recent_replies(since_minutes=30)
@@ -642,8 +629,8 @@ async def generate_daily_report():
     """
     logger.info("Generating Daily Report")
 
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping daily report generation.")
+    if not job_manager.is_job_active("daily_report"):
+        logger.warning("🚨 [daily_report] is HOLD. Skipping daily report generation.")
         return
 
     today = date.today()

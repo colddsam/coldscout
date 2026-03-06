@@ -89,7 +89,6 @@ async def health_check(settings = Depends(get_current_settings)):
     """
     System health check endpoint to verify API availability and environment configuration.
     """
-    from app.tasks.daily_pipeline import is_pipeline_active
     from app.models.daily_report import DailyReport
     from sqlalchemy import select
     from app.core.database import get_session_maker
@@ -111,7 +110,7 @@ async def health_check(settings = Depends(get_current_settings)):
         "environment": settings.APP_ENV,
         "last_pipeline_status": last_status,
         "scheduler_running": scheduler.running,
-        "production_status": is_pipeline_active()
+        "production_status": settings.PRODUCTION_STATUS.upper() == "RUN"
     }
 
 

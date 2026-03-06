@@ -52,13 +52,14 @@ async def run_followup_dispatch():
     updates sequence metadata.
     """
     from app.core.database import get_session_maker
-    from app.tasks.daily_pipeline import is_pipeline_active, _generate_tracking_token
+    from app.tasks.daily_pipeline import _generate_tracking_token
+    from app.core.job_manager import job_manager
     from app.modules.notifications.telegram_bot import send_telegram_alert
     
     logger.info("Starting Follow-Up Engine")
     
-    if not is_pipeline_active():
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. Skipping follow-up.")
+    if not job_manager.is_job_active("followup_dispatch"):
+        logger.warning("🚨 [followup_dispatch] is HOLD. Skipping follow-up.")
         return
         
     groq_client = GroqClient()
