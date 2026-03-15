@@ -1,14 +1,19 @@
-# Git
+# =============================================================================
+# Docker Build Context Exclusions
+# Keeps the build context lean and prevents secrets / dev artifacts from leaking.
+# =============================================================================
+
+# ── Git ───────────────────────────────────────────────────────────────────────
 .git
 .gitignore
+.github/
 
-# Python
+# ── Python bytecode & build artefacts ─────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -24,26 +29,73 @@ var/
 .installed.cfg
 *.egg
 
-# Virtual Environment
+# ── Virtual environments ─────────────────────────────────────────────────────
 venv/
 env/
 ENV/
 .env
 
-# Testing
+# ── Testing ──────────────────────────────────────────────────────────────────
 .pytest_cache/
 pytest_output.txt
+pytest_output2.txt
+pytest_err.txt
+pytest_err2.txt
+pytest_err3.txt
+pytest_final.txt
+pytest_out.txt
+pytest.ini
+test.py
+test.db
+test_auto_create.db
+test_output.log
+testrequirements.txt
+tests/
 
-# Local States
+# ── Local state & scheduler artefacts ────────────────────────────────────────
 celerybeat-schedule
 celerybeat-schedule.*
 celerybeat.pid
 
-# IDEs and Editors
+# ── IDEs & editors ───────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Project specific
+# ── Debug & temporary output files ───────────────────────────────────────────
+alembic_downgrade.txt
+alembic_err.txt
+alembic_error.txt
+alembic_upgrade.txt
+debug_output.txt
+debug_output_exhaustive.txt
+error.log
+exception_test.txt
+git_diff.txt
+git_diff2.txt
+git_diff_output.txt
+git_status.txt
+git_status2.txt
+git_untracked.txt
+out3.txt
+out4.txt
+out5.txt
+results.txt
+
+# ── Project auxiliary files (not needed in container) ─────────────────────────
+docs/
+scripts/
+static/
+tmp/
 logs/
+stitch_design.html
+github_meta.md
+check_db.py
+create_tables.py
+run_alembic.py
+
+# ── Documentation & API specs (informational, not runtime) ───────────────────
+LICENSE
+README.md
+AI_Lead_Generation_Postman_Collection.json

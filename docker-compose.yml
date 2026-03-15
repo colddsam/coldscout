@@ -1,5 +1,15 @@
-version: '3.9'
-  
+# =============================================================================
+# Docker Compose — AI Lead Generation System
+#
+# Orchestrates the containerised deployment of the FastAPI application.
+# Background scheduling (APScheduler) runs in-process; no external broker needed.
+#
+# Usage:
+#   docker compose up -d --build       # Build and start
+#   docker compose logs -f api         # Stream live logs
+#   docker compose down                # Tear down
+# =============================================================================
+
 services:
   api:
     build: .
@@ -8,6 +18,14 @@ services:
     env_file: .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./config:/app/config    # Persist dynamic job scheduling configuration
     # depends_on:
     #   - redis
 

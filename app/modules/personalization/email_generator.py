@@ -52,7 +52,8 @@ def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_tok
             ai_body_html=ai_body_html,
             tracking_token=tracking_token,
             app_url=app_url,
-            reply_email=settings.REPLY_TO_EMAIL or settings.FROM_EMAIL
+            reply_email=settings.REPLY_TO_EMAIL or settings.FROM_EMAIL,
+            logo_url=settings.IMAGE_BASE_URL
         )
         return html_content
     except Exception as e:

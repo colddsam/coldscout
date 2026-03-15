@@ -6,6 +6,7 @@ from loguru import logger
 import aiosmtplib
 from email.message import EmailMessage
 import os
+from email.utils import formataddr
 from app.config import get_settings
 settings = get_settings()
 
@@ -14,7 +15,7 @@ async def send_email(to_email: str, subject: str, html_content: str, attachment_
     Transmits an asynchronous email utilizing the configured SMTP relay service.
     """
     message = EmailMessage()
-    message["From"] = f"{settings.FROM_NAME} <{settings.FROM_EMAIL}>"
+    message["From"] = formataddr((settings.FROM_NAME, settings.FROM_EMAIL))
     message["To"] = to_email
     message["Subject"] = subject
     if settings.REPLY_TO_EMAIL:

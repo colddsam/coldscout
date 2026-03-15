@@ -1,3 +1,8 @@
+"""
+Lead management API endpoints.
+Provides CRUD operations, filtered listing, and CSV export capabilities
+for the discovered local business leads lifecycle.
+"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from typing import Optional
@@ -24,6 +29,24 @@ async def list_leads(
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    Retrieves a paginated, optionally filtered list of discovered leads.
+
+    Supports filtering by lifecycle status, geographic city, business category,
+    and discovery date range. Results are ordered by creation date (newest first).
+
+    Args:
+        status: Filter by lead lifecycle status (e.g. 'qualified', 'email_sent').
+        city: Case-insensitive partial match on the lead's city.
+        category: Case-insensitive partial match on the business category.
+        date_from: ISO date string — only return leads created on or after this date.
+        date_to: ISO date string — only return leads created on or before this date.
+        page: 1-indexed page number for pagination (default: 1).
+        limit: Maximum leads per page, capped at 100 (default: 50).
+
+    Returns:
+        LeadListResponse: Paginated response containing leads array, total count, and page metadata.
+    """
     stmt = select(Lead)
     if status:
         stmt = stmt.where(Lead.status == status)
@@ -63,6 +86,16 @@ async def export_leads_csv(
     date_to: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    Exports the filtered lead set as a downloadable CSV attachment.
+
+    Applies the same filter criteria as the list endpoint. The response streams
+    an RFC-4180-compliant CSV file with columns: ID, Business Name, Email,
+    Phone, City, Category, Status, and Created At.
+
+    Returns:
+        StreamingResponse: A `text/csv` attachment named `leads_YYYY-MM-DD.csv`.
+    """
     stmt = select(Lead)
     if status:
         stmt = stmt.where(Lead.status == status)
@@ -96,6 +129,19 @@ async def export_leads_csv(
 
 @router.get("/{lead_id}", response_model=LeadDetailResponse)
 async def get_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retrieves the full profile for a single lead, including eagerly loaded social network associations.
+
+    Args:
+        lead_id: UUID string identifying the target lead.
+
+    Returns:
+        LeadDetailResponse: Complete lead entity with enrichment data, lifecycle timestamps,
+        follow-up metadata, reply intelligence, and social network records.
+
+    Raises:
+        HTTPException 404: If no lead matches the provided identifier.
+    """
     from sqlalchemy.orm import selectinload
     stmt = select(Lead).options(selectinload(Lead.social_networks)).where(Lead.id == lead_id)
     result = await db.execute(stmt)
@@ -106,6 +152,22 @@ async def get_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.patch("/{lead_id}", response_model=LeadResponse)
 async def update_lead(lead_id: str, update_data: LeadUpdate, db: AsyncSession = Depends(get_db)):
+    """
+    Partially updates a lead's mutable attributes (status and/or notes).
+
+    This endpoint is used by administrators to manually override lifecycle statuses
+    or annotate leads with contextual remarks.
+
+    Args:
+        lead_id: UUID string identifying the target lead.
+        update_data: Partial update payload containing optional `status` and `notes` fields.
+
+    Returns:
+        LeadResponse: The refreshed lead entity reflecting the applied mutations.
+
+    Raises:
+        HTTPException 404: If no lead matches the provided identifier.
+    """
     stmt = select(Lead).where(Lead.id == lead_id)
     result = await db.execute(stmt)
     lead = result.scalars().first()

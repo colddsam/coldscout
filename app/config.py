@@ -17,13 +17,14 @@ class Settings(BaseSettings):
     APP_SECRET_KEY: str = "secret"
     API_KEY: str = "admin-secret-key"
     APP_URL: str = "http://localhost:8000"
+    IMAGE_BASE_URL: str = ""
     PRODUCTION_STATUS: str = "RUN"  # Supports "RUN" or "HOLD"
 
     DATABASE_URL: str
     SUPABASE_URL: str
     SUPABASE_ANON_KEY: str
 
-    REDIS_URL: str
+    REDIS_URL: str = ""  # Optional — only required when reactivating Celery
 
     GOOGLE_PLACES_API_KEY: str
     GROQ_API_KEY: str

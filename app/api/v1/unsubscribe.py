@@ -1,3 +1,9 @@
+"""
+Unsubscribe handling API endpoint.
+Processes one-click opt-out requests embedded in outreach emails, ensuring
+CAN-SPAM / GDPR compliance by permanently disabling further communications
+for the associated lead.
+"""
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Lead Generation System",
-    "description": "Automated system to discover, qualify, and outreach to local businesses.",
-    "version": "1.0.0"
+    "description": "Autonomous system to discover, qualify, enrich, and outreach to local businesses using AI-driven multi-touchpoint campaigns.",
+    "version": "2.1.0"
   },
   "paths": {
     "/api/v1/health": {
@@ -461,7 +461,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Retrieves a paginated, optionally filtered list of discovered leads.\nSupports filtering by lifecycle status, geographic city, business category, and discovery date range."
       }
     },
     "/api/v1/leads/export/csv": {
@@ -577,7 +578,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Exports the filtered lead set as a downloadable CSV attachment.\nApplies the same filter criteria as the list endpoint."
       }
     },
     "/api/v1/leads/{lead_id}": {
@@ -624,7 +626,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Retrieves the full profile for a single lead including enrichment data, lifecycle timestamps, follow-up metadata, and social network records."
       },
       "patch": {
         "tags": [
@@ -679,7 +682,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Partially updates a lead status and/or notes.\nUsed by administrators to manually override lifecycle statuses or annotate leads."
       }
     },
     "/api/v1/campaigns": {
@@ -709,7 +713,8 @@
           {
             "APIKeyHeader": []
           }
-        ]
+        ],
+        "description": "Retrieves all outreach campaigns sorted by date (newest first)."
       }
     },
     "/api/v1/campaigns/{campaign_id}": {
@@ -756,7 +761,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Retrieves a specific campaign with eagerly loaded email outreach records."
       }
     },
     "/api/v1/campaigns/{campaign_id}/stats": {
@@ -803,7 +809,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Computes real-time engagement statistics for a given campaign.\nCross-references funnel metrics: discovered, qualified, sent, opened, clicked, replied."
       }
     },
     "/api/v1/reports": {
@@ -833,7 +840,8 @@
           {
             "APIKeyHeader": []
           }
-        ]
+        ],
+        "description": "Retrieves all daily pipeline reports sorted by date (newest first)."
       }
     },
     "/api/v1/reports/{date}": {
@@ -881,7 +889,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Retrieves the daily pipeline report for a specific calendar date."
       }
     },
     "/api/v1/reports/{date}/download": {
@@ -927,7 +936,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Downloads the Excel workbook generated for the specified daily report."
       }
     },
     "/api/v1/unsubscribe/{tracking_token}": {

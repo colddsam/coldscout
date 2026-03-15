@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/FastAPI-0.100+-00a393.svg" alt="FastAPI" />
     <img src="https://img.shields.io/badge/APScheduler-In--Process_Jobs-37814A.svg" alt="APScheduler" />
     <img src="https://img.shields.io/badge/PostgreSQL-Database-336791.svg" alt="PostgreSQL" />
-    <img src="https://img.shields.io/badge/Version-v2.0_Autonomous-8A2BE2.svg" alt="Version 2" />
+    <img src="https://img.shields.io/badge/Version-v2.1_Branded_Outreach-8A2BE2.svg" alt="Version 2.1" />
     <img src="https://img.shields.io/badge/Status-Production_Ready-success.svg" alt="Status" />
   </p>
 </div>
@@ -52,7 +52,7 @@ It autonomously:
 ## 🚀 Project Overview
 
 <div align="center">
-  <img src="https://skillicons.dev/icons?i=python,fastapi,postgres,redis,docker,githubactions" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=python,fastapi,postgres,docker,githubactions" alt="Tech Stack" />
 </div>
 
 The project is built on a robust, asynchronous tech stack designed to handle high-throughput network operations:
@@ -63,7 +63,8 @@ The project is built on a robust, asynchronous tech stack designed to handle hig
 - **Scraping Engine:** `Playwright` & `BeautifulSoup4` for deep web crawling.
 - **AI Brain:** `Groq API` (Llama 3) for lightning-fast business qualification and personalized email generation.
 - **Monitoring & Alerting:** `Loguru` for structured logging and `Telegram Bot API` for real-time pipeline notifications.
-- **Document Generation:** Auto-populates business-specific `PDF Proposals` and `Excel` daily performance reports.
+- **Document Generation:** Auto-populates business-specific `PDF Proposals`, `Excel ROI Workbooks`, and daily performance reports.
+- **Email Template Engine:** `Jinja2`-powered branded HTML emails with configurable logo via Cloudinary CDN.
 
 ---
 
@@ -88,8 +89,9 @@ graph TD;
 
         DB -->|Fetch Approved Leads| AI_Personalize[Groq AI Content Generator]
         AI_Personalize -->|Generate Context| PDFGen[PDF Proposal Generator]
-        PDFGen --> EmailBuilder[Build HTML Email]
-        EmailBuilder -->|Attach PDF| Mailer[Email Delivery System]
+        PDFGen --> XLSXGen[Excel ROI Workbook Generator]
+        XLSXGen --> EmailBuilder[Build Branded HTML Email]
+        EmailBuilder -->|Attach PDF + XLSX| Mailer[Email Delivery System]
     end
 
     subgraph "Delivery & Tracking"
@@ -117,11 +119,13 @@ graph TD;
 | **🌐 Social & Competitor Intel**| Autonomously detects social media footprints and performs local competitor benchmarking to find unique sales angles. |
 | **✍️ Hyper-Personalization** | Generates completely unique email bodies referencing the prospect's specific services, location, and competitor gaps.          |
 | **📄 Dynamic PDF Proposals**   | Auto-generates customized, visually polished business proposals (via ReportLab) and attaches them to outreach emails.          |
+| **📊 Interactive Excel ROI Workbook** | Generates a 3-sheet Excel proposal per lead: ROI projections with editable assumptions, competitor digital snapshot, and a phased project roadmap. |
+| **🖼 Branded Email Templates** | Renders rich HTML emails via Jinja2 templating with configurable company logos sourced from a CDN (`IMAGE_BASE_URL`), tracking pixels, and CTA buttons. |
 | **🔁 Autonomous Follow-Ups**   | Intelligent, tri-stage multi-touchpoint sequence that automatically pauses upon prospect engagement (clicks or replies). |
 | **🤖 Smart AI Inbox**          | Reads incoming replies, categorizes intent (e.g., *interested*, *pricing_inquiry*), and automatically drafts context-aware responses. |
 | **📈 Self-Improving Prompts**  | Analyzes weekly campaign metrics (open/reply rates) and dynamically leverages LLM feedback loops to rewrite underperforming outreach prompts. |
 | **🔔 WhatsApp & Telegram Alerts** | Real-time notifications for discovered leads, pipeline errors, and high-intent prospect engagements (e.g., hot replies).       |
-| **📊 ROI & Excel Reporting**   | Compiles daily and weekly outreach metrics and sends an Excel overview directly to the administrator.                                |
+| **📉 ROI & Excel Reporting**   | Compiles daily and weekly outreach metrics and sends an Excel overview directly to the administrator.                                |
 | **🛡 API Key Security**        | All management endpoints are protected by `X-API-Key` headers.                                                          |
 | **💸 Serverless Optimized**    | In-process APScheduler execution optimized for restrictive free-tiers (e.g., Render) by minimizing external connections. |
 | **⏸ Dynamic Pipeline Control**| API-driven `jobs_config.json` system allows granular `HOLD`/`RUN` and schedule adjustments for individual pipeline stages without a server reboot, paired with a global `.env` kill-switch. |
@@ -145,8 +149,22 @@ Copy the `.env.example` to `.env` and fill in the specifics:
 cp .env.example .env
 ```
 
-Ensure you have set `DATABASE_URL`, `GROQ_API_KEY`, SMTP credentials, Telegram `TELEGRAM_BOT_TOKEN`, `IMAP_SERVER` credentials, and `CRON_JOB_API_KEY` (if utilizing the automated free-tier external trigger). 
-You may also set `PRODUCTION_STATUS=HOLD` to safely pause all automated daily operations globally. Granular control is managed dynamically via the API and `config/jobs_config.json`.
+The following critical variables must be configured:
+
+| Variable | Purpose |
+|:---------|:--------|
+| `DATABASE_URL` | PostgreSQL connection string (asyncpg format) |
+| `GROQ_API_KEY` | Groq LLM API key for qualification & personalization |
+| `BREVO_SMTP_*` | SMTP relay credentials for email dispatch |
+| `GOOGLE_PLACES_API_KEY` | Google Places API for lead discovery |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot for real-time pipeline alerts |
+| `IMAP_*` | IMAP credentials for polling incoming replies |
+| `IMAGE_BASE_URL` | CDN URL for the branded logo displayed in outreach emails |
+| `PRODUCTION_STATUS` | Global pipeline kill-switch (`RUN` or `HOLD`) |
+| `BOOKING_LINK` | CTA booking URL for email call-to-action buttons |
+| `SENDER_ADDRESS` | Physical sender address for CAN-SPAM compliance |
+
+Granular per-job control is managed dynamically via the API and `config/jobs_config.json`.
 
 ### 3. Local Installation (Recommended for Development)
 
@@ -174,10 +192,10 @@ You may also set `PRODUCTION_STATUS=HOLD` to safely pause all automated daily op
 If you prefer an isolated containerized environment, ensure Docker is installed and run:
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-This will spin up the FastAPI app and (optionally) the PostgreSQL container. All background tasks run seamlessly inside the API process.
+This will spin up the FastAPI app with a built-in health check (`/api/v1/health`) and persistent job configuration volume. All background tasks run seamlessly inside the API process via APScheduler.
 
 ### External Cron-Job Setup (For Serverless Free Tiers)
 
@@ -230,7 +248,7 @@ pytest -v tests/
 
 ## 🔮 Future Roadmap (v3.0)
 
-With the successful deployment of **v2.0**, the platform now possesses autonomous follow-ups, reply classification, deep enrichment, and self-improving prompt analytics. 
+With the successful deployment of **v2.1**, the platform now possesses autonomous follow-ups, reply classification, deep enrichment, self-improving prompt analytics, and branded outreach templates. 
 Our upcoming v3.0 goals focus on expanding beyond email:
 
 - **Multi-Omnichannel Sequences:** Coordinated outreach traversing SMS, direct LinkedIn messaging, and automated voicemail drops.

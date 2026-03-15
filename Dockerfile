@@ -46,5 +46,9 @@ USER appuser
 # Expose the application port
 EXPOSE $PORT
 
+# Docker-native health check — verifies the API process is responsive
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8000}/api/v1/health')" || exit 1
+
 # Start the uvicorn server with proxy headers enabled for reverse-proxy (e.g. Render/Nginx)
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
