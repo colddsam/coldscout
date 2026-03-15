@@ -55,9 +55,17 @@ async def list_leads(
     if category:
         stmt = stmt.where(Lead.category.ilike(f"%{category}%"))
     if date_from:
-        stmt = stmt.where(func.date(Lead.created_at) >= date_from)
+        try:
+            parsed_from = date.fromisoformat(date_from)
+            stmt = stmt.where(func.date(Lead.created_at) >= parsed_from)
+        except ValueError:
+            pass  # Ignore invalid date strings
     if date_to:
-        stmt = stmt.where(func.date(Lead.created_at) <= date_to)
+        try:
+            parsed_to = date.fromisoformat(date_to)
+            stmt = stmt.where(func.date(Lead.created_at) <= parsed_to)
+        except ValueError:
+            pass  # Ignore invalid date strings
         
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt)
@@ -104,9 +112,17 @@ async def export_leads_csv(
     if category:
         stmt = stmt.where(Lead.category.ilike(f"%{category}%"))
     if date_from:
-        stmt = stmt.where(func.date(Lead.created_at) >= date_from)
+        try:
+            parsed_from = date.fromisoformat(date_from)
+            stmt = stmt.where(func.date(Lead.created_at) >= parsed_from)
+        except ValueError:
+            pass  # Ignore invalid date strings
     if date_to:
-        stmt = stmt.where(func.date(Lead.created_at) <= date_to)
+        try:
+            parsed_to = date.fromisoformat(date_to)
+            stmt = stmt.where(func.date(Lead.created_at) <= parsed_to)
+        except ValueError:
+            pass  # Ignore invalid date strings
         
     result = await db.execute(stmt)
     leads = result.scalars().all()
