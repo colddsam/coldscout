@@ -31,11 +31,13 @@ class Settings(BaseSettings):
     SECURITY_SALT: str
     APP_URL: str = "http://localhost:8000"
     IMAGE_BASE_URL: str = ""
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
     
     # Dynamic CORS Configuration
-    # Accepts a comma-separated list of origins (e.g., "http://localhost:5173,https://your-vercel-app.vercel.app")
-    # This allows flexible cross-origin requests from the React frontend (running on Vercel) to this FastAPI backend (running on Render).
-    BACKEND_CORS_ORIGINS: Any = ["*"]
+    # Accepts a comma-separated list of origins (e.g., "https://coldscout.colddsam.com")
+    # This allows flexible cross-origin requests from the React frontend to this FastAPI backend.
+    # DEFAULT IS EMPTY FOR SECURITY - MUST BE SET IN PRODUCTION VIA ENVIRONMENT VARIABLE
+    BACKEND_CORS_ORIGINS: list[str] | str = []
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
