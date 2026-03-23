@@ -10,10 +10,17 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { useSEO } from '../../hooks/useSEO';
 
 export default function Shell() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useSEO({
+    title: 'Dashboard | Cold Scout',
+    description: 'Manage your AI lead generation pipeline, campaigns, and inbox.',
+    index: false,
+  });
 
   return (
     <div className="flex h-screen overflow-hidden bg-white">

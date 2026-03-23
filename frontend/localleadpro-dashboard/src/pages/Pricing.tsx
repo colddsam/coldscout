@@ -12,6 +12,8 @@ import {
   Github, Zap, Building2, Globe
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useSEO } from '../hooks/useSEO';
+import JsonLd from '../components/seo/JsonLd';
 
 /* ═══════════════ Currency Data ═══════════════ */
 
@@ -304,6 +306,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                         ? 'bg-white text-black hover:bg-gray-100'
                         : 'bg-black text-white hover:bg-gray-800'
                     }`}
+                    aria-label={`${plan.cta} with the ${plan.name} plan`}
                   >
                     {plan.cta} <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -311,6 +314,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                   <Link
                     to={plan.ctaLink}
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 transition-all duration-200"
+                    aria-label={`${plan.cta} with the ${plan.name} plan`}
                   >
                     {plan.cta} <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
@@ -509,11 +513,88 @@ function PricingFooter() {
 
 /* ═══════════════ Main Pricing Page ═══════════════ */
 
+const LD_FAQ_PRICING = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is the platform truly free to self-host?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Absolutely. The entire Cold Scout codebase is open source under the MIT license. Clone the GitHub repository, set up your own API keys (Google Places, Groq, Brevo, etc.), and deploy on your own infrastructure at zero cost.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What do I get with the Pro plan?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'The Pro plan gives you instant access to our pre-configured, managed API server and MCP server — no deployment, no Docker, no environment setup. You get a ready-to-use API key and start generating leads immediately.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I cancel my subscription anytime?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Both Pro and Enterprise plans are billed monthly with no long-term contracts. Cancel anytime from your dashboard. Your access continues until the end of the current billing period.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What happens if I exceed the 2,000 leads/month on Pro?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You will receive a notification when you approach your limit. Once reached, the pipeline pauses until the next billing cycle. You can upgrade to Enterprise at any time for unlimited leads.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does the Enterprise plan differ for agencies?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Enterprise customers get a dedicated API instance, custom ICP model training tailored to their niche, white-label email templates, and priority support with a 4-hour response SLA.',
+      },
+    },
+  ],
+};
+
+const LD_BREADCRUMB_PRICING = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://coldscout.colddsam.com/',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Pricing',
+      item: 'https://coldscout.colddsam.com/pricing',
+    },
+  ],
+};
+
 export default function Pricing() {
   const [currency, setCurrency] = useState<CurrencyInfo>(CURRENCIES[0]);
 
+  useSEO({
+    title: 'Pricing — Cold Scout AI Lead Generation',
+    description:
+      'Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at $30/month, and Enterprise plans for agencies. No hidden fees.',
+    canonical: 'https://coldscout.colddsam.com/pricing',
+    keywords:
+      'Cold Scout pricing, AI lead generation pricing, lead generation SaaS cost, open source lead tool, managed API pricing, enterprise lead generation',
+  });
+
   return (
     <div className="bg-white text-black font-sans antialiased">
+      <JsonLd data={LD_FAQ_PRICING} id="faq-pricing" />
+      <JsonLd data={LD_BREADCRUMB_PRICING} id="breadcrumb-pricing" />
       <PricingNavbar />
       <PricingHero currency={currency} onCurrencyChange={setCurrency} />
       <PricingCards currency={currency} />
@@ -524,3 +605,4 @@ export default function Pricing() {
     </div>
   );
 }
+

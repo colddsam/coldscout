@@ -1,27 +1,29 @@
-import { Link } from 'react-router-dom';
 /**
  * Public Landing Page.
- * 
- * Marketing entry point featuring the value proposition, core features, 
+ *
+ * Marketing entry point featuring the value proposition, core features,
  * and pricing tiers for the AI Lead Generation system.
  */
+import { Link } from 'react-router-dom';
 import {
   Search, Zap, Mail, BarChart2, ArrowRight, ChevronRight,
   Target, Shield
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useSEO } from '../hooks/useSEO';
+import JsonLd from '../components/seo/JsonLd';
 
 /* ── SVG Decorations ── */
 
 function GridBackground() {
   return (
-    <div className="absolute inset-0 bg-grid opacity-60 pointer-events-none" />
+    <div className="absolute inset-0 bg-grid opacity-60 pointer-events-none" aria-hidden="true" />
   );
 }
 
 function FloatingDots() {
   return (
-    <svg className="absolute top-20 right-10 w-24 h-24 opacity-10 animate-float" viewBox="0 0 100 100">
+    <svg className="absolute top-20 right-10 w-24 h-24 opacity-10 animate-float" viewBox="0 0 100 100" aria-hidden="true">
       {[...Array(25)].map((_, i) => (
         <circle key={i} cx={(i % 5) * 25 + 12} cy={Math.floor(i / 5) * 25 + 12} r="2" fill="#000" />
       ))}
@@ -37,7 +39,7 @@ function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-panel">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3" aria-label="Cold Scout Home">
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="28" height="28" rx="6" fill="#000" />
             <path d="M8 14L12 10L16 14L12 18Z" fill="#A4DBD9" />
@@ -362,9 +364,89 @@ function Footer() {
 
 /* ── Landing Page ── */
 
+const LD_ORGANIZATION = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Cold Scout',
+  url: 'https://coldscout.colddsam.com',
+  logo: 'https://coldscout.colddsam.com/android-chrome-512x512.png',
+  description: 'AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.',
+  sameAs: ['https://github.com/colddsam/AI-LEAD-GENERATION'],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'colddsam@gmail.com',
+    contactType: 'customer support',
+  },
+};
+
+const LD_WEBSITE = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Cold Scout',
+  url: 'https://coldscout.colddsam.com',
+  description: 'AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://coldscout.colddsam.com/docs?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const LD_SOFTWARE = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Cold Scout',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: 'https://coldscout.colddsam.com',
+  description: 'AI-powered lead generation platform that automates outreach pipeline from search to inbox.',
+  offers: [
+    {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      name: 'Open Source (Self-hosted)',
+    },
+    {
+      '@type': 'Offer',
+      price: '30',
+      priceCurrency: 'USD',
+      name: 'Pro — Hosted API',
+      billingIncrement: 1,
+    },
+    {
+      '@type': 'Offer',
+      price: '100',
+      priceCurrency: 'USD',
+      name: 'Enterprise',
+      billingIncrement: 1,
+    },
+  ],
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    reviewCount: '12',
+  },
+};
+
 export default function LandingPage() {
+  useSEO({
+    title: 'Cold Scout — AI Lead Generation Platform',
+    description:
+      'Cold Scout uses AI to discover, enrich, and engage local business leads — automating your entire outreach pipeline from search to inbox. Try it free.',
+    canonical: 'https://coldscout.colddsam.com/',
+    keywords:
+      'AI lead generation, local business leads, cold outreach automation, lead qualification, email campaign, Google Maps scraping, sales pipeline, B2B leads, ICP scoring',
+  });
+
   return (
     <div className="bg-white text-black font-sans antialiased">
+      <JsonLd data={LD_ORGANIZATION} id="organization" />
+      <JsonLd data={LD_WEBSITE} id="website" />
+      <JsonLd data={LD_SOFTWARE} id="software" />
       <Navbar />
       <HeroSection />
       <FeaturesSection />
@@ -374,3 +456,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

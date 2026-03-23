@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { LogIn } from 'lucide-react';
+import { useSEO } from '../hooks/useSEO';
 
 /**
  * The authentication entry point to the system dashboard.
@@ -22,6 +23,13 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useSEO({
+    title: 'Sign In — Cold Scout',
+    description: 'Sign in to your Cold Scout dashboard to manage your AI lead generation pipeline.',
+    canonical: 'https://coldscout.colddsam.com/login',
+    index: false,
+  });
 
   // The 'from' object retains the URL path the user tried to visit before being intercepted
   const from = location.state?.from?.pathname || '/overview';

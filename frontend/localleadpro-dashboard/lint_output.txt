@@ -1,7 +1,0 @@
-
-C:\Users\SAMRAT\OneDrive\Documents\projects\AI LEAD GENERATION\frontend\localleadpro-dashboard\src\components\ui\DataTable.tsx
-  122:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-  123:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-
-Γ£û 2 problems (2 errors, 0 warnings)
-

@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { useSEO } from '../hooks/useSEO';
 
 /**
  * A standard 404 overlay displayed automatically by React Router when a
  * user navigates to an invalid/unregistered route.
  */
 export default function NotFound() {
+  useSEO({
+    title: '404 — Page Not Found | Cold Scout',
+    description: 'This page does not exist. Return to Cold Scout to discover AI-powered lead generation.',
+    index: false,
+  });
+
   return (
     <div className="min-h-screen flex items-center justify-center flex-col text-center space-y-6 bg-white">
       <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">

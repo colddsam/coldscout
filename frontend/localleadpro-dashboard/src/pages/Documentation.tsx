@@ -15,6 +15,8 @@ import {
   Cpu, GitBranch, Box, Layers
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useSEO } from '../hooks/useSEO';
+import JsonLd from '../components/seo/JsonLd';
 
 /* ═══════════════ SVG Decorations ═══════════════ */
 
@@ -948,9 +950,38 @@ function DocsFooter() {
 
 /* ═══════════════ Main Documentation Page ═══════════════ */
 
+const LD_BREADCRUMB_DOCS = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://coldscout.colddsam.com/',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Documentation',
+      item: 'https://coldscout.colddsam.com/docs',
+    },
+  ],
+};
+
 export default function Documentation() {
+  useSEO({
+    title: 'Documentation — Cold Scout AI Lead Generation',
+    description:
+      'Full setup guide for Cold Scout: system architecture, API keys, environment variables, deployment to Render & Vercel, and production configuration.',
+    canonical: 'https://coldscout.colddsam.com/docs',
+    keywords:
+      'Cold Scout documentation, AI lead generation setup, FastAPI deployment, Vercel deployment, Render deployment, Supabase database, Groq API, Google Places API',
+  });
+
   return (
     <div className="bg-white text-black font-sans antialiased">
+      <JsonLd data={LD_BREADCRUMB_DOCS} id="breadcrumb-docs" />
       <DocsNavbar />
       <HeroSection />
       <TableOfContents />

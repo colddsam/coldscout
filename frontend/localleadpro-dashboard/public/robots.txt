@@ -1,0 +1,19 @@
+# robots.txt — Cold Scout (https://coldscout.colddsam.com)
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /docs
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /scheduler
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /inbox
+Disallow: /analytics
+Disallow: /settings
+Disallow: /login
+
+# Point crawlers to the sitemap
+Sitemap: https://coldscout.colddsam.com/sitemap.xml
