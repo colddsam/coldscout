@@ -1,15 +1,15 @@
 /**
- * Backend API Client & Type Definitions.
+ * Backend API Client & Core Data Models.
  * 
- * Provides a type-safe interface for interacting with the AI Lead Generation backend.
- * Uses Axios for HTTP requests, handles authentication tokens via interceptors,
- * and normalizes error responses for UI consumption.
+ * Provides a type-safe interface for the AI Lead Generation backend.
+ * Handles authentication header injection, session lifecycle management via 
+ * axios interceptors, and error normalization.
  */
 import axios from 'axios';
 
 /**
- * Core Axios client configuration for all backend API interactions.
- * Centrally manages the base URL, timeout, and cross-origin resource sharing requirements.
+ * Core Axios configuration.
+ * Manages base URL, timeouts, and shared security headers.
  */
 const API_KEY = import.meta.env.VITE_API_KEY;
 
@@ -21,7 +21,7 @@ export const client = axios.create({
   },
 });
 
-// Request interceptor for injecting auth token and security headers
+// Request interceptor: Injects JWT and X-API-Key for authenticated routes.
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('llp_token');
   if (token) {
@@ -35,16 +35,43 @@ client.interceptors.request.use((config) => {
 });
 
 /**
- * Response interceptor to normalize error handling across the application.
- * Extracts meaningful error messages from backend responses or network failures.
+ * Response interceptor: Normalizes error handling and session lifecycle management.
+ * Detects 401/403 status codes to trigger global session expiration events.
  */
 client.interceptors.response.use(
   (res) => res,
   (err) => {
+    // Handle credential failure specifically. We check the detail message
+    // to distinguish between session expiry (JWT) and system config errors (API Key).
+    const isSessionError = err.response?.status === 401 || 
+      (err.response?.status === 403 && err.response?.data?.detail === "Could not validate credentials");
+
+    if (isSessionError) {
+      // Clear local storage immediately to prevent further unauthorized requests
+      localStorage.removeItem('llp_token');
+      localStorage.removeItem('llp_user');
+      
+      const path = window.location.pathname;
+      // Signal session expiration if the user is in a protected area.
+      if (path !== '/login' && path !== '/') {
+        window.dispatchEvent(new CustomEvent('auth-session-expired'));
+      }
+    }
+
     const msg = err.response?.data?.detail || err.message || 'Unknown error';
     return Promise.reject(new Error(msg));
   }
 );
+
+/**
+ * Fetches the authenticated user profile. 
+ * Used for session recovery and credential verification on app boot.
+ */
+export const getMe = async () => {
+  const { data } = await client.get('/api/v1/me');
+  return data;
+};
+
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -213,15 +240,13 @@ export interface InboxThread {
 
 // Health & System
 /**
- * Retrieves the overall system health, version, and environment status.
- * Used for dashboard status indicators and connectivity checks.
+ * Retrieves system-wide health and version metadata.
  */
 export const getHealth = () =>
   client.get<HealthResponse>('/api/v1/health').then((r) => r.data);
 
 /**
- * Places the entire outreach system on administrative hold.
- * Prevents any new emails from being dispatched while active.
+ * Globally pauses lead processing and email dispatch.
  */
 export const holdSystem = () =>
   client.post('/api/v1/pipeline/hold').then((r) => r.data);
@@ -235,23 +260,20 @@ export const resumeSystem = () =>
 
 // Pipeline
 /**
- * Retrieves the current execution status of the backend pipeline.
- * Includes details about the last run, active jobs, and scheduler heartbeats.
+ * Retrieves current pipeline execution state, active heartbeats, and run history.
  */
 export const getPipelineStatus = () =>
   client.get<PipelineStatusResponse>('/api/v1/pipeline/status').then((r) => r.data);
 
 /**
- * Manually triggers a specific stage or the entire pipeline.
- * Primarily used for testing or re-running failed optimization cycles.
+ * Manually triggers a specific pipeline stage by slug (default: 'all').
  */
 export const triggerPipeline = (stage: PipelineStage = 'all') =>
   client.post('/api/v1/pipeline/trigger', { stage }).then((r) => r.data);
 
 // Jobs Config
 /**
- * Fetches the interactive job configuration from the backend.
- * Defines the cron schedules and operational status for all background tasks.
+ * Fetches the interactive job schedule and status configuration.
  */
 export const getJobsConfig = () =>
   client.get<JobsConfig>('/api/v1/pipeline/jobs_config').then((r) => r.data);
@@ -265,8 +287,7 @@ export const updateJobsConfig = (config: Record<string, unknown>) =>
 
 // Leads
 /**
- * Retrieves a paginated list of leads with optional filtering by status, location, and category.
- * Essential for the Leads CRM and Overview dashboard components.
+ * Retrieves paginated leads with support for geographic and status-based filtering.
  */
 export const getLeads = (params: {
   page?: number;

@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom';
 /**
- * Professional Landing Page for the AI Lead Generation system.
+ * Public Landing Page.
  * 
- * Features a modern, high-conversion design with:
- * - Animated hero section and visual decorations.
- * - Categorized feature breakdown.
- * - Multi-tier pricing table.
- * - SEO-optimized semantic structure.
+ * Marketing entry point featuring the value proposition, core features, 
+ * and pricing tiers for the AI Lead Generation system.
  */
 import {
   Search, Zap, Mail, BarChart2, ArrowRight, ChevronRight,

@@ -24,10 +24,10 @@ import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import SessionExpiredModal from './components/auth/SessionExpiredModal';
 
 /**
  * Shared QueryClient instance with optimized development defaults.
- * Configured to minimize unnecessary network traffic while maintaining data freshness.
  */
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,7 +44,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <SessionExpiredModal />
           <Routes>
+
             {/* Public */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />

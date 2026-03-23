@@ -1,14 +1,11 @@
 /**
- * Global Dashboard Constants & Configuration.
- * 
- * Central registry for shared business logic constants, UI display labels,
- * navigation structures, and semantic theme mappings throughout the frontend.
+ * Global Dashboard Constants.
+ * Central registry for status mappings, navigation structures, and UI state labels.
  */
 import type { LeadStatus, IntentLabel } from './api';
 
 /**
- * Mapping of lead status keys to Tailwind-friendly semantic color names.
- * Centralizes the visual branding for lead progression across the dashboard.
+ * Semantic color mapping for lead statuses.
  */
 export const STATUS_COLORS: Record<string, string> = {
   discovered: 'amber',

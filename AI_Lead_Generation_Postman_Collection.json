@@ -6,6 +6,81 @@
     "version": "2.1.0"
   },
   "paths": {
+    "/api/v1/login/access-token": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login Access Token",
+        "operationId": "login_access_token_api_v1_login_access_token_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_access_token_api_v1_login_access_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "description": "Standard OAuth2-compatible password flow used to obtain a JWT.\n\nValidates credentials against the PostgreSQL user pool. If successful,\nreturns a signed access token with a 7-day expiration."
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Read User Me",
+        "operationId": "read_user_me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "description": "Retrieves the identity of the currently authenticated administrator."
+      }
+    },
     "/api/v1/health": {
       "get": {
         "summary": "Health Check",
@@ -174,7 +249,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       }
@@ -199,7 +275,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       }
@@ -224,7 +301,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       }
@@ -249,7 +327,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       }
@@ -274,7 +353,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       },
@@ -318,7 +398,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ]
       }
@@ -332,7 +413,8 @@
         "operationId": "list_leads_api_v1_leads_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -474,7 +556,8 @@
         "operationId": "export_leads_csv_api_v1_leads_export_csv_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -591,7 +674,8 @@
         "operationId": "get_lead_api_v1_leads__lead_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -637,7 +721,8 @@
         "operationId": "update_lead_api_v1_leads__lead_id__patch",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -683,7 +768,47 @@
             }
           }
         },
-        "description": "Partially updates a lead status and/or notes.\nUsed by administrators to manually override lifecycle statuses or annotate leads."
+        "description": "Partially updates a lead's mutable attributes (status and/or notes).\n\nThis endpoint is used by administrators to manually override lifecycle statuses\nor annotate leads with contextual remarks."
+      },
+      "delete": {
+        "tags": [
+          "leads"
+        ],
+        "summary": "Delete Lead",
+        "operationId": "delete_lead_api_v1_leads__lead_id__delete",
+        "security": [
+          {
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lead_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lead Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "description": "Permanently deletes a lead and all associated records from the system.\n\nThis includes social networks, outreach history, and event tracking.\nUse with caution as this action cannot be undone."
       }
     },
     "/api/v1/campaigns": {
@@ -711,7 +836,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "description": "Retrieves all outreach campaigns sorted by date (newest first)."
@@ -726,7 +852,8 @@
         "operationId": "get_campaign_api_v1_campaigns__campaign_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -774,7 +901,8 @@
         "operationId": "get_campaign_stats_api_v1_campaigns__campaign_id__stats_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -838,7 +966,8 @@
         },
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "description": "Retrieves all daily pipeline reports sorted by date (newest first)."
@@ -853,7 +982,8 @@
         "operationId": "get_report_by_date_api_v1_reports__date__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -902,7 +1032,8 @@
         "operationId": "download_report_api_v1_reports__date__download_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "APIKeyHeader": [],
+            "OAuth2PasswordBearer": []
           }
         ],
         "parameters": [
@@ -986,6 +1117,63 @@
   },
   "components": {
     "schemas": {
+      "Body_login_access_token_api_v1_login_access_token_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "password"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_access_token_api_v1_login_access_token_post"
+      },
       "CampaignDetailResponse": {
         "properties": {
           "name": {
@@ -2249,6 +2437,204 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "user"
+        ],
+        "title": "Token"
+      },
+      "UserOut": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "UserOut"
+      },
+      "TokenPayload": {
+        "properties": {
+          "sub": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub"
+          }
+        },
+        "type": "object",
+        "title": "TokenPayload"
+      },
+      "UserBase": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "UserBase"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate"
       }
     },
     "securitySchemes": {
@@ -2256,6 +2642,15 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key"
+      },
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/login/access-token"
+          }
+        }
       }
     }
   },

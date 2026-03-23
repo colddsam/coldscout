@@ -17,15 +17,11 @@ import { cn } from '../lib/utils';
 import type { Lead } from '../lib/api';
 
 /**
- * The primary system dashboard providing real-time operational visibility.
- * Aggregates health metrics, pipeline status, and recent lead discovery activity
- * into a single unified view for the user.
+ * System Overview Dashboard.
  * 
- * Features:
- * - High-level statistics (Total Leads, Active Jobs).
- * - Live pipeline status monitoring with manual trigger controls.
- * - System health indicators (API up/down, Scheduler status, Global kill-switch).
- * - A preview of the most recently discovered leads with quick navigation.
+ * Aggregates real-time health metrics, active job status, and recent lead activity 
+ * into a single operational interface. Provides high-level KPIs and quick links 
+ * to primary system controls.
  */
 export default function Overview() {
   const { data: health } = useHealth();

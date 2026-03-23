@@ -12,22 +12,10 @@ import { LEAD_STATUSES } from '../lib/constants';
 import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save } from 'lucide-react';
 
 /**
- * Full detail view for a single lead, identified by `:id` in the URL.
- *
- * This page consolidates all data the pipeline discovered and enriched for a
- * specific prospect — from basic contact info to the AI qualification score and
- * outreach history. It also serves as the primary CRM editing surface.
- *
- * Editing flows:
- * - **Status**: A dropdown lets operators reclassify the lead (e.g., move from
- *   `qualified` to `converted`). The save button commits the change immediately.
- * - **Notes**: A toggled textarea allows freeform notes to be attached per lead.
- *   Changes are only sent when the operator explicitly clicks "Save Notes".
- * - **Delete**: A confirmation Modal is shown before permanently removing the lead,
- *   preventing accidental data loss. On success the user is redirected to `/leads`.
- *
- * All mutations (update + delete) use the `useLeads` hooks which handle cache
- * invalidation automatically, so the list page is always fresh after edits.
+ * Lead Detail & Management View.
+ * 
+ * Consolidates all discovery, qualification, and outreach data for a specific prospect. 
+ * Serves as the primary CRM editing surface for status updates, notes, and lead deletion.
  */
 export default function LeadDetail() {
   const { id } = useParams<{ id: string }>();

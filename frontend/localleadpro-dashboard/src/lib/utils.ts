@@ -3,16 +3,14 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 /**
- * Utility for conditional class name merging.
- * Combines clsx for conditional logic and tailwind-merge to handle conflicting Tailwind classes.
+ * Merges Tailwind classes with clsx logic and tailwind-merge conflict resolution.
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Formats an ISO date string into a human-readable "MMM d, yyyy HH:mm" format.
- * Returns a fallback placeholder if the date is null or invalid.
+ * Formats ISO date strings to human-readable "MMM d, yyyy HH:mm".
  */
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—';
@@ -73,8 +71,7 @@ export function buildCronDescription(config: Record<string, unknown>): string {
 }
 
 /**
- * Triggers a browser-level download for a given Blob object.
- * Primarily used for exporting CSVs and downloading PDF reports.
+ * Triggers a browser download for a raw Blob (e.g., CSV/PDF exports).
  */
 export function downloadBlob(blob: Blob, filename: string) {
   const url = window.URL.createObjectURL(blob);

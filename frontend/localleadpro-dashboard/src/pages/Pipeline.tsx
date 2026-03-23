@@ -16,11 +16,11 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 /**
- * The Pipeline page provides manual control and live logging for the AI Lead Generation pipeline.
+ * Pipeline Control Center.
  * 
- * Users can view the current status of the pipeline, manually trigger specific stages 
- * (such as Discovery, Qualification, or Outreach), or execute a full pipeline run.
- * Real-time logs are displayed to give immediate feedback on the execution progress.
+ * Provides granular manual control over the AI Lead Generation workflow.
+ * Supports stage-specific triggers, full pipeline execution, and live 
+ * operation logging for real-time feedback.
  */
 export default function Pipeline() {
   const { data: pipeline } = usePipelineStatus(5000);
