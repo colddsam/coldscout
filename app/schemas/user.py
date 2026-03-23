@@ -26,6 +26,7 @@ class UserOut(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: UserOut
 
 # Contents of JWT token
 class TokenPayload(BaseModel):
