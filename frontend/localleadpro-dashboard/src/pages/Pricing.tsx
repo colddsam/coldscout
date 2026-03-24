@@ -249,7 +249,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
         'Self-managed infrastructure',
       ],
       cta: 'View on GitHub',
-      ctaLink: 'https://github.com/colddsam/AI-LEAD-GENERATION',
+      ctaLink: 'https://github.com/colddsam/coldscout.git',
       external: true,
       featured: false,
       color: '#333',
@@ -518,7 +518,7 @@ function CtaBanner() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="https://github.com/colddsam/AI-LEAD-GENERATION"
+            href="https://github.com/colddsam/coldscout.git"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-lg text-sm font-medium border border-gray-200 hover:border-black hover:shadow-vercel transition-all"
@@ -552,7 +552,7 @@ function PricingFooter() {
             <Link to="/" className="text-xs text-secondary hover:text-black transition-colors">Home</Link>
             <Link to="/docs" className="text-xs text-secondary hover:text-black transition-colors">Docs</Link>
             <Link to="/pricing" className="text-xs text-black font-medium">Pricing</Link>
-            <a href="https://github.com/colddsam/AI-LEAD-GENERATION" target="_blank" rel="noopener noreferrer" className="text-xs text-secondary hover:text-black transition-colors">GitHub</a>
+            <a href="https://github.com/colddsam/coldscout.git" target="_blank" rel="noopener noreferrer" className="text-xs text-secondary hover:text-black transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-subtle">
             &copy; {new Date().getFullYear()} Cold Scout. All rights reserved.

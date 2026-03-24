@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search, Zap, Mail, BarChart2, ArrowRight, ChevronRight,
-  Target, Shield, Menu, X
+  Target, Shield, Menu, X, Heart
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSEO } from '../hooks/useSEO';
@@ -61,6 +61,14 @@ function Navbar() {
           <a href="#workflow" className="text-sm text-secondary hover:text-black transition-colors">How it works</a>
           <a href="#pricing" className="text-sm text-secondary hover:text-black transition-colors">Pricing</a>
           <Link to="/docs" className="text-sm text-secondary hover:text-black transition-colors">Docs</Link>
+          <a 
+            href="https://github.com/sponsors/colddsam" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-secondary hover:text-pink-600 transition-colors flex items-center gap-1"
+          >
+            <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500" /> Sponsor
+          </a>
           <Link
             to={isAuthenticated ? '/overview' : '/login'}
             className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
@@ -111,6 +119,15 @@ function Navbar() {
             >
               Docs
             </Link>
+            <a 
+              href="https://github.com/sponsors/colddsam" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-lg font-medium text-black border-b border-gray-100 pb-4 flex items-center gap-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <Heart className="w-5 h-5 fill-pink-500 text-pink-500" /> Sponsor
+            </a>
             <Link
               to={isAuthenticated ? '/overview' : '/login'}
               className="mt-4 inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-4 rounded-md text-base font-medium hover:bg-gray-800 transition-colors"
@@ -295,7 +312,7 @@ function PricingSection() {
       desc: 'Self-hosted from GitHub with your own API keys.',
       features: ['Full platform access', 'All 5 pipeline stages', 'Unlimited leads (your keys)', 'Community support'],
       cta: 'View on GitHub',
-      href: 'https://github.com/colddsam/AI-LEAD-GENERATION',
+      href: 'https://github.com/colddsam/coldscout.git',
       external: true,
       featured: false,
     },
@@ -406,6 +423,14 @@ function Footer() {
             <a href="#workflow" className="text-xs text-secondary hover:text-black transition-colors">How it works</a>
             <a href="#pricing" className="text-xs text-secondary hover:text-black transition-colors">Pricing</a>
             <Link to="/docs" className="text-xs text-secondary hover:text-black transition-colors">Docs</Link>
+            <a 
+              href="https://github.com/sponsors/colddsam" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-secondary hover:text-pink-600 transition-colors flex items-center gap-1"
+            >
+              <Heart className="w-3 h-3 fill-pink-500 text-pink-500" /> Sponsor
+            </a>
           </div>
           <p className="text-xs text-subtle">
             &copy; {new Date().getFullYear()} Cold Scout. All rights reserved.
@@ -425,7 +450,7 @@ const LD_ORGANIZATION = {
   url: 'https://coldscout.colddsam.com',
   logo: 'https://coldscout.colddsam.com/web-app-manifest-512x512.png',
   description: 'AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.',
-  sameAs: ['https://github.com/colddsam/AI-LEAD-GENERATION'],
+  sameAs: ['https://github.com/colddsam/coldscout.git'],
   contactPoint: {
     '@type': 'ContactPoint',
     email: 'colddsam@gmail.com',

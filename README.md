@@ -89,8 +89,8 @@ To run the complete system locally, follow these steps meticulously.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/ai-lead-generation.git
-   cd "AI LEAD GENERATION"
+   git clone https://github.com/colddsam/coldscout.git
+   cd coldscout
    ```
 
 2. **Set up the Python Virtual Environment:**
@@ -227,8 +227,19 @@ Please refer to the complete, step-by-step [**DEPLOYMENT.md**](./DEPLOYMENT.md) 
 
 ---
 
+---
+
+## 💖 Support the Project
+
+If you find this project useful, please consider sponsoring its development. Your support helps maintain the infrastructure and add new features.
+
+<a href="https://github.com/sponsors/colddsam">
+  <img src="https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8ebb" alt="Sponsor" height="40">
+</a>
+
+---
+
 <div align="center">
-  <br>
+  <br />
   <em>Built with ❤️ for High-Performance B2B Sales Teams</em>
-</div> revolutionize B2B Sales</em>
 </div>

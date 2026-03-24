@@ -14,7 +14,7 @@ import StatusDot from '../ui/StatusDot';
 import Logo from '../ui/Logo';
 import {
   LayoutDashboard, GitBranch, Clock, Users, Send, Inbox,
-  BarChart2, Settings, ChevronLeft, ChevronRight, LogOut, Home
+  BarChart2, Settings, ChevronLeft, ChevronRight, LogOut, Home, Heart
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -138,6 +138,22 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
             {(!collapsed || mobileOpen) && <span className="font-medium">Logout</span>}
           </button>
+
+          {/* Sponsor Button */}
+          <a
+            href="https://github.com/sponsors/colddsam"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-all duration-200",
+              "text-secondary hover:text-pink-600 hover:bg-pink-50",
+              collapsed && !mobileOpen && "justify-center px-0"
+            )}
+            title="Sponsor the project"
+          >
+            <Heart className={cn("w-[18px] h-[18px] flex-shrink-0", !collapsed || mobileOpen ? "fill-current" : "")} />
+            {(!collapsed || mobileOpen) && <span className="font-medium">Sponsor</span>}
+          </a>
 
           {/* System Status */}
           <div className={cn(

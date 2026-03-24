@@ -14,7 +14,7 @@ import axios from 'axios';
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 export const client = axios.create({
-  baseURL: import.meta.env.VITE_PROXY_URL || '',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   headers: {
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,

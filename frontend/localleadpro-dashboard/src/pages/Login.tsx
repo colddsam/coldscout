@@ -49,8 +49,8 @@ export default function Login() {
       formData.append('password', password);
 
       // Authenticates the user by acquiring a JWT access token via the OAuth2 compatible endpoint.
-      // In local dev, VITE_PROXY_URL hits the proxy. In production, it hits the live backend directly.
-      const res = await fetch(`${import.meta.env.VITE_PROXY_URL || ''}/api/v1/login/access-token`, {
+      // In local dev, VITE_API_BASE_URL hits the proxy. In production, it hits the live backend directly.
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/login/access-token`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded',

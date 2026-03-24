@@ -432,7 +432,7 @@ function SetupSection() {
 
             <div className="space-y-4">
               <CollapsibleSection title="1. Clone the Repository" defaultOpen>
-                <CodeBlock code={`git clone https://github.com/colddsam/AI-LEAD-GENERATION.git\ncd "AI LEAD GENERATION"`} />
+                <CodeBlock code={`git clone https://github.com/colddsam/coldscout.git\ncd coldscout`} />
               </CollapsibleSection>
 
               <CollapsibleSection title="2. Create Python Virtual Environment">
@@ -481,7 +481,7 @@ function SetupSection() {
 
               <CollapsibleSection title="3. Configure Environment">
                 <p className="text-xs text-secondary mb-2">Create a <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">.env</code> file:</p>
-                <CodeBlock code={`# Backend API Location\nAPI_BASE_URL=http://localhost:8000\n\n# API Key (injected by proxy)\nAPI_KEY=your_secret_api_key_here\n\n# Frontend Proxy Access\nVITE_PROXY_URL=http://localhost:3000\nVITE_API_KEY=your_secret_api_key_here`} language="env" />
+                <CodeBlock code={`# Backend API Location\nAPI_BASE_URL=http://localhost:8000\n\n# API Key (injected by proxy)\nAPI_KEY=your_secret_api_key_here\n\n# Frontend Proxy Access\nVITE_API_BASE_URL=http://localhost:3000\nVITE_API_KEY=your_secret_api_key_here`} language="env" />
               </CollapsibleSection>
 
               <CollapsibleSection title="4. Start Development Server">
@@ -829,7 +829,7 @@ function DeploymentSection() {
       items: [
         'New → Project → Connect GitHub repo',
         'Set Root Directory: frontend/localleadpro-dashboard',
-        'Add VITE_PROXY_URL (your Render backend URL)',
+        'Add VITE_API_BASE_URL (your Render backend URL)',
         'Add VITE_API_KEY (matching backend API_KEY)',
         'Add VITE_SITE_NAME (your desired brand name)',
         'Deploy — your dashboard is live!',
@@ -967,7 +967,7 @@ function ProdArchitectureSection() {
               <p className="text-xs text-teal-700 leading-relaxed">
                 In production, the React app communicates directly with the Render API.
                 The <code className="font-mono bg-teal-100 px-1 rounded text-[11px]">server/index.ts</code> proxy is only for local development to bypass browser CORS constraints.
-                Simply point <code className="font-mono bg-teal-100 px-1 rounded text-[11px]">VITE_PROXY_URL</code> to your Render URL.
+                Simply point <code className="font-mono bg-teal-100 px-1 rounded text-[11px]">VITE_API_BASE_URL</code> to your Render URL.
               </p>
             </div>
           </div>
