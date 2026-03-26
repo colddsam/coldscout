@@ -9,8 +9,8 @@ import toast from 'react-hot-toast';
  * any downtime without hammering the server. Increasing frequency (e.g., 10s)
  * is appropriate on the Settings page where users are actively managing state.
  *
- * @param refetchInterval - Polling cadence in milliseconds. Defaults to 60,000 (60s).
- * @returns TanStack Query result with backend health data.
+ * @param {number} [refetchInterval=60000] - Polling cadence in milliseconds.
+ * @returns {import('@tanstack/react-query').QueryResult} TanStack Query result with backend health data.
  */
 export function useHealth(refetchInterval?: number) {
   return useQuery({
@@ -28,7 +28,7 @@ export function useHealth(refetchInterval?: number) {
  * `resume` re-enables them. This is intentionally separate from per-job config
  * so it can act as an emergency brake.
  *
- * @returns TanStack Mutation object — call `.mutate('hold')` or `.mutate('resume')`.
+ * @returns {import('@tanstack/react-query').MutationOptions} TanStack Mutation object — call `.mutate('hold')` or `.mutate('resume')`.
  *
  * @example
  * const toggle = useSystemToggle();
@@ -58,7 +58,7 @@ export function useSystemToggle() {
  * `status` (`RUN`/`HOLD`) and a cron `schedule`. Fetching it here makes the
  * Scheduler page's form inputs controlled and always reflect the server's truth.
  *
- * @returns TanStack Query result with the full jobs configuration object.
+ * @returns {import('@tanstack/react-query').QueryResult} TanStack Query result with the full jobs configuration object.
  */
 export function useConfigJobs() {
   return useQuery({
@@ -74,7 +74,7 @@ export function useConfigJobs() {
  * On success the cache is invalidated so the form re-hydrates with the confirmed
  * server state, preventing stale data from misleading the operator.
  *
- * @returns TanStack Mutation object — call `.mutate(config)` with the full updated config object.
+ * @returns {import('@tanstack/react-query').MutationOptions} TanStack Mutation object — call `.mutate(config)` with the full updated config object.
  */
 export function useUpdateConfig() {
   const qc = useQueryClient();

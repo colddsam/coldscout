@@ -97,6 +97,7 @@ async def extract_website_content(url: str) -> dict:
             context = await browser.new_context(
                 viewport={"width": 1280, "height": 800},
                 user_agent=_USER_AGENT,
+                ignore_https_errors=True,
             )
             page = await context.new_page()
             try:

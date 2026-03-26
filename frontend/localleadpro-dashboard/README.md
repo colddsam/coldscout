@@ -1,104 +1,98 @@
-# 🖥️ LocalLeadPro Admin Dashboard
+# 🖥️ Cold Scout Admin Dashboard
+> Also known internally as LocalLeadPro
 
 <p align="center">
-  <img src="https://img.shields.io/badge/React-18-blue.svg?style=for-the-badge&logo=react" alt="React" />
-  <img src="https://img.shields.io/badge/Vite-5-purple.svg?style=for-the-badge&logo=vite" alt="Vite" />
-  <img src="https://img.shields.io/badge/TailwindCSS-3-38B2AC.svg?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/TypeScript-5-blue.svg?style=for-the-badge&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-18-black.svg?style=for-the-badge&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-5-black.svg?style=for-the-badge&logo=vite" alt="Vite" />
+  <img src="https://img.shields.io/badge/TailwindCSS-3-black.svg?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/TypeScript-5-black.svg?style=for-the-badge&logo=typescript" alt="TypeScript" />
 </p>
 
-The **LocalLeadPro Dashboard** is a high-performance CRM and control interface for an AI-driven lead generation ecosystem. It bridges the gap between raw data scraping and meaningful business outreach by providing real-time pipeline monitoring, AI-powered lead qualification, and a centralized communication hub.
+The **Cold Scout Dashboard** operates as the centralized, high-performance command center for the overarching AI-driven lead generation infrastructure. Engineered with a premium glassmorphic visual language, it bridges the gap between raw data acquisition and meaningful operational outreach by providing an uncompromising real-time tracking interface.
 
 ---
 
-## ✨ System Features
+## ✨ Architectural Features
 
-- **🔐 Enterprise Authentication**: JWT-based security with persistent sessions, route protection, and OAuth2 compatibility.
-- **📊 Real-time Dashboard**: Live overview of pipeline health, campaign performance, and system-wide metrics.
-- **🕵️ Lead Management CRM**: Advanced lead tracking with AI-scored qualification, detailed enrichment data, and outreach history.
-- **⚙️ Integrated Job Scheduler**: Direct control over background automation tasks (Discovery, Scraping, Outreach) via `jobs_config.json`.
-- **🛠️ Pipeline Control**: Manual trigger overrides for individual pipeline stages with live output logging.
-- **📥 AI Inbox**: Centralized reply management with automated intent classification (Interested, Not Interested, Out of Office).
-- **🎨 Premium UI/UX**: Professional glassmorphic design utilizing Tailwind CSS, Lucide icons, and sleek micro-animations.
-
----
-
-## 🏗️ Architecture & Security
-
-To ensure high security and seamless local development, the system uses a **Development Proxy Server**:
-
-- **Location**: `server/index.ts`
-- **Purpose**: Acts as a bridge between the Frontend (Vite) and the Backend API (FastAPI).
-- **Security**: Injects sensitive `API_KEY` headers on the server-side, preventing them from being exposed to the client browser.
-- **CORS Management**: Handles cross-origin requests and forwards Authorization headers (JWT) automatically.
+- **🔐 Enterprise Authentication**: JWT-based identity verification, persistent session tracking, and rigorous route protection protocols.
+- **📊 Real-time Monitoring**: Provides live analytical observation of pipeline latency, campaign velocity, and throughput constraints.
+- **🕵️ Lead State Management**: Tracks strict progression models of acquired targets with integrated AI qualification scoring heuristics.
+- **⚙️ Integrated Scheduling Control**: Administrative access to override autonomous background processes (Discovery, Scraping, Execution).
+- **🛠️ Pipeline Actuation**: Granular manual triggers to force execution of isolated stages asynchronously.
+- **📥 Centralized Inbox Parsing**: Real-time evaluation of inbound communications, automatically categorizing intent vectors (Positive, Negative, Out-of-Office).
+- **🎨 Premium Component System**: Strictly adheres to the monochromatic, high-contrast, professional visual identity of the Cold Scout brand utilizing Tailwind CSS.
 
 ---
 
-## 📂 Project Structure
+## 🏗️ Technical Architecture & Local Proxy
+
+In development environments, security and Cross-Origin Resource Sharing (CORS) are strictly maintained via an isolated Development Proxy Server.
+
+- **Execution Context**: `server/index.ts`
+- **Utility**: Facilitates bridging from the Vite frontend to the FastAPI primary node.
+- **Security Paradigm**: Prohibits exposure of the primary `API_KEY` to the client browser by enforcing server-side header injection.
+- **CORS Mediation**: Securely processes cross-origin authorization tokens (JWT) to permit API integration without triggering browser security halts.
+
+---
+
+## 📂 Internal Directory Structure
 
 ```text
 frontend/localleadpro-dashboard/
-├── server/           # 🛡️ Development Proxy Server (Node.js + TypeScript)
+├── server/           # Development Proxy Server Sandbox (Node.js + TS)
 ├── src/
-│   ├── components/   # Reusable Atomic UI and Layout components
-│   ├── hooks/        # 🪝 Logic-heavy React hooks for API interaction & Auth
-│   ├── lib/          # Core utilities, API clients, and constants
-│   ├── pages/        # Main route views (Dashboard, CRM, Settings, etc.)
-│   ├── App.tsx       # Main Router and Page Layout definition
-│   └── main.tsx      # Application entry point with React Query Provider
-├── .env              # 🔑 Local environment secrets
-└── vite.config.ts    # Build and dev server configuration
+│   ├── components/   # Atomic, reusable UI elements governed by the brand system
+│   ├── hooks/        # Asynchronous state management and API interfacing logic
+│   ├── lib/          # Foundational utilities, client generators, definitions
+│   ├── pages/        # Route declarations and overarching view controllers
+│   ├── App.tsx       # Primary routing tree architecture
+│   └── main.tsx      # System initialization incorporating React Query contexts
+├── .env              # Isolated environment variable storage
+└── vite.config.ts    # Bundler and transpilation directives
 ```
 
 ---
 
-## 🚀 Step-by-Step Setup
+## 🚀 Environment Initialization
 
-### 1. Installation
-Ensure you have Node.js 18+ installed.
+### 1. Package Verification
+Ensure compliance with Node.js version >= 18.
 
 ```bash
-# Install frontend and proxy dependencies
+# Resolve and map all required dependencies
 npm install
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the `frontend/localleadpro-dashboard` directory:
+### 2. Parameter Configuration
+Initialize an isolated `.env` context specifically within the `frontend/localleadpro-dashboard` subsystem:
 
 ```env
-# Backend API Location (External or Local)
+# Target API resolution endpoint
 API_BASE_URL=http://localhost:8000
 
-# Global API Key (Injected by Proxy)
+# Proxy authorization token (injected server-side)
 API_KEY=your_secret_api_key_here
 
-# Frontend Proxy Access
+# Local Development resolution endpoints
 VITE_PROXY_URL=http://localhost:3000
 VITE_API_KEY=your_secret_api_key_here
 ```
 
-### 3. Local Development Start
-Run both the frontend and the proxy server simultaneously:
+### 3. Server Execution
+Engage the proxy and the Vite server simultaneously:
 
 ```bash
-# Starts proxy on :3000 and Vite on :5173
 npm run dev
 ```
 
 ---
 
-## 🚢 Building for Production
+## 🚢 Production Compilation
 
-Generate the optimized static bundle for deployment:
+Generate a highly optimized, minified bundle conforming to the highest performance standards:
 
 ```bash
 npm run build
 ```
 
-The resulting `dist/` directory can be deployed to any static host (Vercel, Netlify, AWS S3). Note that in production, you should point your environment variables directly to your live API or configure an equivalent production proxy.
-
----
-
-<div align="center">
-  <em>LocalLeadPro — Automating the Future of Outreach</em>
-</div>
+The compiled `dist/` artifacts are strictly static and highly portable to any enterprise-grade edge distribution network (e.g., Vercel, AWS S3, Cloudflare Pages). Production rollout assumes the `VITE_PROXY_URL` parameter maps dynamically to the highly-available FastAPI backend endpoint, disregarding the local proxy.

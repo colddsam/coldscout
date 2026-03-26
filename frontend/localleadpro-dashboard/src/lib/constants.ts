@@ -59,6 +59,7 @@ export const NAV_ITEMS = [
   { path: '/pipeline', label: 'Pipeline', icon: 'GitBranch' },
   { path: '/scheduler', label: 'Scheduler', icon: 'Clock' },
   { path: '/leads', label: 'Leads CRM', icon: 'Users' },
+  { path: '/threads', label: 'Threads', icon: 'AtSign' },
   { path: '/campaigns', label: 'Campaigns', icon: 'Send' },
   { path: '/inbox', label: 'Smart Inbox', icon: 'Inbox' },
   { path: '/analytics', label: 'Analytics', icon: 'BarChart2' },

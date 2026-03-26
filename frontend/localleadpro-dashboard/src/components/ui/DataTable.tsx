@@ -11,34 +11,72 @@
 import { cn } from '../../lib/utils';
 import type { ReactNode } from 'react';
 
+/**
+ * Represents a column configuration for the data table.
+ */
 export interface Column<T> {
-  /** Unique key identifying the data property for this column */
+  /**
+   * Unique key identifying the data property for this column.
+   */
   key: string;
-  /** Display label shown in the table header */
+  /**
+   * Display label shown in the table header.
+   */
   label: string;
-  /** Optional function to customize the cell content rendering */
+  /**
+   * Optional function to customize the cell content rendering.
+   * @param value The value to be rendered.
+   * @param row The row data.
+   * @returns The rendered ReactNode.
+   */
   render?: (value: unknown, row: T) => ReactNode;
-  /** Enables visual sorting indicators (future support) */
+  /**
+   * Enables visual sorting indicators (future support).
+   */
   sortable?: boolean;
-  /** CSS width constraint for the column */
+  /**
+   * CSS width constraint for the column.
+   */
   width?: string;
 }
 
+/**
+ * Props for the data table component.
+ */
 interface DataTableProps<T> {
-  /** Array of column configurations */
+  /**
+   * Array of column configurations.
+   */
   columns: Column<T>[];
-  /** The raw data array to display */
+  /**
+   * The raw data array to display.
+   */
   data: T[];
-  /** Callback triggered when a row is clicked */
+  /**
+   * Callback triggered when a row is clicked.
+   * @param row The row data.
+   */
   onRowClick?: (row: T) => void;
-  /** Visibility toggle for the loading skeleton state */
+  /**
+   * Visibility toggle for the loading skeleton state.
+   */
   loading?: boolean;
-  /** Message displayed when the data array is empty */
+  /**
+   * Message displayed when the data array is empty.
+   */
   emptyMessage?: string;
-  /** Additional CSS classes for the container */
+  /**
+   * Additional CSS classes for the container.
+   */
   className?: string;
 }
 
+/**
+ * Renders a skeleton row for the data table.
+ * @param props The component props.
+ * @param props.cols The number of columns.
+ * @returns The skeleton row ReactNode.
+ */
 function SkeletonRow({ cols }: { cols: number }) {
   return (
     <tr className="border-b border-accents-1">
@@ -63,6 +101,7 @@ export default function DataTable<T extends object>({
   emptyMessage = 'No data available',
   className,
 }: DataTableProps<T>) {
+  // Check if the component should display a loading skeleton state.
   if (loading) {
     return (
       <div className={cn('overflow-x-auto', className)}>
@@ -86,6 +125,7 @@ export default function DataTable<T extends object>({
     );
   }
 
+  // Check if the data array is empty.
   if (!data.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-secondary">

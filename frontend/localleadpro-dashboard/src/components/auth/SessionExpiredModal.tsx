@@ -9,13 +9,32 @@ import { useAuth } from '../../hooks/useAuth';
  * by a 401/403 API response via the global event listener in `AuthProvider`.
  */
 const SessionExpiredModal: React.FC = () => {
+  /**
+   * Retrieves the authentication state and logout function from the `useAuth` hook.
+   */
   const { isSessionExpired, logout } = useAuth();
 
+  /**
+   * Renders the session expired modal with a warning icon, a brief description,
+   * and a call-to-action button to proceed to login.
+   */
   return (
     <Modal
+      /**
+       * Opens the modal when the session has expired.
+       */
       open={isSessionExpired}
+      /**
+       * Closes the modal and logs out the user when the button is clicked.
+       */
       onClose={logout}
+      /**
+       * Sets the modal title to "Session Expired".
+       */
       title="Session Expired"
+      /**
+       * Sets the maximum width of the modal to "max-w-md".
+       */
       maxWidth="max-w-md"
     >
       <div className="flex flex-col items-center text-center space-y-4 py-2">
@@ -33,6 +52,9 @@ const SessionExpiredModal: React.FC = () => {
         </div>
 
         <button
+          /**
+           * Logs out the user when the button is clicked.
+           */
           onClick={logout}
           className="w-full mt-4 py-2.5 px-4 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
         >
@@ -43,4 +65,7 @@ const SessionExpiredModal: React.FC = () => {
   );
 };
 
+/**
+ * Exports the SessionExpiredModal component as the default export.
+ */
 export default SessionExpiredModal;

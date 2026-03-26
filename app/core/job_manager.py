@@ -61,6 +61,29 @@ DEFAULT_JOBS_CONFIG = {
         "day_of_week": "sun",
         "hour": 11,
         "minute": 0
+    },
+    "threads_discovery": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 10,
+        "minute": 0
+    },
+    "threads_qualification": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 11,
+        "minute": 0
+    },
+    "threads_engagement": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 12,
+        "minute": 0
+    },
+    "threads_response_check": {
+        "status": "HOLD",
+        "type": "interval",
+        "minutes": 30
     }
 }
 

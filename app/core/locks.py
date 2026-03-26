@@ -68,6 +68,10 @@ async def advisory_lock(lock_name: str, timeout: int = 5):
             
         finally:
             if locked:
-                await session.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": lock_id})
-                logger.debug(f"Released advisory lock: {lock_name}")
-            await session.close()
+                try:
+                    await session.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": lock_id})
+                    logger.debug(f"Released advisory lock: {lock_name}")
+                except Exception as e:
+                    # If the connection is closed, the lock is already released by Postgres.
+                    # We log it as a warning but don't crash since the work is done.
+                    logger.warning(f"Failed to release advisory lock '{lock_name}' (connection might be closed): {e}")

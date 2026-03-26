@@ -19,14 +19,53 @@ import { Shield, Save, RotateCcw } from 'lucide-react';
  * high-level system health and security information.
  */
 export default function Settings() {
+  /**
+   * Retrieves the current jobs configuration from the `useConfigJobs` hook.
+   * 
+   * @type {object} jobsConfig - The current jobs configuration.
+   * @type {boolean} jobsLoading - Whether the jobs configuration is currently loading.
+   */
   const { data: jobsConfig, isLoading: jobsLoading } = useConfigJobs();
+
+  /**
+   * Retrieves the current system health from the `useHealth` hook.
+   * 
+   * @type {object} health - The current system health.
+   * @type {boolean} healthLoading - Whether the system health is currently loading.
+   */
   const { data: health, isLoading: healthLoading } = useHealth();
+
+  /**
+   * Retrieves the `updateConfig` function from the `useUpdateConfig` hook.
+   * 
+   * @type {function} updateConfig - A function to update the system configuration.
+   */
   const updateConfig = useUpdateConfig();
+
+  /**
+   * Retrieves the `systemToggle` function from the `useSystemToggle` hook.
+   * 
+   * @type {function} systemToggle - A function to toggle the system production status.
+   */
   const systemToggle = useSystemToggle();
 
+  /**
+   * The current JSON string representation of the jobs configuration.
+   * 
+   * @type {string} jsonStr - The current JSON string representation of the jobs configuration.
+   */
   const [jsonStr, setJsonStr] = useState('');
+
+  /**
+   * Whether the jobs configuration has been modified.
+   * 
+   * @type {boolean} dirty - Whether the jobs configuration has been modified.
+   */
   const [dirty, setDirty] = useState(false);
 
+  /**
+   * Updates the `jsonStr` state with the current jobs configuration when it becomes available.
+   */
   useEffect(() => {
     if (jobsConfig) {
       const timer = setTimeout(() => {
@@ -36,6 +75,9 @@ export default function Settings() {
     }
   }, [jobsConfig]);
 
+  /**
+   * Saves the modified jobs configuration to the system.
+   */
   const handleSave = () => {
     try {
       const parsed = JSON.parse(jsonStr);
@@ -46,6 +88,9 @@ export default function Settings() {
     }
   };
 
+  /**
+   * Resets the jobs configuration to its original state.
+   */
   const handleReset = () => {
     if (jobsConfig) {
       setJsonStr(JSON.stringify(jobsConfig, null, 2));
@@ -53,8 +98,16 @@ export default function Settings() {
     }
   };
 
+  /**
+   * Returns a `PageLoader` component if either the jobs configuration or system health is loading.
+   */
   if (jobsLoading || healthLoading) return <PageLoader />;
 
+  /**
+   * Whether the system is currently running.
+   * 
+   * @type {boolean} isRunning - Whether the system is currently running.
+   */
   const isRunning = health?.production_status === true;
 
   return (

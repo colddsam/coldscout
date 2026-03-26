@@ -9,6 +9,25 @@ Allow: /privacy
 Allow: /terms
 Allow: /delete-data
 
+# Explicitly Allow Major Search AI Crawlers (Search intent)
+User-agent: GPTBot
+Allow: /
+Allow: /docs
+Allow: /pricing
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /analytics
+Disallow: /settings
+
+User-agent: CCBot
+Allow: /
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /leads
+Disallow: /campaigns
+
 # Disallow authenticated/app routes
 Disallow: /overview
 Disallow: /pipeline
@@ -20,5 +39,7 @@ Disallow: /analytics
 Disallow: /settings
 Disallow: /login
 
-# Point crawlers to the sitemap
+# Point crawlers to the sitemap & AI policy
 Sitemap: https://coldscout.colddsam.com/sitemap.xml
+# Note: There is no standard Robots.txt directive for llms.txt, 
+# but it's available at https://coldscout.colddsam.com/llms.txt

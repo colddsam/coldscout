@@ -15,6 +15,10 @@ from app.models.lead import Lead, SearchHistory, LeadSocialNetwork
 from app.models.campaign import Campaign, EmailOutreach
 from app.models.email_event import EmailEvent
 from app.models.daily_report import DailyReport
+from app.models.threads import (
+    ThreadsProfile, ThreadsPost, ThreadsEngagement,
+    ThreadsSearchConfig, ThreadsAuth,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

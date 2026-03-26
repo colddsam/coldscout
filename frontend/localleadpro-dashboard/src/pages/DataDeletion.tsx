@@ -5,6 +5,9 @@ import { Trash2, Mail, CheckCircle2 } from 'lucide-react';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 
+/**
+ * Breadcrumb schema for data deletion page.
+ */
 const LD_BREADCRUMB = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
@@ -14,7 +17,18 @@ const LD_BREADCRUMB = {
   ],
 };
 
+/**
+ * Data deletion page component.
+ *
+ * This component handles the rendering of the data deletion page, including
+ * the breadcrumb schema, SEO metadata, and the main content.
+ */
 export default function DataDeletion() {
+  /**
+   * Set SEO metadata for the page.
+   *
+   * @param {object} props - Component props.
+   */
   useSEO({
     title: 'Data Deletion Request — Cold Scout',
     description: 'Learn how to request the permanent deletion of your account and associated data from the Cold Scout platform.',
@@ -22,6 +36,9 @@ export default function DataDeletion() {
     index: false, // Legal/utility pages often don't need heavy indexing, but we'll keep it searchable if needed. Actually indexing=false is safer for specific data request pages unless they are marketing landing pages.
   });
 
+  /**
+   * Scroll to top of the page on mount.
+   */
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);

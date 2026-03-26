@@ -33,6 +33,13 @@ from app.api.deps import get_current_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
+from app.tasks.threads_pipeline import (
+    run_threads_discovery_stage,
+    run_threads_qualification_stage,
+    run_threads_engagement_stage,
+    run_threads_response_check
+)
+
 class TriggerRequest(BaseModel):
     stage: str
     dry_run: bool = False
@@ -63,7 +70,11 @@ async def trigger_pipeline(request: TriggerRequest = Body(...)):
         "personalization": [run_personalization_stage],
         "outreach": [run_outreach_stage],
         "daily_report": [generate_daily_report],
-        "weekly_optimization": [run_weekly_optimization]
+        "weekly_optimization": [run_weekly_optimization],
+        "threads_discovery": [run_threads_discovery_stage],
+        "threads_qualification": [run_threads_qualification_stage],
+        "threads_engagement": [run_threads_engagement_stage],
+        "threads_response_check": [run_threads_response_check]
     }
     
     if request.stage not in valid_stages:

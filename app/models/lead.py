@@ -70,6 +70,16 @@ class Lead(Base):
     review_count   = Column(Integer, nullable=True)
     state          = Column(String(100), nullable=True)
 
+    # Multi-Channel Attribution (SAFE: nullable, defaults to legacy channel)
+    source_channel     = Column(
+        String(50), default="google_places", nullable=True,
+        comment="google_places | threads | manual"
+    )
+    threads_profile_id = Column(
+        UUID(as_uuid=True), nullable=True,
+        comment="FK to threads_profiles — set when lead originates from Threads."
+    )
+
     # Qualification Metrics
     ai_score            = Column(Integer, default=0)
     has_website         = Column(Boolean, default=False)

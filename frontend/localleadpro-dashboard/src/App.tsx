@@ -23,6 +23,7 @@ import Campaigns from './pages/Campaigns';
 import Inbox from './pages/Inbox';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Threads from './pages/Threads';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -69,6 +70,7 @@ export default function App() {
                 <Route path="/scheduler" element={<Scheduler />} />
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/leads/:id" element={<LeadDetail />} />
+                <Route path="/threads" element={<Threads />} />
                 <Route path="/campaigns" element={<Campaigns />} />
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/analytics" element={<Analytics />} />

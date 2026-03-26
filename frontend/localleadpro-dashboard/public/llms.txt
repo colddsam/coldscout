@@ -1,0 +1,17 @@
+# Cold Scout — AI Lead Generation platform
+
+Cold Scout is an autonomous pipeline designed to discover local business leads, qualify them using AI, and manage personalized outreach campaigns.
+
+## Key Features
+- **Target Discovery**: Automatically finds local businesses matching specific criteria.
+- **AI-Driven Qualification**: Uses Llama 3 models to analyze leads for ICP fit.
+- **Smart Outreach**: Generates and sends personalized email campaigns.
+- **Real-time Tracking**: Monitors replies and analytics in a unified dashboard.
+
+## Documentation
+- [Quick Start](https://coldscout.colddsam.com/docs)
+- [Security & Privacy](https://coldscout.colddsam.com/privacy)
+
+## Compliance
+- Adheres to GDPR, CCPA, and CAN-SPAM regulations for B2B outreach.
+- Implements strict anti-spam filters and unsubscribe mechanisms.

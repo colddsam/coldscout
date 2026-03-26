@@ -13,6 +13,7 @@ Routing Strategy:
 """
 from fastapi import APIRouter, Depends
 from app.api.v1 import auth, tracking, webhooks, pipeline, leads, campaigns, reports, unsubscribe, health
+from app.api.v1.threads import public_router as threads_public, router as threads_private
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -24,6 +25,7 @@ public_router.include_router(health.router)
 public_router.include_router(tracking.router, tags=["tracking"])
 public_router.include_router(webhooks.router, tags=["webhooks"])
 public_router.include_router(unsubscribe.router, prefix="/unsubscribe", tags=["unsubscribe"])
+public_router.include_router(threads_public, tags=["threads"])
 
 # Private routes (System-level authentication required)
 private_router.include_router(auth.router, tags=["auth"])
@@ -31,6 +33,7 @@ private_router.include_router(pipeline.router, tags=["pipeline"])
 private_router.include_router(leads.router, tags=["leads"])
 private_router.include_router(campaigns.router, tags=["campaigns"])
 private_router.include_router(reports.router, tags=["reports"])
+private_router.include_router(threads_private, tags=["threads"])
 
 # Aggregated versioned router
 api_router = APIRouter()

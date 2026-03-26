@@ -23,18 +23,18 @@
     img { border: 0; outline: none; text-decoration: none;
           -ms-interpolation-mode: bicubic; }
     body { margin: 0; padding: 0; width: 100% !important;
-           background-color: #0f172a; }
+           background-color: #f5f5f5; }
 
     /* ── Typography ────────────────────────────────────────── */
     body, .email-body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                   'Helvetica Neue', Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                   Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
 
     /* ── Outer wrapper ─────────────────────────────────────── */
     .outer-wrapper {
       width: 100%;
-      background-color: #0f172a;
+      background-color: #f5f5f5;
       padding: 32px 16px;
     }
 
@@ -43,14 +43,15 @@
       max-width: 620px;
       margin: 0 auto;
       background-color: #ffffff;
-      border-radius: 16px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+      border: 1px solid #eaeaea;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
     }
 
     /* ── Header ────────────────────────────────────────────── */
     .header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+      background: #000000;
       padding: 0;
       position: relative;
     }
@@ -61,9 +62,9 @@
     }
     .header-overline {
       display: inline-block;
-      background: rgba(59,130,246,0.18);
-      border: 1px solid rgba(59,130,246,0.35);
-      color: #93c5fd;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #cccccc;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 2px;
@@ -81,40 +82,40 @@
       letter-spacing: -0.5px;
     }
     .header h1 span {
-      color: #60a5fa;
+      color: #cccccc;
     }
     .header-sub {
-      color: #94a3b8;
+      color: #999999;
       font-size: 14px;
       margin: 0;
       line-height: 1.5;
     }
 
-    /* Decorative accent bar at bottom of header */
+    /* Accent bar at bottom of header */
     .header-accent {
-      height: 4px;
-      background: linear-gradient(to right, #3b82f6, #06b6d4, #10b981);
+      height: 3px;
+      background: #333333;
     }
 
     /* ── Stat strip ────────────────────────────────────────── */
     .stat-strip {
-      background-color: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
+      background-color: #fafafa;
+      border-bottom: 1px solid #eaeaea;
       padding: 20px 40px;
-      display: flex; /* fallback via table in mso */
+      display: flex;
     }
     .stat-strip table { width: 100%; border-collapse: collapse; }
     .stat-cell {
       text-align: center;
       padding: 0 8px;
-      border-right: 1px solid #e2e8f0;
+      border-right: 1px solid #eaeaea;
     }
     .stat-cell:last-child { border-right: none; }
     .stat-value {
       display: block;
       font-size: 22px;
       font-weight: 800;
-      color: #1e40af;
+      color: #000000;
       line-height: 1;
       margin-bottom: 4px;
     }
@@ -123,7 +124,7 @@
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: #94a3b8;
+      color: #999999;
       font-weight: 600;
     }
 
@@ -133,33 +134,33 @@
     }
     .greeting {
       font-size: 16px;
-      color: #475569;
+      color: #666666;
       margin: 0 0 24px;
       line-height: 1.6;
     }
     .greeting strong {
-      color: #0f172a;
+      color: #000000;
     }
 
     /* AI content block */
     .ai-block {
-      background: #f8fafc;
-      border-left: 3px solid #3b82f6;
-      border-radius: 0 10px 10px 0;
+      background: #f5f5f5;
+      border-left: 3px solid #000000;
+      border-radius: 0 8px 8px 0;
       padding: 20px 24px;
       margin: 0 0 28px;
       font-size: 15px;
       line-height: 1.75;
-      color: #374151;
+      color: #333333;
     }
     .ai-block p { margin: 0 0 12px; }
     .ai-block p:last-child { margin: 0; }
 
     /* ── Attachment callout ─────────────────────────────────── */
     .attachment-row {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 10px;
+      background: #f5f5f5;
+      border: 1px solid #eaeaea;
+      border-radius: 8px;
       padding: 16px 20px;
       margin: 0 0 28px;
       display: flex;
@@ -171,7 +172,7 @@
     .att-icon {
       width: 40px;
       height: 40px;
-      background: #3b82f6;
+      background: #000000;
       border-radius: 8px;
       text-align: center;
       line-height: 40px;
@@ -182,13 +183,13 @@
       display: block;
       font-size: 13px;
       font-weight: 700;
-      color: #1e3a5f;
+      color: #000000;
       margin-bottom: 2px;
     }
     .att-sub {
       display: block;
       font-size: 12px;
-      color: #64748b;
+      color: #666666;
     }
 
     /* ── CTA button ────────────────────────────────────────── */
@@ -198,7 +199,7 @@
     }
     .cta-btn {
       display: inline-block;
-      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      background: #000000;
       color: #ffffff !important;
       text-decoration: none;
       font-size: 15px;
@@ -206,11 +207,12 @@
       letter-spacing: 0.3px;
       padding: 16px 44px;
       border-radius: 50px;
-      box-shadow: 0 8px 24px rgba(29,78,216,0.35);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+      transition: background 0.2s ease;
     }
     .cta-note {
       font-size: 12px;
-      color: #94a3b8;
+      color: #999999;
       text-align: center;
       margin: 10px 0 0;
     }
@@ -218,49 +220,49 @@
     /* ── Divider ───────────────────────────────────────────── */
     .divider {
       border: none;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid #eaeaea;
       margin: 28px 0;
     }
 
     /* ── Sign-off ──────────────────────────────────────────── */
     .signoff {
       font-size: 14px;
-      color: #64748b;
+      color: #666666;
       line-height: 1.7;
       margin: 0;
     }
     .signoff strong {
       display: block;
       font-size: 15px;
-      color: #0f172a;
+      color: #000000;
       font-weight: 700;
       margin-top: 4px;
     }
     .signoff em {
       font-style: normal;
-      color: #3b82f6;
+      color: #999999;
       font-size: 13px;
     }
 
     /* ── Footer ────────────────────────────────────────────── */
     .footer {
-      background-color: #0f172a;
+      background-color: #000000;
       padding: 24px 40px;
       text-align: center;
     }
     .footer p {
       margin: 0 0 6px;
       font-size: 12px;
-      color: #475569;
+      color: #999999;
       line-height: 1.6;
     }
     .footer a {
-      color: #475569;
+      color: #999999;
       text-decoration: underline;
     }
     .footer .brand {
       font-size: 11px;
-      color: #334155;
+      color: #666666;
       margin-top: 12px;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -356,21 +358,21 @@
         Warm regards,<br>
         <img
           src="{{ logo_url }}"
-          alt="ColdScout"
+          alt="Cold Scout"
           width="150"
           style="display:block; margin: 10px 0 6px; border:0; outline:none;"
         />
         <strong>Your Growth Partner</strong>
-        <em>ColdScout · Helping local businesses grow online</em>
+        <em>Cold Scout · Helping local businesses grow online</em>
       </p>
 
     </div>
 
     <!-- ══ FOOTER ═════════════════════════════════════════════ -->
     <div class="footer">
-      <p>This proposal was prepared exclusively for <strong style="color:#64748b;">{{ business_name }}</strong>.</p>
+      <p>This proposal was prepared exclusively for <strong style="color:#cccccc;">{{ business_name }}</strong>.</p>
       <p>Not the right time? <a href="{{ app_url }}/api/v1/unsubscribe/{{ tracking_token }}">Unsubscribe</a> and we won't contact you again.</p>
-      <p class="brand">LocalLeadPro &nbsp;·&nbsp; Automated with care</p>
+      <p class="brand">Cold Scout &nbsp;·&nbsp; Automated with care</p>
     </div>
 
     <!-- Tracking pixel (1×1, hidden) -->

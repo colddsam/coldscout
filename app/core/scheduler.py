@@ -108,6 +108,12 @@ def setup_scheduler():
     )
     from app.modules.outreach.followup_engine import run_followup_dispatch
     from app.modules.analytics.performance_analyzer import run_weekly_optimization
+    from app.tasks.threads_pipeline import (
+        run_threads_discovery_stage,
+        run_threads_qualification_stage,
+        run_threads_engagement_stage,
+        run_threads_response_check,
+    )
 
     config = job_manager.load_config()
 
@@ -120,6 +126,10 @@ def setup_scheduler():
         "daily_report": generate_daily_report,
         "followup_dispatch": run_followup_dispatch,
         "weekly_optimization": run_weekly_optimization,
+        "threads_discovery": run_threads_discovery_stage,
+        "threads_qualification": run_threads_qualification_stage,
+        "threads_engagement": run_threads_engagement_stage,
+        "threads_response_check": run_threads_response_check,
     }
 
     for j_id, func in job_map.items():

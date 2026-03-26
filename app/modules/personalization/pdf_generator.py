@@ -3,7 +3,7 @@ PDF Proposal generation module.
 Renders a visually polished, multi-section business proposal using
 ReportLab's canvas API for precise layout control.
 
-Design language: dark navy header, electric-blue accents, clean card sections,
+Design language: black & white header, grayscale accents, clean card sections,
 data-driven growth chart, and a strong CTA footer.
 """
 import os
@@ -18,20 +18,17 @@ from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics import renderPDF
 from loguru import logger
 
-# ── Brand palette ─────────────────────────────────────────────────────────────
-NAVY       = colors.HexColor("#0f172a")
-NAVY_LIGHT = colors.HexColor("#1e293b")
-BLUE       = colors.HexColor("#3b82f6")
-BLUE_LIGHT = colors.HexColor("#eff6ff")
-TEAL       = colors.HexColor("#0ea5e9")
-GREEN      = colors.HexColor("#10b981")
-AMBER      = colors.HexColor("#f59e0b")
+# ── Brand palette (Black & White) ─────────────────────────────────────────────
+BLACK      = colors.HexColor("#000000")
+DARK_GRAY  = colors.HexColor("#333333")
+MID_GRAY   = colors.HexColor("#666666")
+GRAY_500   = colors.HexColor("#999999")
+GRAY_300   = colors.HexColor("#cccccc")
+BORDER     = colors.HexColor("#eaeaea")
+LIGHT_BG   = colors.HexColor("#f5f5f5")
+LIGHTEST   = colors.HexColor("#fafafa")
 WHITE      = colors.white
-GRAY_100   = colors.HexColor("#f1f5f9")
-GRAY_300   = colors.HexColor("#cbd5e1")
-GRAY_500   = colors.HexColor("#64748b")
-GRAY_700   = colors.HexColor("#334155")
-TEXT       = colors.HexColor("#0f172a")
+TEXT       = colors.HexColor("#000000")
 
 # ── Page geometry ─────────────────────────────────────────────────────────────
 W, H  = A4                    # 595.27 x 841.89 pt
@@ -87,13 +84,13 @@ def _wrapped_text(c: canvas.Canvas, x, y, text, font="Helvetica", size=10,
     return y
 
 
-def _divider(c: canvas.Canvas, y, color=GRAY_300, width=INNER):
+def _divider(c: canvas.Canvas, y, color=BORDER, width=INNER):
     c.setStrokeColor(color)
     c.setLineWidth(0.5)
     c.line(PAD_X, y, PAD_X + width, y)
 
 
-def _badge(c: canvas.Canvas, x, y, text, bg=BLUE, fg=WHITE, size=8):
+def _badge(c: canvas.Canvas, x, y, text, bg=BLACK, fg=WHITE, size=8):
     """Draws a small pill-shaped label."""
     w = c.stringWidth(text, "Helvetica-Bold", size) + 16
     _rect(c, x, y - 3, w, 16, bg, radius=4)
@@ -104,16 +101,16 @@ def _badge(c: canvas.Canvas, x, y, text, bg=BLUE, fg=WHITE, size=8):
 # ── Section renderers ─────────────────────────────────────────────────────────
 
 def _draw_header(c: canvas.Canvas, business_name: str, category: str):
-    """Full-width dark navy header with company name and tagline."""
+    """Full-width black header with company name and tagline."""
     HEADER_H = 160
-    _rect(c, 0, H - HEADER_H, W, HEADER_H, NAVY)
+    _rect(c, 0, H - HEADER_H, W, HEADER_H, BLACK)
 
     # Accent stripe
-    _rect(c, 0, H - HEADER_H, W, 4, BLUE)
+    _rect(c, 0, H - HEADER_H, W, 3, DARK_GRAY)
 
     # Overline label
     _text(c, PAD_X, H - 32, "DIGITAL GROWTH PROPOSAL",
-          "Helvetica-Bold", 8, BLUE)
+          "Helvetica-Bold", 8, GRAY_500)
 
     # Business name (may be long — split if needed)
     name = business_name.upper()
@@ -123,7 +120,7 @@ def _draw_header(c: canvas.Canvas, business_name: str, category: str):
     _text(c, PAD_X, H - 60, name, "Helvetica-Bold", font_size, WHITE)
 
     # Category pill
-    _badge(c, PAD_X, H - 82, category.title(), TEAL, WHITE, 9)
+    _badge(c, PAD_X, H - 82, category.title(), DARK_GRAY, WHITE, 9)
 
     # Tagline
     _text(c, PAD_X, H - 110,
@@ -135,25 +132,25 @@ def _draw_header(c: canvas.Canvas, business_name: str, category: str):
           f"Prepared: {date.today().strftime('%d %B %Y')}",
           "Helvetica", 8, GRAY_500, align="right")
 
-    # Bottom decorative dots
+    # Bottom decorative dots (grayscale)
     dot_y = H - HEADER_H + 14
-    for i, col in enumerate([BLUE, TEAL, GREEN]):
+    for i, col in enumerate([BLACK, DARK_GRAY, MID_GRAY]):
         _rect(c, PAD_X + i * 14, dot_y, 8, 8, col, radius=4)
 
 
 def _draw_problem_strip(c: canvas.Canvas, y: float) -> float:
     """
-    Light blue strip summarising why digital presence matters.
+    Light gray strip summarising why digital presence matters.
     Returns y after the strip.
     """
     STRIP_H = 56
-    _rect(c, 0, y - STRIP_H, W, STRIP_H, BLUE_LIGHT)
+    _rect(c, 0, y - STRIP_H, W, STRIP_H, LIGHT_BG)
     _text(c, PAD_X, y - 18,
-          "Why this matters", "Helvetica-Bold", 11, BLUE)
+          "Why this matters", "Helvetica-Bold", 11, BLACK)
     _text(c, PAD_X, y - 34,
           "97% of consumers search online before visiting a local business. "
           "Without a strong digital presence, you're invisible to them.",
-          "Helvetica", 9, GRAY_700)
+          "Helvetica", 9, MID_GRAY)
     return y - STRIP_H - 16
 
 
@@ -171,9 +168,9 @@ def _draw_stat_row(c: canvas.Canvas, y: float) -> float:
     ]
     for i, (val, label) in enumerate(stats):
         tx = PAD_X + i * (TILE_W + 8)
-        _rect(c, tx, y - TILE_H, TILE_W, TILE_H, NAVY, radius=6)
+        _rect(c, tx, y - TILE_H, TILE_W, TILE_H, BLACK, radius=6)
         _text(c, tx + TILE_W / 2, y - 22, val,
-              "Helvetica-Bold", 20, BLUE, "center")
+              "Helvetica-Bold", 20, WHITE, "center")
         # two-line label
         lines = label.split("\n")
         for j, ln in enumerate(lines):
@@ -183,7 +180,7 @@ def _draw_stat_row(c: canvas.Canvas, y: float) -> float:
 
 
 def _draw_section_heading(c: canvas.Canvas, x, y, number, title) -> float:
-    _rect(c, x, y - 1, 24, 20, BLUE, radius=3)
+    _rect(c, x, y - 1, 24, 20, BLACK, radius=3)
     _text(c, x + 12, y + 4, str(number), "Helvetica-Bold", 10, WHITE, "center")
     _text(c, x + 32, y + 4, title, "Helvetica-Bold", 13, TEXT)
     return y - 28
@@ -191,22 +188,22 @@ def _draw_section_heading(c: canvas.Canvas, x, y, number, title) -> float:
 
 def _draw_benefits(c: canvas.Canvas, y: float, benefits: List[str]) -> float:
     """
-    Renders each benefit as a card with a teal checkmark bullet.
+    Renders each benefit as a card with a dark checkmark bullet.
     Returns y after last card.
     """
     for benefit in benefits:
         CARD_H = 42
-        _rect(c, PAD_X, y - CARD_H, INNER, CARD_H, GRAY_100, radius=6)
+        _rect(c, PAD_X, y - CARD_H, INNER, CARD_H, LIGHT_BG, radius=6)
 
         # Checkmark circle
-        _rect(c, PAD_X + 10, y - CARD_H + 11, 20, 20, GREEN, radius=10)
+        _rect(c, PAD_X + 10, y - CARD_H + 11, 20, 20, DARK_GRAY, radius=10)
         _text(c, PAD_X + 20, y - CARD_H + 17, "✓",
               "Helvetica-Bold", 10, WHITE, "center")
 
         # Benefit text
         max_w  = INNER - 50
         short  = benefit if len(benefit) <= 110 else benefit[:107] + "…"
-        _text(c, PAD_X + 40, y - 16, short, "Helvetica", 9.5, GRAY_700)
+        _text(c, PAD_X + 40, y - 16, short, "Helvetica", 9.5, MID_GRAY)
         y -= CARD_H + 6
 
     return y - 4
@@ -218,7 +215,7 @@ def _draw_growth_chart(c: canvas.Canvas, y: float) -> float:
     Returns y after the chart.
     """
     CHART_H = 180
-    _rect(c, PAD_X, y - CHART_H, INNER, CHART_H, GRAY_100, radius=8)
+    _rect(c, PAD_X, y - CHART_H, INNER, CHART_H, LIGHT_BG, radius=8)
 
     d = Drawing(INNER, CHART_H)
 
@@ -249,7 +246,7 @@ def _draw_growth_chart(c: canvas.Canvas, y: float) -> float:
     bc.categoryAxis.labels.dy        = -8
 
     bc.bars[0].fillColor = GRAY_300
-    bc.bars[1].fillColor = BLUE
+    bc.bars[1].fillColor = BLACK
 
     d.add(bc)
 
@@ -257,13 +254,13 @@ def _draw_growth_chart(c: canvas.Canvas, y: float) -> float:
     legend_x = INNER - 160
     d.add(Rect(legend_x, CHART_H - 20, 10, 10, fillColor=GRAY_300, strokeColor=colors.transparent))
     d.add(String(legend_x + 14, CHART_H - 18, "Current", fontName="Helvetica", fontSize=7, fillColor=GRAY_500))
-    d.add(Rect(legend_x + 70, CHART_H - 20, 10, 10, fillColor=BLUE, strokeColor=colors.transparent))
-    d.add(String(legend_x + 84, CHART_H - 18, "Projected", fontName="Helvetica", fontSize=7, fillColor=GRAY_700))
+    d.add(Rect(legend_x + 70, CHART_H - 20, 10, 10, fillColor=BLACK, strokeColor=colors.transparent))
+    d.add(String(legend_x + 84, CHART_H - 18, "Projected", fontName="Helvetica", fontSize=7, fillColor=MID_GRAY))
 
     # Chart title
     d.add(String(INNER / 2, CHART_H - 14, "Projected Impact After Digital Upgrade",
                  fontName="Helvetica-Bold", fontSize=9,
-                 fillColor=GRAY_700, textAnchor="middle"))
+                 fillColor=MID_GRAY, textAnchor="middle"))
 
     renderPDF.draw(d, c, PAD_X, y - CHART_H)
     return y - CHART_H - 16
@@ -281,16 +278,16 @@ def _draw_timeline(c: canvas.Canvas, y: float) -> float:
     ]
     PHASE_W = (INNER - 16) / 3
     PHASE_H = 70
-    colors_list = [BLUE, TEAL, GREEN]
+    gray_shades = [BLACK, DARK_GRAY, MID_GRAY]
 
     for i, (period, title, desc) in enumerate(phases):
         tx = PAD_X + i * (PHASE_W + 8)
-        _rect(c, tx, y - PHASE_H, PHASE_W, PHASE_H, NAVY, radius=6)
+        _rect(c, tx, y - PHASE_H, PHASE_W, PHASE_H, BLACK, radius=6)
 
-        # Accent top bar
-        _rect(c, tx, y - 5, PHASE_W, 5, colors_list[i], radius=3)
+        # Accent top bar (grayscale shades)
+        _rect(c, tx, y - 5, PHASE_W, 5, gray_shades[i], radius=3)
 
-        _text(c, tx + 8, y - 18, period, "Helvetica", 7, colors_list[i])
+        _text(c, tx + 8, y - 18, period, "Helvetica", 7, GRAY_300)
         _text(c, tx + 8, y - 32, title, "Helvetica-Bold", 9, WHITE)
 
         # wrap desc
@@ -315,8 +312,8 @@ def _draw_cta(c: canvas.Canvas, y: float, website: Optional[str] = None) -> floa
     Returns y after the block.
     """
     CTA_H = 72
-    _rect(c, PAD_X, y - CTA_H, INNER, CTA_H, NAVY, radius=8)
-    _rect(c, PAD_X, y - CTA_H, INNER, 4, BLUE, radius=3)
+    _rect(c, PAD_X, y - CTA_H, INNER, CTA_H, BLACK, radius=8)
+    _rect(c, PAD_X, y - CTA_H, INNER, 3, DARK_GRAY, radius=3)
 
     _text(c, PAD_X + INNER / 2, y - 22,
           "Ready to grow? Let's build something great together.",
@@ -324,7 +321,7 @@ def _draw_cta(c: canvas.Canvas, y: float, website: Optional[str] = None) -> floa
 
     contact_line = website or "Reply to this email to book a free 20-minute strategy call."
     _text(c, PAD_X + INNER / 2, y - 42,
-          contact_line, "Helvetica", 9, BLUE, "center")
+          contact_line, "Helvetica", 9, GRAY_300, "center")
 
     _text(c, PAD_X + INNER / 2, y - 58,
           "No contracts. No pressure. Just results.",
@@ -335,7 +332,7 @@ def _draw_cta(c: canvas.Canvas, y: float, website: Optional[str] = None) -> floa
 
 def _draw_footer(c: canvas.Canvas):
     """Persistent footer on every page."""
-    _rect(c, 0, 0, W, 28, NAVY_LIGHT)
+    _rect(c, 0, 0, W, 28, DARK_GRAY)
     _text(c, PAD_X, 10,
           "This proposal is confidential and prepared exclusively for the recipient.",
           "Helvetica", 7, GRAY_500)
@@ -378,7 +375,7 @@ def generate_proposal_pdf(
 
         c = canvas.Canvas(filepath, pagesize=A4)
         c.setTitle(f"Digital Growth Proposal — {business_name}")
-        c.setAuthor("LocalLeadPro")
+        c.setAuthor("Cold Scout")
         c.setSubject("Digital Marketing Proposal")
 
         # ── Page 1 layout (top → bottom) ─────────────────────────────────────
@@ -398,13 +395,13 @@ def generate_proposal_pdf(
         if qualification_notes:
             notes_display = qualification_notes.replace(" | ", "  •  ")[:200]
             cursor = _wrapped_text(c, PAD_X, cursor, notes_display,
-                                   "Helvetica", 9, GRAY_700,
+                                   "Helvetica", 9, MID_GRAY,
                                    max_width=INNER, line_height=13)
             cursor -= 8
         else:
             _text(c, PAD_X, cursor,
                   "Your business has significant untapped digital potential.",
-                  "Helvetica", 9, GRAY_700)
+                  "Helvetica", 9, MID_GRAY)
             cursor -= 20
 
         # Rating context line
@@ -412,7 +409,7 @@ def generate_proposal_pdf(
             loc = f" in {city}" if city else ""
             _badge(c, PAD_X, cursor,
                    f"{rating}★  {review_count} reviews{loc}",
-                   GREEN, WHITE, 8)
+                   DARK_GRAY, WHITE, 8)
             cursor -= 22
 
         _divider(c, cursor)
