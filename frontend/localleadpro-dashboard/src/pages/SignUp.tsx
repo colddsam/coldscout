@@ -7,7 +7,6 @@ import Button from '../components/ui/Button';
 import { UserPlus, Mail, User, Github, Chrome, Check } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import Spinner from '../components/ui/Spinner';
-import Logo from '../components/ui/Logo';
 
 /**
  * Social login provider configuration.
@@ -172,8 +171,13 @@ export default function SignUp() {
         <div className="p-8">
           {/* Logo — links to landing page */}
           <div className="flex justify-center mb-6">
-            <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-              <Logo size="lg" forceShowText />
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <svg width="36" height="36" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                <rect width="40" height="40" rx="8" fill="black" />
+                <path d="M12 20L20 12L28 20L20 28Z" fill="white" />
+                <circle cx="20" cy="20" r="4" fill="white" />
+              </svg>
+              <span className="text-2xl font-bold tracking-tight text-black">Cold Scout</span>
             </Link>
           </div>
 
