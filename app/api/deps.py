@@ -210,6 +210,12 @@ async def get_current_user(
         avatar_url = user_metadata.get("avatar_url") or user_metadata.get("picture")
         provider = app_metadata.get("provider", "email")
 
+        # Read role from user_metadata (set during email signUp or preserved after
+        # first sync). Validated against the allowed set so malformed tokens cannot
+        # escalate privileges. Falls back to 'freelancer' only when absent.
+        raw_role = user_metadata.get("role", "freelancer")
+        role = raw_role if raw_role in ("client", "freelancer") else "freelancer"
+
         # Get or create user (upsert pattern)
         user = await get_or_create_user_by_supabase_uid(
             db=db,
@@ -217,7 +223,8 @@ async def get_current_user(
             email=email,
             auth_provider=provider,
             full_name=full_name,
-            avatar_url=avatar_url
+            avatar_url=avatar_url,
+            role=role,
         )
 
         if not user.is_active:
