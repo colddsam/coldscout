@@ -10,6 +10,7 @@ Supports both legacy email/password authentication and Supabase Auth
 """
 
 from typing import Optional, Union, Literal
+from datetime import datetime
 from pydantic import BaseModel, EmailStr
 
 
@@ -77,9 +78,11 @@ class UserOut(UserBase):
     Attributes:
         id (int): The user's ID.
         supabase_uid (Optional[str]): The Supabase Auth user ID.
+        plan_expires_at (Optional[datetime]): When the paid plan expires (None for free plan).
     """
     id: int
     supabase_uid: Optional[str] = None
+    plan_expires_at: Optional[datetime] = None
 
     class Config:
         """

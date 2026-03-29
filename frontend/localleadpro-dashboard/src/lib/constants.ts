@@ -63,5 +63,6 @@ export const NAV_ITEMS = [
   { path: '/campaigns', label: 'Campaigns', icon: 'Send' },
   { path: '/inbox', label: 'Smart Inbox', icon: 'Inbox' },
   { path: '/analytics', label: 'Analytics', icon: 'BarChart2' },
+  { path: '/billing', label: 'Billing', icon: 'CreditCard' },
   { path: '/settings', label: 'Settings', icon: 'Settings' },
 ] as const;

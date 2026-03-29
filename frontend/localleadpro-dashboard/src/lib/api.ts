@@ -14,12 +14,19 @@ import { supabase } from './supabase';
 
 /**
  * Core Axios configuration.
- * Manages base URL, timeouts, and shared security headers.
+ * Manages base URL, request timeout, and shared security headers.
+ *
+ * Timeout:
+ *   A 30-second timeout is applied globally so that a slow or unresponsive backend
+ *   does not block the UI indefinitely. Endpoints that are expected to be long-running
+ *   (e.g., CSV export, pipeline trigger) may override this per-request using Axios
+ *   config: `client.get('/...', { timeout: 120_000 })`.
  */
 const API_KEY = import.meta.env.VITE_API_KEY;
 
 export const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  timeout: 30_000, // 30 seconds — prevents hanging requests from blocking the UI
   headers: {
     'Content-Type': 'application/json',
     'X-API-Key': API_KEY,
@@ -434,3 +441,79 @@ export const respondToThread = (id: string, body: string) =>
  */
 export const updateThreadIntent = (id: string, intent: IntentLabel) =>
   client.patch(`/api/v1/inbox/${id}`, { intent }).then((r) => r.data);
+
+// ── Billing ───────────────────────────────────────────────────────────────────
+
+export type BillingPlan = 'pro' | 'enterprise';
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+export type PaymentStatus = 'created' | 'paid' | 'failed';
+
+export interface CreateOrderResponse {
+  order_id: string;
+  amount: number;
+  currency: string;
+  key_id: string;
+}
+
+export interface VerifyPaymentResponse {
+  success: boolean;
+  plan: BillingPlan;
+  plan_expires_at: string;
+  message: string;
+}
+
+export interface SubscriptionResponse {
+  has_subscription: boolean;
+  plan: string;
+  status?: SubscriptionStatus;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancelled_at?: string;
+}
+
+export interface PaymentTransaction {
+  id: string;
+  plan: BillingPlan;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  razorpay_order_id: string;
+  razorpay_payment_id?: string;
+  created_at: string;
+}
+
+/**
+ * Creates a Razorpay order for the given plan.
+ * Returns order_id, amount (paise), currency, and key_id.
+ */
+export const createPaymentOrder = (plan: BillingPlan) =>
+  client.post<CreateOrderResponse>('/api/v1/billing/create-order', { plan }).then((r) => r.data);
+
+/**
+ * Verifies the Razorpay payment signature and activates the subscription.
+ */
+export const verifyPayment = (payload: {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  plan: BillingPlan;
+}) =>
+  client.post<VerifyPaymentResponse>('/api/v1/billing/verify-payment', payload).then((r) => r.data);
+
+/**
+ * Returns the current subscription details for the authenticated user.
+ */
+export const getSubscription = () =>
+  client.get<SubscriptionResponse>('/api/v1/billing/subscription').then((r) => r.data);
+
+/**
+ * Returns the payment transaction history for the authenticated user.
+ */
+export const getTransactions = () =>
+  client.get<PaymentTransaction[]>('/api/v1/billing/transactions').then((r) => r.data);
+
+/**
+ * Cancels the active subscription (access retained until period end).
+ */
+export const cancelSubscription = (reason?: string) =>
+  client.post<SubscriptionResponse>('/api/v1/billing/cancel', { reason }).then((r) => r.data);

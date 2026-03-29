@@ -10,7 +10,7 @@
  * - Freelancers with a paid plan (pro / enterprise) → full dashboard access
  * - Freelancers on the free plan → UpgradeModal on entry, then DashboardSkeleton
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
@@ -25,20 +25,13 @@ export default function Shell() {
 
   const { hasPaidPlan, user } = useAuth();
 
-  // Show upgrade dialog once per session when a free-plan freelancer enters
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   // True after the user dismisses the modal — keeps skeleton visible for the session
   const [modalDismissed, setModalDismissed] = useState(false);
 
-  useEffect(() => {
-    // Only freelancers without a paid plan see the gate
-    if (user && user.role === 'freelancer' && !hasPaidPlan && !modalDismissed) {
-      setShowUpgradeModal(true);
-    }
-  }, [user, hasPaidPlan, modalDismissed]);
+  // Derived: show upgrade modal for free-plan freelancers until dismissed
+  const showUpgradeModal = !!(user && user.role === 'freelancer' && !hasPaidPlan && !modalDismissed);
 
   const handleDismiss = () => {
-    setShowUpgradeModal(false);
     setModalDismissed(true);
   };
 

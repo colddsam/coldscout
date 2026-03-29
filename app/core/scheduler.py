@@ -114,6 +114,7 @@ def setup_scheduler():
         run_threads_engagement_stage,
         run_threads_response_check,
     )
+    from app.tasks.billing_tasks import check_subscription_expiry
 
     config = job_manager.load_config()
 
@@ -143,6 +144,16 @@ def setup_scheduler():
         id="scheduler_sync",
         replace_existing=True
     )
+
+    # Subscription expiry check — always active, runs daily at 2 AM IST
+    scheduler.add_job(
+        check_subscription_expiry,
+        CronTrigger(hour=2, minute=0, timezone="Asia/Kolkata"),
+        id="subscription_expiry_check",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    logger.info("   🟢 subscription_expiry_check: cron 02:00 IST (always active)")
 
     scheduler.start()
     

@@ -7,8 +7,10 @@ ensuring that the application fails fast if critical parameters are missing.
 
 Key Features:
 1. Type-Safe Settings: Validates data types for API keys, ports, and intervals.
-2. Production Safety: Provides a dynamic mechanism to check system status (RUN/HOLD).
-3. Environment Persistence: Includes a best-effort mechanism to persist changes back to .env.
+2. Schedule Validation: Enforces valid ranges for cron hours/minutes at startup so
+   APScheduler never receives out-of-range values that would trigger a silent misfire.
+3. Production Safety: Provides a dynamic mechanism to check system status (RUN/HOLD).
+4. Environment Persistence: Includes a best-effort mechanism to persist changes back to .env.
 """
 
 import os
@@ -180,6 +182,27 @@ class Settings(BaseSettings):
     Whether Threads is enabled.
     """
 
+    # ── Razorpay Payment Gateway ───────────────────────────────────
+    RAZORPAY_KEY_ID: str = ""
+    """
+    Razorpay API Key ID.
+    Obtain from Razorpay Dashboard → Settings → API Keys.
+    Use test keys (rzp_test_...) in development, live keys (rzp_live_...) in production.
+    """
+
+    RAZORPAY_KEY_SECRET: str = ""
+    """
+    Razorpay API Key Secret.
+    Used to create orders and verify payment signatures (HMAC-SHA256).
+    """
+
+    RAZORPAY_WEBHOOK_SECRET: str = ""
+    """
+    Razorpay Webhook Secret.
+    Set in Razorpay Dashboard → Webhooks → Secret.
+    Used to verify the authenticity of inbound Razorpay webhook events.
+    """
+
     # Communication Infrastructure (Brevo SMTP for Outreach)
     BREVO_WEBHOOK_SECRET: str = ""
     """
@@ -295,14 +318,59 @@ class Settings(BaseSettings):
 
     REPORT_MINUTE: int = 30
     """
-    The report minute.
+    The minute within REPORT_HOUR at which the daily report job fires (0-59).
     """
 
     # Safety Intervals (Preventing Spam Triggers)
     EMAIL_SEND_INTERVAL_SECONDS: int = 360
     """
-    The email send interval in seconds.
+    Minimum seconds between consecutive outbound emails during the outreach stage.
+    Must be at least 60 seconds to avoid triggering Brevo rate limits and spam filters.
     """
+
+    # ── Field Validators ──────────────────────────────────────────────────────
+    # These run at startup and raise a ValueError (shown as a clear error message)
+    # if any pipeline scheduling value is outside its valid range, preventing silent
+    # APScheduler misfires caused by bad configuration.
+
+    @field_validator(
+        "DISCOVERY_HOUR", "QUALIFICATION_HOUR", "PERSONALIZATION_HOUR",
+        "OUTREACH_HOUR", "REPORT_HOUR",
+        mode="before",
+    )
+    @classmethod
+    def validate_hour(cls, v: Any) -> int:
+        """Ensures schedule hour values are within the valid 24-hour clock range (0-23)."""
+        v = int(v)
+        if not (0 <= v <= 23):
+            raise ValueError(f"Schedule hour must be between 0 and 23, got {v}.")
+        return v
+
+    @field_validator("REPORT_MINUTE", mode="before")
+    @classmethod
+    def validate_minute(cls, v: Any) -> int:
+        """Ensures REPORT_MINUTE is within the valid range (0-59)."""
+        v = int(v)
+        if not (0 <= v <= 59):
+            raise ValueError(f"REPORT_MINUTE must be between 0 and 59, got {v}.")
+        return v
+
+    @field_validator("EMAIL_SEND_INTERVAL_SECONDS", mode="before")
+    @classmethod
+    def validate_email_interval(cls, v: Any) -> int:
+        """
+        Ensures the email send interval is at least 60 seconds.
+
+        Values below 60 seconds risk triggering SMTP provider rate limits and
+        increase the probability of the sender IP being flagged for spam.
+        """
+        v = int(v)
+        if v < 60:
+            raise ValueError(
+                f"EMAIL_SEND_INTERVAL_SECONDS must be at least 60 seconds, got {v}. "
+                "Lower values risk SMTP rate-limit violations and spam flags."
+            )
+        return v
 
     # Branding and Redirects
     BOOKING_LINK: str = ""

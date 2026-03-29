@@ -115,9 +115,19 @@ async def export_leads_csv(
     an RFC-4180-compliant CSV file with columns: ID, Business Name, Email,
     Phone, City, Category, Status, and Created At.
 
+    Row Limit:
+        A hard cap of 10,000 rows is enforced to protect the database from
+        unbounded full-table scans triggered by a single HTTP request. When
+        the result set is truncated, an ``X-Export-Truncated: true`` response
+        header is included so the client can surface a warning to the user.
+
     Returns:
         StreamingResponse: A `text/csv` attachment named `leads_YYYY-MM-DD.csv`.
     """
+    # Hard cap — prevents a single export request from doing a full table-scan
+    # and streaming gigabytes of data. Adjust via application config if needed.
+    CSV_EXPORT_LIMIT = 10_000
+
     stmt = select(Lead)
     if status:
         stmt = stmt.where(Lead.status == status)
@@ -130,31 +140,48 @@ async def export_leads_csv(
             parsed_from = date.fromisoformat(date_from)
             stmt = stmt.where(func.date(Lead.created_at) >= parsed_from)
         except ValueError:
-            pass  # Ignore invalid date strings
+            pass  # Ignore invalid date strings; filter is simply not applied
     if date_to:
         try:
             parsed_to = date.fromisoformat(date_to)
             stmt = stmt.where(func.date(Lead.created_at) <= parsed_to)
         except ValueError:
-            pass  # Ignore invalid date strings
-        
+            pass  # Ignore invalid date strings; filter is simply not applied
+
+    # Fetch one extra row beyond the cap to detect truncation without a separate
+    # COUNT query; we discard the extra row before writing.
+    stmt = stmt.limit(CSV_EXPORT_LIMIT + 1).order_by(Lead.created_at.desc())
     result = await db.execute(stmt)
     leads = result.scalars().all()
-    
+
+    truncated = len(leads) > CSV_EXPORT_LIMIT
+    if truncated:
+        leads = leads[:CSV_EXPORT_LIMIT]
+
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["ID", "Business Name", "Email", "Phone", "City", "Category", "Status", "Created At"])
     for lead in leads:
         writer.writerow([
-            str(lead.id), lead.business_name, lead.email or "", lead.phone or "", 
+            str(lead.id), lead.business_name, lead.email or "", lead.phone or "",
             lead.city or "", lead.category or "", lead.status, str(lead.created_at)
         ])
-    
+
     output.seek(0)
+
+    response_headers = {
+        "Content-Disposition": f"attachment; filename=leads_{date.today()}.csv",
+    }
+    if truncated:
+        # Inform the client that the export was capped; the full dataset requires
+        # additional filtering or a direct database extract.
+        response_headers["X-Export-Truncated"] = "true"
+        response_headers["X-Export-Row-Limit"] = str(CSV_EXPORT_LIMIT)
+
     return StreamingResponse(
-        iter([output.getvalue()]), 
-        media_type="text/csv", 
-        headers={"Content-Disposition": f"attachment; filename=leads_{date.today()}.csv"}
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers=response_headers,
     )
 
 @router.get("/{lead_id}", response_model=LeadDetailResponse)

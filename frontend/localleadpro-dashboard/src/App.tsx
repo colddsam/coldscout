@@ -33,6 +33,7 @@ import Inbox from './pages/Inbox';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Threads from './pages/Threads';
+import Billing from './pages/Billing';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import { FreelancerRoute, ClientRoute } from './components/auth/ProtectedRoute';
@@ -94,6 +95,7 @@ export default function App() {
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/billing" element={<Billing />} />
               </Route>
             </Route>
 

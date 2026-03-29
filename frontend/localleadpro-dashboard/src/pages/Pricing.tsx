@@ -6,15 +6,19 @@
  * Vercel-aesthetic design system used throughout the platform.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight, Check, X, ChevronDown, ExternalLink,
-  Github, Zap, Building2, Globe
+  Github, Zap, Building2, Globe, Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
+import { useAuth } from '../hooks/useAuth';
+import { useCheckout } from '../hooks/useBilling';
+import type { BillingPlan } from '../lib/api';
 
 /* ═══════════════ Currency Data ═══════════════ */
 
@@ -143,6 +147,36 @@ function PricingHero({ currency, onCurrencyChange }: {
 /* ═══════════════ Pricing Cards ═══════════════ */
 
 function PricingCards({ currency }: { currency: CurrencyInfo }) {
+  const { user, isAuthenticated } = useAuth();
+  const { checkout } = useCheckout();
+  const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handleProCheckout = async () => {
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
+    if (user.plan === 'pro') {
+      navigate('/billing');
+      return;
+    }
+    setCheckoutLoading('pro');
+    try {
+      await checkout({
+        plan: 'pro' as BillingPlan,
+        userEmail: user.email,
+        userName: user.full_name || undefined,
+        onSuccess: () => {
+          toast.success('Pro plan activated! Redirecting to billing...');
+          setTimeout(() => navigate('/billing'), 1500);
+        },
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
   const plans = [
     {
       name: 'Open Source',
@@ -163,7 +197,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
       ctaLink: 'https://github.com/colddsam/coldscout.git',
       external: true,
       featured: false,
-      color: '#333',
+      planKey: null,
     },
     {
       name: 'Pro',
@@ -181,11 +215,11 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
         'Email support (48h response)',
         '99.5% uptime SLA',
       ],
-      cta: 'Get Started',
-      ctaLink: '/login',
+      cta: isAuthenticated && user?.plan === 'pro' ? 'Manage Plan' : 'Get Started',
+      ctaLink: null,
       external: false,
       featured: true,
-      color: '#000',
+      planKey: 'pro',
     },
     {
       name: 'Enterprise',
@@ -207,7 +241,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
       ctaLink: 'mailto:colddsam@gmail.com?subject=Cold%20Scout%20Enterprise%20Inquiry',
       external: true,
       featured: false,
-      color: '#000',
+      planKey: 'enterprise',
     },
   ];
 
@@ -215,82 +249,106 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
     <section className="py-16 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${
-                plan.featured
-                  ? 'border-black shadow-vercel-hover bg-black text-white scale-[1.02]'
-                  : 'border-gray-200 bg-white hover:shadow-vercel hover:border-black'
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
-              )}
+          {plans.map((plan) => {
+            const isLoading = checkoutLoading === plan.planKey;
 
-              <div className="p-8">
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    plan.featured ? 'bg-white/10' : 'bg-accents-1 border border-gray-200'
-                  }`}>
-                    <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-secondary'}`} />
-                  </div>
-                  <div>
-                    <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${
-                      plan.featured ? 'text-white' : 'text-subtle'
-                    }`}>{plan.name}</p>
-                  </div>
-                </div>
+            return (
+              <div
+                key={plan.name}
+                className={`relative rounded-xl border transition-all duration-300 overflow-hidden ${
+                  plan.featured
+                    ? 'border-black shadow-vercel-hover bg-black text-white scale-[1.02]'
+                    : 'border-gray-200 bg-white hover:shadow-vercel hover:border-black'
+                }`}
+              >
+                {plan.featured && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
+                )}
 
-                {/* Price */}
-                <div className="mb-2">
-                  <span className="text-4xl font-bold tracking-tighter">{plan.price}</span>
-                  {plan.period && (
-                    <span className={`text-sm ml-1 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.period}</span>
+                <div className="p-8">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      plan.featured ? 'bg-white/10' : 'bg-accents-1 border border-gray-200'
+                    }`}>
+                      <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-secondary'}`} />
+                    </div>
+                    <div>
+                      <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${
+                        plan.featured ? 'text-white' : 'text-subtle'
+                      }`}>{plan.name}</p>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-2">
+                    <span className="text-4xl font-bold tracking-tighter">{plan.price}</span>
+                    {plan.period && (
+                      <span className={`text-sm ml-1 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.period}</span>
+                    )}
+                  </div>
+                  <p className={`text-xs font-medium mb-1 ${plan.featured ? 'text-gray-300' : 'text-black'}`}>{plan.tagline}</p>
+                  <p className={`text-[12px] leading-relaxed mb-6 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.desc}</p>
+
+                  {/* Features */}
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.featured ? 'text-white' : 'text-black'}`} />
+                        <span className={plan.featured ? 'text-gray-200' : 'text-secondary'}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  {plan.external ? (
+                    <a
+                      href={plan.ctaLink!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        plan.featured
+                          ? 'bg-white text-black hover:bg-gray-100'
+                          : 'bg-black text-white hover:bg-gray-800'
+                      }`}
+                      aria-label={`${plan.cta} with the ${plan.name} plan`}
+                    >
+                      {plan.cta} <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : plan.planKey === 'pro' ? (
+                    <button
+                      onClick={handleProCheckout}
+                      disabled={isLoading}
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 disabled:opacity-70 transition-all duration-200"
+                      aria-label={`${plan.cta} with the ${plan.name} plan`}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>{plan.cta} <ArrowRight className="w-3.5 h-3.5" /></>
+                      )}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 transition-all duration-200"
+                      aria-label={`${plan.cta} with the ${plan.name} plan`}
+                    >
+                      {plan.cta} <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   )}
                 </div>
-                <p className={`text-xs font-medium mb-1 ${plan.featured ? 'text-gray-300' : 'text-black'}`}>{plan.tagline}</p>
-                <p className={`text-[12px] leading-relaxed mb-6 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.desc}</p>
-
-                {/* Features */}
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.featured ? 'text-white' : 'text-black'}`} />
-                      <span className={plan.featured ? 'text-gray-200' : 'text-secondary'}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                {plan.external ? (
-                  <a
-                    href={plan.ctaLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      plan.featured
-                        ? 'bg-white text-black hover:bg-gray-100'
-                        : 'bg-black text-white hover:bg-gray-800'
-                    }`}
-                    aria-label={`${plan.cta} with the ${plan.name} plan`}
-                  >
-                    {plan.cta} <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : (
-                  <Link
-                    to={plan.ctaLink}
-                    className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 transition-all duration-200"
-                    aria-label={`${plan.cta} with the ${plan.name} plan`}
-                  >
-                    {plan.cta} <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
+        {/* INR note when non-INR currency selected */}
+        {currency.code !== 'INR' && (
+          <p className="text-center text-[11px] text-subtle mt-6">
+            * Payments are processed in INR (₹). Displayed prices are approximate conversions for reference.
+          </p>
+        )}
       </div>
     </section>
   );

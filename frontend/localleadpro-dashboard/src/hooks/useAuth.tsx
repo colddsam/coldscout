@@ -24,6 +24,7 @@ interface User {
   is_superuser: boolean;
   role?: UserRole;
   plan?: 'free' | 'pro' | 'enterprise';
+  plan_expires_at?: string | null;
   full_name?: string;
   avatar_url?: string;
   supabase_uid?: string;
@@ -99,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         is_superuser: data.is_superuser,
         role: data.role,
         plan: data.plan ?? 'free',
+        plan_expires_at: data.plan_expires_at ?? null,
         full_name: data.full_name,
         avatar_url: data.avatar_url,
         supabase_uid: data.supabase_uid,

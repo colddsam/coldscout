@@ -7,22 +7,26 @@ and serves as the mounting point for all versioned API routers.
 
 Key Responsibilities:
 1. Lifespan Management: Initializes database connections and the task scheduler on startup.
-2. Security: Implements API key validation and CORS policies for authorized frontend access.
+2. Security: Implements API key validation and explicit CORS policies for authorized frontend access.
 3. Routing: Aggregates modular routers into a single cohesive API surface.
+
+Security Notes:
+- CORS allowed methods are intentionally restricted to the HTTP verbs used by the application.
+  Using `["*"]` would permit potentially unsafe methods (PUT, TRACE, CONNECT) that this API
+  does not support and should not receive from a browser-origin request.
+- Allowed origins are driven entirely by BACKEND_CORS_ORIGINS in the environment; the default
+  is an empty list, so the application is locked down unless the variable is explicitly set.
 """
 
-import sys
-import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Security, HTTPException, status, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 # Internal imports ensure the application context is correctly initialized
-from app.config import get_settings, get_production_status
+from app.config import get_settings
 from app.core.scheduler import scheduler, setup_scheduler
 from app.core.database import verify_tables_exist
-from app.api.deps import get_api_key
 from app.api.router import api_router
 
 @asynccontextmanager
@@ -65,16 +69,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure Cross-Origin Resource Sharing (CORS)
-# This is critical for allowing the Vite-based frontend to communicate with the API
+# Configure Cross-Origin Resource Sharing (CORS).
+#
+# allow_origins  — driven by BACKEND_CORS_ORIGINS env var (empty by default = locked down).
+# allow_methods  — explicitly enumerated; wildcard "*" is intentionally avoided so that
+#                  browser pre-flight checks cannot be used to probe unsupported HTTP verbs.
+# allow_headers  — limited to the headers actually required by the frontend clients.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().BACKEND_CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"], 
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
 
-
-from app.api.router import api_router
 app.include_router(api_router, prefix="/api/v1")

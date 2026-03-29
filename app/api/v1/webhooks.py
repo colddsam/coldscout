@@ -14,14 +14,18 @@ Security:
 
 import hmac
 import logging
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.database import get_db
 from app.models.campaign import EmailOutreach
+from app.models.subscription import PaymentOrder, Subscription
+from app.models.user import User
+from app.modules.billing.razorpay_client import verify_webhook_signature
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -122,3 +126,149 @@ async def brevo_webhook(
     except Exception as e:
         logger.error("Error processing Brevo webhook: %s", e)
         return {"status": "error"}
+
+
+# ── Razorpay Webhook ───────────────────────────────────────────────────────────
+
+@router.post("/webhooks/razorpay")
+async def razorpay_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    x_razorpay_signature: str | None = Header(default=None),
+) -> dict:
+    """
+    Processes inbound Razorpay webhook events.
+
+    Handles:
+      - payment.captured  → mark order paid + activate subscription (fallback for missed verify calls)
+      - payment.failed    → mark order failed
+
+    Signature Verification:
+      Razorpay signs the raw request body with HMAC-SHA256 using the Webhook Secret.
+      The signature is sent in the 'X-Razorpay-Signature' header.
+
+      When RAZORPAY_WEBHOOK_SECRET is configured in the environment:
+        - Requests WITHOUT the X-Razorpay-Signature header are rejected (HTTP 403).
+        - Requests WITH an invalid signature are rejected (HTTP 403).
+        - Only requests with a valid signature proceed to database work.
+
+      When RAZORPAY_WEBHOOK_SECRET is NOT configured (development mode):
+        - All requests are accepted without signature verification (open mode).
+        - A warning is emitted to the logs on every call in this state.
+
+    Returns:
+        {"status": "ok"} on success or {"status": "ignored"} for unhandled events.
+    """
+    raw_body = await request.body()
+    settings = get_settings()
+
+    # Enforce signature verification when a webhook secret is configured.
+    #
+    # Security note: The old conditional `if x_razorpay_signature and not verify(...)` had
+    # a gap — it would silently accept requests that omitted the signature header entirely,
+    # even when a secret was configured. The corrected logic requires the header to be
+    # present whenever a secret is set, preventing unauthenticated spoofing.
+    if settings.RAZORPAY_WEBHOOK_SECRET:
+        if not x_razorpay_signature:
+            logger.warning(
+                "Razorpay webhook rejected: X-Razorpay-Signature header is missing "
+                "and RAZORPAY_WEBHOOK_SECRET is configured."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Missing webhook signature.",
+            )
+        if not verify_webhook_signature(raw_body, x_razorpay_signature):
+            logger.warning("Razorpay webhook rejected: invalid X-Razorpay-Signature.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid webhook signature.",
+            )
+    else:
+        # Open mode: no secret configured — log a warning on every call so the
+        # operator is reminded that this endpoint has no authentication.
+        logger.warning(
+            "Razorpay webhook received in open mode (RAZORPAY_WEBHOOK_SECRET not set). "
+            "Configure the secret in production to prevent spoofed events."
+        )
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    event = payload.get("event", "")
+    entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+    razorpay_order_id = entity.get("order_id")
+
+    logger.info("Razorpay webhook received: event=%s order_id=%s", event, razorpay_order_id)
+
+    if not razorpay_order_id:
+        return {"status": "ignored", "reason": "no order_id in payload"}
+
+    if event == "payment.captured":
+        # Locate order
+        result = await db.execute(
+            select(PaymentOrder).where(PaymentOrder.razorpay_order_id == razorpay_order_id)
+        )
+        order = result.scalars().first()
+
+        if not order:
+            logger.warning("Razorpay webhook: order %s not found in DB.", razorpay_order_id)
+            return {"status": "ignored", "reason": "order not found"}
+
+        if order.status == "paid":
+            return {"status": "ok", "reason": "already processed"}
+
+        # Update order
+        order.razorpay_payment_id = entity.get("id")
+        order.status = "paid"
+
+        now = datetime.now(timezone.utc)
+        period_end = now + timedelta(days=30)
+
+        # Upsert subscription
+        result2 = await db.execute(
+            select(Subscription).where(Subscription.user_id == order.user_id)
+        )
+        sub = result2.scalars().first()
+
+        if sub:
+            sub.plan = order.plan
+            sub.status = "active"
+            sub.current_period_start = now
+            sub.current_period_end = period_end
+            sub.cancelled_at = None
+            sub.updated_at = now
+        else:
+            sub = Subscription(
+                user_id=order.user_id,
+                plan=order.plan,
+                status="active",
+                current_period_start=now,
+                current_period_end=period_end,
+            )
+            db.add(sub)
+
+        # Update user.plan
+        await db.execute(
+            update(User)
+            .where(User.id == order.user_id)
+            .values(plan=order.plan, plan_expires_at=period_end)
+        )
+
+        await db.commit()
+        logger.info("Razorpay payment.captured: activated plan=%s for user_id=%s", order.plan, order.user_id)
+        return {"status": "ok"}
+
+    elif event == "payment.failed":
+        await db.execute(
+            update(PaymentOrder)
+            .where(PaymentOrder.razorpay_order_id == razorpay_order_id)
+            .values(status="failed")
+        )
+        await db.commit()
+        logger.info("Razorpay payment.failed: order %s marked failed.", razorpay_order_id)
+        return {"status": "ok"}
+
+    return {"status": "ignored", "reason": f"unhandled event: {event}"}

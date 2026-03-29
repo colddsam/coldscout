@@ -12,7 +12,7 @@ Routing Strategy:
 - v1/campaigns: High-level outreach orchestration.
 """
 from fastapi import APIRouter, Depends
-from app.api.v1 import auth, tracking, webhooks, pipeline, leads, campaigns, reports, unsubscribe, health
+from app.api.v1 import auth, tracking, webhooks, pipeline, leads, campaigns, reports, unsubscribe, health, billing
 from app.api.v1.threads import public_router as threads_public, router as threads_private
 from app.api.deps import get_api_key
 
@@ -34,6 +34,7 @@ private_router.include_router(leads.router, tags=["leads"])
 private_router.include_router(campaigns.router, tags=["campaigns"])
 private_router.include_router(reports.router, tags=["reports"])
 private_router.include_router(threads_private, tags=["threads"])
+private_router.include_router(billing.router, tags=["billing"])
 
 # Aggregated versioned router
 api_router = APIRouter()
