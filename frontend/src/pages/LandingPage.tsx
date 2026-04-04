@@ -259,7 +259,7 @@ function PricingSection() {
       desc: 'Download & self-host with your own API keys.',
       features: ['Full platform access', 'All 5 pipeline stages', 'Unlimited leads (your keys)', 'Web dashboard included'],
       cta: 'Download Free',
-      href: 'https://github.com/colddsam/coldscout/releases?q=oss-v&expanded=true',
+      href: 'https://github.com/colddsam/coldscout/releases',
       external: true,
       featured: false,
     },
@@ -450,7 +450,7 @@ const LD_SOFTWARE = {
   applicationSubCategory: 'Lead Generation Software',
   operatingSystem: 'Web, SaaS',
   url: 'https://coldscout.colddsam.com/',
-  downloadUrl: 'https://github.com/colddsam/coldscout/releases?q=oss-v&expanded=true',
+  downloadUrl: 'https://github.com/colddsam/coldscout/releases',
   description: 'AI-powered lead generation platform that automates outreach pipeline — from Google Maps discovery to personalized email campaigns.',
   softwareVersion: '1.0.0',
   featureList: [

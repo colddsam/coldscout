@@ -219,7 +219,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
         'Docker & pip install ready',
       ],
       cta: 'Download Free Package',
-      ctaLink: 'https://github.com/colddsam/coldscout/releases?q=oss-v&expanded=true',
+      ctaLink: 'https://github.com/colddsam/coldscout/releases',
       external: true,
       featured: false,
       planKey: null,
@@ -539,7 +539,7 @@ function CtaBanner() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="https://github.com/colddsam/coldscout/releases?q=oss-v&expanded=true"
+            href="https://github.com/colddsam/coldscout/releases"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-lg text-sm font-medium border border-gray-200 hover:border-black hover:shadow-vercel transition-all"
