@@ -1,0 +1,76 @@
+# =============================================================================
+# Docker Build Context Exclusions
+# =============================================================================
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+.github/
+
+# ── Python bytecode & build artefacts ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+venv/
+env/
+.env
+.env.*
+
+# ── Testing & Cache ──────────────────────────────────────────────────────────
+.pytest_cache/
+tests/
+test.py
+test.db
+test_auto_create.db
+pytest_*.txt
+test_output.log
+testrequirements.txt
+
+# ── Local state & scheduler artefacts ────────────────────────────────────────
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
+
+# ── IDEs & editors ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Debug & temporary output files ───────────────────────────────────────────
+alembic_*.txt
+debug_output*.txt
+error.log
+exception_test.txt
+git_diff*.txt
+git_status*.txt
+git_untracked.txt
+out*.txt
+results.txt
+stitch_design.html
+github_meta.md
+.agent/
+
+# ── Project auxiliary directories ────────────────────────────────────────────
+docs/
+# scripts/  # Removed to allow container-side DB management
+static/
+tmp/
+logs/
+temp/
+
+# ── Documentation & API specs ────────────────────────────────────────────────
+LICENSE
+README.md
+AI_Lead_Generation_Postman_Collection.json
+openapi.json
+
+sttichframe/

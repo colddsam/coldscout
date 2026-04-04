@@ -1,0 +1,73 @@
+{
+    "discovery": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 6,
+        "minute": 0
+    },
+    "qualification": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 7,
+        "minute": 0
+    },
+    "personalization": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 8,
+        "minute": 0
+    },
+    "outreach": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 9,
+        "minute": 0
+    },
+    "reply_poll": {
+        "status": "RUN",
+        "type": "interval",
+        "minutes": 30
+    },
+    "daily_report": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 21,
+        "minute": 41
+    },
+    "followup_dispatch": {
+        "status": "RUN",
+        "type": "cron",
+        "hour": 10,
+        "minute": 0
+    },
+    "weekly_optimization": {
+        "status": "RUN",
+        "type": "cron",
+        "day_of_week": "sun",
+        "hour": 11,
+        "minute": 0
+    },
+    "threads_discovery": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 10,
+        "minute": 0
+    },
+    "threads_qualification": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 11,
+        "minute": 0
+    },
+    "threads_engagement": {
+        "status": "HOLD",
+        "type": "cron",
+        "hour": 12,
+        "minute": 0
+    },
+    "threads_response_check": {
+        "status": "HOLD",
+        "type": "interval",
+        "minutes": 30
+    }
+}

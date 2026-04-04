@@ -1,0 +1,46 @@
+# Python virtual environments
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# IDEs & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Databases
+*.sqlite3
+*.db
+test.db
+test_auto_create.db
+
+# Testing
+.pytest_cache/
+pytest_output*.txt
+pytest_err*.txt
+pytest_final.txt
+
+# Scratch/Debug files
+*debug_output*.txt
+git_diff*.txt
+git_status*.txt
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+.env
+!.env.example

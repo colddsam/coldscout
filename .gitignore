@@ -1,0 +1,74 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+venv/
+env/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# IDEs & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.claude/
+
+# Databases
+*.sqlite3
+*.db
+test.db
+test_auto_create.db
+
+# Reports and dynamic content
+LeadGen_Report_*.xlsx
+proposal*.pdf
+stitch_design.html
+openapi.json
+
+# Testing
+.pytest_cache/
+pytest_output*.txt
+pytest_err*.txt
+pytest_final.txt
+pytest_out.txt
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
+
+# Scratch/Debug files
+*debug_output*.txt
+git_diff*.txt
+git_status*.txt
+git_untracked.txt
+out*.txt
+results.txt
+exception_test.txt
+alembic_*.txt
+.cron_setup_cached
+
+docs/
+
+.agent/
+
+sttichframe/
+
+execution.txt
+
+REVAMP_PLAN.md

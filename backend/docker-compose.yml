@@ -1,0 +1,28 @@
+# =============================================================================
+# Docker Compose — AI Lead Generation System (Backend Only)
+#
+# Optimized for cloud deployment (e.g., Render Web Service).
+# This file is primarily used for local verification before pushing to cloud.
+# =============================================================================
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      # These will be overridden by Render environment variables
+      - APP_ENV=production
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis_data:

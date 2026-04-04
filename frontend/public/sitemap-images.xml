@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <url>
+    <loc>https://coldscout.colddsam.com/</loc>
+    <image:image>
+      <image:loc>https://coldscout.colddsam.com/banner.png</image:loc>
+      <image:title>Cold Scout — AI Lead Generation Platform Banner</image:title>
+      <image:caption>Cold Scout uses AI to discover, enrich, and engage local business leads at scale.</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://coldscout.colddsam.com/web-app-manifest-512x512.png</image:loc>
+      <image:title>Cold Scout Logo</image:title>
+      <image:caption>Cold Scout AI Lead Generation Platform Logo</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://coldscout.colddsam.com/pricing</loc>
+    <image:image>
+      <image:loc>https://coldscout.colddsam.com/banner.png</image:loc>
+      <image:title>Cold Scout Pricing — Free, Pro, and Enterprise Plans</image:title>
+      <image:caption>Simple, transparent pricing for AI-powered lead generation. Free open-source plan available.</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://coldscout.colddsam.com/docs</loc>
+    <image:image>
+      <image:loc>https://coldscout.colddsam.com/banner.png</image:loc>
+      <image:title>Cold Scout Documentation — Setup and API Guide</image:title>
+      <image:caption>Full documentation for setting up, configuring, and deploying the Cold Scout AI lead generation pipeline.</image:caption>
+    </image:image>
+  </url>
+
+</urlset>

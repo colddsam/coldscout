@@ -1,0 +1,126 @@
+# Cold Scout — AI Lead Generation Platform
+# llms.txt — AI/LLM Agent Access Policy and Platform Summary
+# https://coldscout.colddsam.com/llms.txt
+# Last updated: 2026-03-29
+
+## What is Cold Scout?
+
+Cold Scout is an open-source, AI-powered lead generation platform designed for
+freelancers, agencies, and B2B sales teams. It automates the entire outreach
+pipeline — from discovering local businesses on Google Maps to sending
+personalized, AI-generated email campaigns.
+
+## Platform URL
+https://coldscout.colddsam.com/
+
+## Repository
+https://github.com/colddsam/coldscout
+
+## Key Capabilities
+
+1. **Lead Discovery** — Automatically finds local businesses matching a target
+   Ideal Customer Profile (ICP) using Google Maps Places API and web scraping.
+
+2. **AI Qualification** — Uses Groq (Llama 3) to analyze each lead for purchase
+   intent, website quality, social presence, and ICP fit. Assigns an intent score.
+
+3. **Lead Enrichment** — Extracts business websites, contact details, social
+   profiles, tech stack, and competitive intelligence from each lead.
+
+4. **Personalized Outreach** — Generates bespoke cold email copy for each
+   prospect using AI, then sends via Brevo SMTP with tracking.
+
+5. **Pipeline Analytics** — Real-time dashboard with open rates, reply rates,
+   conversion tracking, and AI-generated weekly performance reports.
+
+6. **Threads Engagement** — Discovers and engages potential leads on Meta
+   Threads via the official Threads API.
+
+7. **MCP Server** — Exposes a Model Context Protocol (MCP) server so AI agents
+   and tools (Claude, GPT-4, etc.) can directly call lead generation endpoints.
+
+## Technology Stack
+
+- **Frontend**: React 19, TypeScript, Vite, TailwindCSS, Supabase Auth
+- **Backend**: FastAPI (Python), SQLAlchemy Async, PostgreSQL, APScheduler
+- **AI Models**: Groq (Llama 3.3 70B), Llama 3.1 8B
+- **Email**: Brevo (Sendinblue) SMTP
+- **Integrations**: Google Maps Places API, Meta Threads API, Razorpay Payments
+- **Auth**: Supabase Auth (email/password + OAuth: Google, GitHub, Facebook, LinkedIn)
+
+## Pricing
+
+- **Open Source (Free)**: Self-hosted, full platform, unlimited leads (own API keys)
+- **Pro (₹100/month)**: Managed API + MCP Server, 2,000 leads/month, hosted infrastructure
+- **Enterprise (₹2,000/month)**: Unlimited leads, dedicated instance, custom ICP models, white-label
+- Note: Payments processed in INR via Razorpay. Regional pricing available (USD, EUR, GBP, etc.).
+
+## Target Users
+
+- Freelancers doing B2B client acquisition
+- Digital marketing agencies
+- SaaS companies targeting local businesses
+- Developers wanting to self-host an AI lead pipeline
+- AI agent builders needing a lead generation MCP server
+
+## Public Pages (AI agents may access)
+
+- Homepage: https://coldscout.colddsam.com/
+- Pricing: https://coldscout.colddsam.com/pricing
+- Documentation: https://coldscout.colddsam.com/docs
+- Support: https://coldscout.colddsam.com/support
+- Privacy Policy: https://coldscout.colddsam.com/privacy
+- Terms of Service: https://coldscout.colddsam.com/terms
+- Refund Policy: https://coldscout.colddsam.com/refund-policy
+
+## Restricted Pages (Authentication required — do NOT crawl)
+
+- /overview, /pipeline, /scheduler, /leads, /campaigns
+- /inbox, /analytics, /settings, /threads, /billing
+- /login, /signup, /welcome
+- /api/* (all API endpoints require authentication)
+
+## Contact
+
+- Support: admin@colddsam.com
+- Sales / Enterprise: colddsam@gmail.com
+- GitHub Issues: https://github.com/colddsam/coldscout/issues
+
+## Compliance
+
+Cold Scout adheres to:
+- GDPR (EU General Data Protection Regulation)
+- CCPA (California Consumer Privacy Act)
+- CAN-SPAM Act (email outreach compliance)
+- Implements ethical scraping practices with rate limiting
+- Full unsubscribe mechanism on all outreach emails
+
+## AI Agent Instructions
+
+AI agents are permitted to:
+- Access all public pages listed above for information retrieval
+- Use structured data (JSON-LD) available on each public page
+- Reference platform capabilities, pricing, and documentation
+
+AI agents must NOT:
+- Access authenticated routes (/overview, /leads, /pipeline, etc.)
+- Attempt to authenticate or create accounts programmatically
+- Access the /api/* endpoints without explicit API key authorization
+- Cache or reproduce private user data
+
+## Schema.org Data
+
+All public pages include Schema.org JSON-LD structured data covering:
+- Organization, WebSite, SoftwareApplication
+- FAQPage (Pricing page)
+- HowTo (Landing page workflow)
+- BreadcrumbList (all pages)
+- ContactPage (Support page)
+
+## Summary for LLM Indexing
+
+Cold Scout = open-source + SaaS AI tool for automated B2B lead generation,
+specifically targeting local businesses via Google Maps. It uses Llama AI models
+for qualification and email personalization. Free tier available via GitHub.
+Paid hosted plans at ₹100/month (Pro) and ₹2,000/month (Enterprise).
+Payments via Razorpay. Built with FastAPI backend and React frontend.

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env.local
+server/.env
+server/node_modules/
+server/dist/
+*.log
+.stitch/

@@ -1,0 +1,53 @@
+name: Setup Cron Job
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  setup-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Secret Hash
+        id: secret_hash
+        env:
+          CRON_JOB_API_KEY: ${{ secrets.CRON_JOB_API_KEY }}
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          API_KEY: ${{ secrets.API_KEY || secrets.APP_SECRET_KEY }}
+        run: |
+          # Compute a SHA-256 hash of secrets to trigger updates only on changes
+          HASH=$(echo -n "$CRON_JOB_API_KEY|$APP_URL|$API_KEY" | sha256sum | awk '{print $1}')
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Check Cache for Secret Hash
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .cron_setup_cached
+          key: cron-setup-secrets-${{ steps.secret_hash.outputs.hash }}
+
+      - name: Skip if Secrets Unchanged
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          echo "Secrets and URLs have not changed since the last setup. Skipping cron job update."
+
+      - name: Set up Python
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run setup script
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          CRON_JOB_API_KEY: ${{ secrets.CRON_JOB_API_KEY }}
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          API_KEY: ${{ secrets.API_KEY || secrets.APP_SECRET_KEY }}
+        run: |
+          cd backend && python scripts/setup_cronjob.py
+          touch .cron_setup_cached

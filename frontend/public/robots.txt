@@ -1,0 +1,197 @@
+# robots.txt — Cold Scout (https://coldscout.colddsam.com)
+# https://www.robotstxt.org/robotstxt.html
+# Last updated: 2026-03-29
+
+# ── Default: Allow all public pages, disallow app routes ──────────────────────
+User-agent: *
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /refund-policy
+Allow: /delete-data
+Allow: /sitemap.xml
+Allow: /llms.txt
+Allow: /robots.txt
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /scheduler
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /inbox
+Disallow: /analytics
+Disallow: /settings
+Disallow: /threads
+Disallow: /billing
+Disallow: /login
+Disallow: /signup
+Disallow: /welcome
+Disallow: /auth/
+Disallow: /api/
+
+# ── Googlebot — explicit full crawl of public pages ───────────────────────────
+User-agent: Googlebot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /refund-policy
+Allow: /delete-data
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /scheduler
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /inbox
+Disallow: /analytics
+Disallow: /settings
+Disallow: /threads
+Disallow: /billing
+Disallow: /login
+Disallow: /signup
+Disallow: /welcome
+Disallow: /auth/
+Disallow: /api/
+
+# ── Bingbot ────────────────────────────────────────────────────────────────────
+User-agent: Bingbot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /refund-policy
+Allow: /delete-data
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /scheduler
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /inbox
+Disallow: /analytics
+Disallow: /settings
+Disallow: /threads
+Disallow: /billing
+Disallow: /login
+Disallow: /signup
+Disallow: /welcome
+Disallow: /auth/
+Disallow: /api/
+
+# ── AI & LLM Crawlers — allow public/docs for discovery ──────────────────────
+User-agent: GPTBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /refund-policy
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /analytics
+Disallow: /settings
+Disallow: /inbox
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Claude-Web
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /refund-policy
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /analytics
+Disallow: /settings
+Disallow: /inbox
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: anthropic-ai
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Allow: /refund-policy
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: CCBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Allow: /refund-policy
+Disallow: /overview
+Disallow: /pipeline
+Disallow: /leads
+Disallow: /campaigns
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Allow: /refund-policy
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Applebot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Disallow: /auth/
+Disallow: /api/
+
+# ── Social Media Crawlers ──────────────────────────────────────────────────────
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# ── Bad bots — disallow everything ────────────────────────────────────────────
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+# ── Sitemaps ───────────────────────────────────────────────────────────────────
+Sitemap: https://coldscout.colddsam.com/sitemap.xml
+Sitemap: https://coldscout.colddsam.com/sitemap-images.xml
+
+# ── LLM / AI agent policy ─────────────────────────────────────────────────────
+# Full AI crawler policy available at:
+# https://coldscout.colddsam.com/llms.txt

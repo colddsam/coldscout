@@ -1,0 +1,63 @@
+name: Pipeline Health Monitor
+
+on:
+  schedule:
+    - cron: '30 1 * * *'    # 7:00 AM IST = 01:30 UTC — check after discovery should have run
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check app is alive
+        id: health
+        env:
+          # Use APP_URL from vars if available, else from secrets
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "❌ APP_URL is not set. Skipping health check."
+            exit 1
+          fi
+          echo "Checking health at ${APP_URL}/api/v1/health"
+          RESPONSE=$(curl -sf --max-time 30 "${APP_URL}/api/v1/health" || echo "FAILED")
+          echo "response=$RESPONSE" >> $GITHUB_OUTPUT
+          echo "Health response: $RESPONSE"
+
+      - name: Check last pipeline run
+        id: pipeline_check
+        if: steps.health.outputs.response != 'FAILED'
+        run: |
+          STATUS=$(echo '${{ steps.health.outputs.response }}' | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('last_pipeline_status','unknown'))")
+          echo "Last pipeline status: $STATUS"
+          if [ "$STATUS" = "failed" ] || [ "$STATUS" = "never_run" ]; then
+            echo "pipeline_ok=false" >> $GITHUB_OUTPUT
+          else
+            echo "pipeline_ok=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Force trigger pipeline if missed
+        if: steps.pipeline_check.outputs.pipeline_ok == 'false'
+        env:
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          API_KEY: ${{ secrets.API_KEY || secrets.APP_SECRET_KEY }}
+        run: |
+          echo "⚠️ Pipeline missed — attempting manual trigger"
+          # NOTE: /api/v1/pipeline/trigger currently requires BOTH X-API-Key and a JWT (Depends(get_current_user)).
+          # This trigger might fail with 401/403 unless the backend is updated to allow API Key only for this endpoint.
+          curl -X POST "${APP_URL}/api/v1/pipeline/trigger" \
+            -H "X-API-Key: ${API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"stage": "all", "dry_run": false}'
+
+      - name: Notify Telegram on any failure
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
+            curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=⚠️ GitHub Actions health check failed for AI Lead Gen — check Render logs"
+          else
+            echo "Telegram notification skipped: Secrets not set."
+          fi

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Digital Growth Proposal for {{ business_name }}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml><o:OfficeDocumentSettings>
+      <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings></xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body, table, td, p, a, li, blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; outline: none; text-decoration: none;
+          -ms-interpolation-mode: bicubic; }
+    body { margin: 0; padding: 0; width: 100% !important;
+           background-color: #f5f5f5; }
+
+    /* ── Typography ────────────────────────────────────────── */
+    body, .email-body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+                   Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    /* ── Outer wrapper ─────────────────────────────────────── */
+    .outer-wrapper {
+      width: 100%;
+      background-color: #f5f5f5;
+      padding: 32px 16px;
+    }
+
+    /* ── Card ──────────────────────────────────────────────── */
+    .email-card {
+      max-width: 620px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #eaeaea;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background: #000000;
+      padding: 0;
+      position: relative;
+    }
+    .header-inner {
+      padding: 40px 40px 36px;
+      position: relative;
+      z-index: 1;
+    }
+    .header-overline {
+      display: inline-block;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #cccccc;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 30px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      color: #ffffff;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+    .header h1 span {
+      color: #cccccc;
+    }
+    .header-sub {
+      color: #999999;
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Accent bar at bottom of header */
+    .header-accent {
+      height: 3px;
+      background: #333333;
+    }
+
+    /* ── Stat strip ────────────────────────────────────────── */
+    .stat-strip {
+      background-color: #fafafa;
+      border-bottom: 1px solid #eaeaea;
+      padding: 20px 40px;
+      display: flex;
+    }
+    .stat-strip table { width: 100%; border-collapse: collapse; }
+    .stat-cell {
+      text-align: center;
+      padding: 0 8px;
+      border-right: 1px solid #eaeaea;
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-value {
+      display: block;
+      font-size: 22px;
+      font-weight: 800;
+      color: #000000;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #999999;
+      font-weight: 600;
+    }
+
+    /* ── Body ──────────────────────────────────────────────── */
+    .body-content {
+      padding: 36px 40px 28px;
+    }
+    .greeting {
+      font-size: 16px;
+      color: #666666;
+      margin: 0 0 24px;
+      line-height: 1.6;
+    }
+    .greeting strong {
+      color: #000000;
+    }
+
+    /* AI content block */
+    .ai-block {
+      background: #f5f5f5;
+      border-left: 3px solid #000000;
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin: 0 0 28px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #333333;
+    }
+    .ai-block p { margin: 0 0 12px; }
+    .ai-block p:last-child { margin: 0; }
+
+    /* ── Attachment callout ─────────────────────────────────── */
+    .attachment-row {
+      background: #f5f5f5;
+      border: 1px solid #eaeaea;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 0 0 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .attachment-row table { width: 100%; border-collapse: collapse; }
+    .att-icon-cell { width: 40px; vertical-align: middle; }
+    .att-icon {
+      width: 40px;
+      height: 40px;
+      background: #000000;
+      border-radius: 8px;
+      text-align: center;
+      line-height: 40px;
+      font-size: 18px;
+    }
+    .att-text-cell { vertical-align: middle; padding-left: 14px; }
+    .att-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #000000;
+      margin-bottom: 2px;
+    }
+    .att-sub {
+      display: block;
+      font-size: 12px;
+      color: #666666;
+    }
+
+    /* ── CTA button ────────────────────────────────────────── */
+    .cta-wrap {
+      text-align: center;
+      margin: 28px 0 24px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: #000000;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 16px 44px;
+      border-radius: 50px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+      transition: background 0.2s ease;
+    }
+    .cta-note {
+      font-size: 12px;
+      color: #999999;
+      text-align: center;
+      margin: 10px 0 0;
+    }
+
+    /* ── Divider ───────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid #eaeaea;
+      margin: 28px 0;
+    }
+
+    /* ── Sign-off ──────────────────────────────────────────── */
+    .signoff {
+      font-size: 14px;
+      color: #666666;
+      line-height: 1.7;
+      margin: 0;
+    }
+    .signoff strong {
+      display: block;
+      font-size: 15px;
+      color: #000000;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .signoff em {
+      font-style: normal;
+      color: #999999;
+      font-size: 13px;
+    }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    .footer {
+      background-color: #000000;
+      padding: 24px 40px;
+      text-align: center;
+    }
+    .footer p {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #999999;
+      line-height: 1.6;
+    }
+    .footer a {
+      color: #999999;
+      text-decoration: underline;
+    }
+    .footer .brand {
+      font-size: 11px;
+      color: #666666;
+      margin-top: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ── Mobile ────────────────────────────────────────────── */
+    @media only screen and (max-width: 600px) {
+      .outer-wrapper  { padding: 0 !important; }
+      .email-card     { border-radius: 0 !important; }
+      .header-inner   { padding: 28px 24px 24px !important; }
+      .header h1      { font-size: 21px !important; }
+      .body-content   { padding: 24px 20px 20px !important; }
+      .footer         { padding: 20px 24px !important; }
+      .stat-strip     { padding: 16px 20px !important; }
+      .stat-value     { font-size: 18px !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="outer-wrapper">
+  <div class="email-card">
+
+    <!-- ══ HEADER ══════════════════════════════════════════════ -->
+    <div class="header">
+      <div class="header-inner">
+        <div class="header-overline">Digital Growth Proposal</div>
+        <h1>A strategy built for<br><span>{{ business_name }}</span></h1>
+        <p class="header-sub">
+          We found a real opportunity to grow your business online —<br>
+          here's what we put together for you.
+        </p>
+      </div>
+      <div class="header-accent"></div>
+    </div>
+
+    <!-- ══ STATS STRIP ════════════════════════════════════════ -->
+    <div class="stat-strip">
+      <table>
+        <tr>
+          <td class="stat-cell">
+            <span class="stat-value">97%</span>
+            <span class="stat-label">Search online first</span>
+          </td>
+          <td class="stat-cell">
+            <span class="stat-value">3.5×</span>
+            <span class="stat-label">More calls with website</span>
+          </td>
+          <td class="stat-cell">
+            <span class="stat-value">46%</span>
+            <span class="stat-label">Searches are local</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ══ BODY ═══════════════════════════════════════════════ -->
+    <div class="body-content">
+
+      <p class="greeting">Hi, I came across <strong>{{ business_name }}</strong> and wanted to reach out personally.</p>
+
+      <!-- AI-generated paragraphs -->
+      <div class="ai-block">
+        {{ ai_body_html | safe }}
+      </div>
+
+      <!-- Attachment callout -->
+      <div class="attachment-row">
+        <table>
+          <tr>
+            <td class="att-icon-cell">
+              <div class="att-icon">📎</div>
+            </td>
+            <td class="att-text-cell">
+              <span class="att-title">Attached: Your Custom Proposal + ROI Workbook</span>
+              <span class="att-sub">PDF strategy doc &amp; interactive Excel ROI calculator — personalised for {{ business_name }}</span>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <a href="{{ app_url }}/api/v1/track/click/{{ tracking_token }}?url={{ ('mailto:' ~ reply_email ~ '?subject=Let\'s discuss ' ~ business_name) | urlencode }}"
+           class="cta-btn">
+          Book a Free 20-Min Strategy Call →
+        </a>
+        <p class="cta-note">No cost. No commitment. Just a conversation.</p>
+      </div>
+
+      <hr class="divider" />
+
+      <p class="signoff">
+        Warm regards,<br>
+        <img
+          src="{{ logo_url }}"
+          alt="Cold Scout"
+          width="150"
+          style="display:block; margin: 10px 0 6px; border:0; outline:none;"
+        />
+        <strong>Your Growth Partner</strong>
+        <em>Cold Scout · Helping local businesses grow online</em>
+      </p>
+
+    </div>
+
+    <!-- ══ FOOTER ═════════════════════════════════════════════ -->
+    <div class="footer">
+      <p>This proposal was prepared exclusively for <strong style="color:#cccccc;">{{ business_name }}</strong>.</p>
+      <p>Not the right time? <a href="{{ app_url }}/api/v1/unsubscribe/{{ tracking_token }}">Unsubscribe</a> and we won't contact you again.</p>
+      <p class="brand">Cold Scout &nbsp;·&nbsp; Automated with care</p>
+    </div>
+
+    <!-- Tracking pixel (1×1, hidden) -->
+    <img src="{{ app_url }}/api/v1/track/open/{{ tracking_token }}"
+         width="1" height="1"
+         style="display:none;border:0;outline:none;" alt="" />
+
+  </div>
+</div>
+</body>
+</html>
