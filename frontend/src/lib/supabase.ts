@@ -43,10 +43,7 @@ const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\
   ?? window.location.origin;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    'Supabase environment variables not configured. ' +
-    'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.'
-  );
+  // Supabase environment variables not configured.
 }
 
 /**

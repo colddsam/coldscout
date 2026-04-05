@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return backendUser;
     } catch (error) {
-      console.error('Failed to sync user to backend:', error);
+      // Sync failed
       return null;
     }
   }, [supabaseUser, session]);
@@ -130,11 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         // Try to recover Supabase session
-        const { session: existingSession, error } = await getSession();
-
-        if (error) {
-          console.warn('Error getting Supabase session:', error);
-        }
+        const { session: existingSession } = await getSession();
 
         if (existingSession) {
           setSession(existingSession);
@@ -150,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(savedUser);
               setUserRole(savedUser.role || 'freelancer');
             } catch {
-              console.warn('Malformed user data in storage');
+              // Malformed data
             }
           }
         } else {
@@ -165,14 +161,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(savedUser);
               setUserRole(savedUser.role || 'freelancer');
             } catch {
-              console.warn('Failed to restore legacy session');
+              // Legacy restore failed
               localStorage.removeItem('llp_token');
               localStorage.removeItem('llp_user');
             }
           }
         }
       } catch (err) {
-        console.error('Failed to initialize auth:', err);
         localStorage.removeItem('llp_token');
         localStorage.removeItem('llp_user');
       } finally {
@@ -189,7 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const subscription = onAuthStateChange(
       async (event: AuthChangeEvent, newSession: Session | null) => {
-        console.log('Auth state changed:', event);
 
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);

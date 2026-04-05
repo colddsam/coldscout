@@ -57,7 +57,6 @@ export default function AuthCallback() {
           navigate(redirectPath, { replace: true });
         }, 1000);
       } catch (err) {
-        console.error('Callback error:', err);
         setError(err instanceof Error ? err.message : 'Authentication failed');
         setStatus('error');
       }

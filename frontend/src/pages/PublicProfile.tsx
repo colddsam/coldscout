@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { getPublicProfile } from '../lib/api';
 import type { PublicProfile } from '../lib/api';
+import { useSEO } from '../hooks/useSEO';
+import JsonLd from '../components/seo/JsonLd';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 import {
@@ -61,9 +63,52 @@ export default function PublicProfilePage() {
     retry: false,
   });
 
+  // Dynamic SEO — uses profile data when available, falls back to generic
+  const displayName = profile?.full_name || username || 'User';
+  const headline = profile?.freelancer?.professional_title
+    || (profile?.business?.company_name
+      ? `${profile.business.company_name}${profile.business.industry ? ` · ${profile.business.industry}` : ''}`
+      : null);
+  const seoTitle = `${displayName}${headline ? ` — ${headline}` : ''} | Cold Scout`;
+  const seoDesc = profile?.bio
+    ? `${profile.bio.slice(0, 140)}${profile.bio.length > 140 ? '…' : ''}`
+    : `View ${displayName}'s professional profile on Cold Scout — AI-powered lead generation platform.`;
+
+  useSEO({
+    title: seoTitle,
+    description: seoDesc,
+    canonical: username ? `https://coldscout.colddsam.com/u/${username}` : undefined,
+    ogImage: profile?.profile_photo_url || profile?.avatar_url || undefined,
+    ogType: 'profile',
+    ogImageAlt: `${displayName}'s profile photo`,
+    index: !!profile, // only index if profile is public and loaded
+    keywords: [
+      displayName,
+      profile?.freelancer?.professional_title,
+      profile?.business?.company_name,
+      profile?.business?.industry,
+      'Cold Scout',
+      'freelancer profile',
+      'lead generation',
+    ].filter(Boolean).join(', '),
+  });
+
+  // Build JSON-LD schemas when profile is available
+  const profileLd = profile ? buildProfileJsonLd(profile, username!) : null;
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://coldscout.colddsam.com/' },
+      { '@type': 'ListItem', position: 2, name: displayName, item: `https://coldscout.colddsam.com/u/${username}` },
+    ],
+  };
+
   return (
     <>
       <PublicNavbar />
+      <JsonLd data={breadcrumbLd} id="profile-breadcrumb" />
+      {profileLd && <JsonLd data={profileLd} id="profile-person" />}
       <main className="min-h-screen bg-gray-50 pt-16 pb-12">
         {isLoading && (
           <div className="flex items-center justify-center h-96">
@@ -102,6 +147,68 @@ export default function PublicProfilePage() {
       <PublicFooter />
     </>
   );
+}
+
+/** Build Person or Organization JSON-LD from profile data. */
+function buildProfileJsonLd(profile: PublicProfile, username: string) {
+  const isFreelancer = !!profile.freelancer;
+  const photoUrl = profile.profile_photo_url || profile.avatar_url;
+
+  if (isFreelancer) {
+    const f = profile.freelancer!;
+    const sameAs = [f.linkedin_url, f.github_url, f.twitter_url, f.dribbble_url, f.behance_url, f.personal_website].filter(Boolean);
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: profile.full_name || username,
+      url: `https://coldscout.colddsam.com/u/${username}`,
+      ...(photoUrl && { image: photoUrl }),
+      ...(profile.bio && { description: profile.bio }),
+      ...(f.professional_title && { jobTitle: f.professional_title }),
+      ...(profile.location && { address: { '@type': 'PostalAddress', addressLocality: profile.location } }),
+      ...(profile.email && { email: profile.email }),
+      ...(f.skills?.length && { knowsAbout: f.skills }),
+      ...(f.languages?.length && { knowsLanguage: f.languages }),
+      ...(sameAs.length && { sameAs }),
+    };
+  }
+
+  if (profile.business) {
+    const b = profile.business;
+    const sameAs = [b.linkedin_url, b.twitter_url, b.facebook_url, b.instagram_url, b.company_website].filter(Boolean);
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: b.company_name || profile.full_name || username,
+      url: `https://coldscout.colddsam.com/u/${username}`,
+      ...(b.company_logo_url && { logo: b.company_logo_url }),
+      ...(photoUrl && { image: photoUrl }),
+      ...(b.company_description && { description: b.company_description }),
+      ...(b.industry && { industry: b.industry }),
+      ...(b.founded_year && { foundingDate: String(b.founded_year) }),
+      ...((b.city || b.state || b.country) && {
+        address: {
+          '@type': 'PostalAddress',
+          ...(b.city && { addressLocality: b.city }),
+          ...(b.state && { addressRegion: b.state }),
+          ...(b.country && { addressCountry: b.country }),
+        },
+      }),
+      ...(sameAs.length && { sameAs }),
+    };
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    mainEntity: {
+      '@type': 'Person',
+      name: profile.full_name || username,
+      url: `https://coldscout.colddsam.com/u/${username}`,
+      ...(photoUrl && { image: photoUrl }),
+      ...(profile.bio && { description: profile.bio }),
+    },
+  };
 }
 
 // ── Profile View ────────────────────────────────────────────────────────────

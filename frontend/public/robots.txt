@@ -1,6 +1,6 @@
 # robots.txt — Cold Scout (https://coldscout.colddsam.com)
 # https://www.robotstxt.org/robotstxt.html
-# Last updated: 2026-03-29
+# Last updated: 2026-04-05
 
 # ── Default: Allow all public pages, disallow app routes ──────────────────────
 User-agent: *
@@ -12,9 +12,12 @@ Allow: /terms
 Allow: /support
 Allow: /refund-policy
 Allow: /delete-data
+Allow: /u/
 Allow: /sitemap.xml
 Allow: /llms.txt
+Allow: /llms-full.txt
 Allow: /robots.txt
+Allow: /.well-known/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /scheduler
@@ -41,6 +44,7 @@ Allow: /terms
 Allow: /support
 Allow: /refund-policy
 Allow: /delete-data
+Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /scheduler
@@ -67,6 +71,7 @@ Allow: /terms
 Allow: /support
 Allow: /refund-policy
 Allow: /delete-data
+Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /scheduler
@@ -169,6 +174,35 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
+# ── Google AI / Gemini ────────────────────────────────────────────────────────
+User-agent: Google-Extended
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Allow: /refund-policy
+Disallow: /auth/
+Disallow: /api/
+
+# ── Cohere AI ─────────────────────────────────────────────────────────────────
+User-agent: cohere-ai
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Allow: /refund-policy
+Disallow: /auth/
+Disallow: /api/
+
+# ── Meta AI ───────────────────────────────────────────────────────────────────
+User-agent: FacebookBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /support
+Disallow: /auth/
+Disallow: /api/
+
 # ── Bad bots — disallow everything ────────────────────────────────────────────
 User-agent: AhrefsBot
 Disallow: /
@@ -193,5 +227,6 @@ Sitemap: https://coldscout.colddsam.com/sitemap.xml
 Sitemap: https://coldscout.colddsam.com/sitemap-images.xml
 
 # ── LLM / AI agent policy ─────────────────────────────────────────────────────
-# Full AI crawler policy available at:
-# https://coldscout.colddsam.com/llms.txt
+# AI agent policy (summary): https://coldscout.colddsam.com/llms.txt
+# AI agent policy (full):    https://coldscout.colddsam.com/llms-full.txt
+# AI plugin manifest:        https://coldscout.colddsam.com/.well-known/ai-plugin.json

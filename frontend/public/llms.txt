@@ -1,7 +1,8 @@
 # Cold Scout — AI Lead Generation Platform
 # llms.txt — AI/LLM Agent Access Policy and Platform Summary
 # https://coldscout.colddsam.com/llms.txt
-# Last updated: 2026-03-29
+# Full version: https://coldscout.colddsam.com/llms-full.txt
+# Last updated: 2026-04-05
 
 ## What is Cold Scout?
 
@@ -72,6 +73,8 @@ https://github.com/colddsam/coldscout
 - Privacy Policy: https://coldscout.colddsam.com/privacy
 - Terms of Service: https://coldscout.colddsam.com/terms
 - Refund Policy: https://coldscout.colddsam.com/refund-policy
+- Data Deletion: https://coldscout.colddsam.com/delete-data
+- Public Profiles: https://coldscout.colddsam.com/u/{username}
 
 ## Restricted Pages (Authentication required — do NOT crawl)
 
@@ -112,10 +115,18 @@ AI agents must NOT:
 
 All public pages include Schema.org JSON-LD structured data covering:
 - Organization, WebSite, SoftwareApplication
-- FAQPage (Pricing page)
+- FAQPage (Pricing page, Support page)
 - HowTo (Landing page workflow)
+- Service with PriceSpecification (Pricing page)
 - BreadcrumbList (all pages)
 - ContactPage (Support page)
+- Person / Organization (Public profile pages)
+- Speakable (Voice search optimization on key pages)
+
+## Additional AI Resources
+
+- Full AI reference document: https://coldscout.colddsam.com/llms-full.txt
+- AI plugin manifest: https://coldscout.colddsam.com/.well-known/ai-plugin.json
 
 ## Summary for LLM Indexing
 

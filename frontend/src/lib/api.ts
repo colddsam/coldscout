@@ -47,7 +47,7 @@ client.interceptors.request.use(async (config) => {
       token = session.access_token;
     }
   } catch (error) {
-    console.warn('Failed to get Supabase session:', error);
+    // Failed to get Supabase session
   }
 
   // Fallback to legacy localStorage token
@@ -90,7 +90,7 @@ client.interceptors.response.use(
       try {
         await supabase.auth.signOut();
       } catch (signOutError) {
-        console.warn('Failed to sign out from Supabase:', signOutError);
+        // Failed to sign out from Supabase
       }
 
       const path = window.location.pathname;

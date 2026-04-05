@@ -5,7 +5,7 @@
  * feature comparison table, FAQ, and CTA. Follows the
  * Vercel-aesthetic design system used throughout the platform.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -618,8 +618,70 @@ const LD_WEBPAGE_PRICING = {
   description: 'Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at ₹100/month, and Enterprise plans for agencies at ₹2,000/month.',
   isPartOf: { '@id': 'https://coldscout.colddsam.com/#website' },
   breadcrumb: { '@id': 'https://coldscout.colddsam.com/pricing#breadcrumb' },
-  dateModified: '2026-03-29',
+  dateModified: '2026-04-05',
   inLanguage: 'en-US',
+};
+
+const LD_SERVICE_PRICING = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  '@id': 'https://coldscout.colddsam.com/pricing#service',
+  name: 'Cold Scout AI Lead Generation',
+  description: 'AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.',
+  provider: {
+    '@type': 'Organization',
+    name: 'Cold Scout',
+    url: 'https://coldscout.colddsam.com/',
+  },
+  serviceType: 'AI Lead Generation',
+  areaServed: 'Worldwide',
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Cold Scout Plans',
+    itemListElement: [
+      {
+        '@type': 'Offer',
+        name: 'Open Source',
+        description: 'Self-hosted, full platform access with unlimited leads using your own API keys.',
+        price: '0',
+        priceCurrency: 'INR',
+        availability: 'https://schema.org/InStock',
+        url: 'https://github.com/colddsam/coldscout/releases',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Pro',
+        description: 'Managed API and MCP server access with 2,000 leads per month, AI qualification, and email support.',
+        price: '100',
+        priceCurrency: 'INR',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '100',
+          priceCurrency: 'INR',
+          unitCode: 'MON',
+          billingDuration: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+        },
+        availability: 'https://schema.org/InStock',
+        url: 'https://coldscout.colddsam.com/pricing',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Enterprise',
+        description: 'Dedicated infrastructure, unlimited leads, custom ICP model training, white-label templates, and priority 4-hour support SLA.',
+        price: '2000',
+        priceCurrency: 'INR',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: '2000',
+          priceCurrency: 'INR',
+          unitCode: 'MON',
+          billingDuration: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
+        },
+        availability: 'https://schema.org/InStock',
+        url: 'https://coldscout.colddsam.com/pricing',
+      },
+    ],
+  },
 };
 
 const LD_BREADCRUMB_PRICING = {
@@ -643,7 +705,60 @@ const LD_BREADCRUMB_PRICING = {
 };
 
 export default function Pricing() {
-  const [currency, setCurrency] = useState<CurrencyInfo>(CURRENCIES[0]);
+  const [currency, setCurrency] = useState<CurrencyInfo>(() => {
+    // 1. Try saved preference
+    const saved = localStorage.getItem('cs-currency');
+    if (saved) {
+      const match = CURRENCIES.find((c) => c.code === saved);
+      if (match) return match;
+    }
+    // 2. Try auto-detection from Browser Locale
+    try {
+      const detected = new Intl.NumberFormat().resolvedOptions().currency;
+      const match = CURRENCIES.find((c) => c.code === detected);
+      if (match) {
+        return match;
+      }
+    } catch (e) {
+      // Fallback
+    }
+    // 3. Global Default
+    return CURRENCIES[0];
+  });
+
+  const handleCurrencyChange = (c: CurrencyInfo) => {
+    setCurrency(c);
+    localStorage.setItem('cs-currency', c.code);
+  };
+
+  // 4. Geolocation Fallback (IP-based)
+  useEffect(() => {
+    const detectLocation = async () => {
+      // Only auto-detect if no preference is saved
+      if (localStorage.getItem('cs-currency')) return;
+
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        
+        if (data.currency) {
+          const match = CURRENCIES.find(c => c.code === data.currency);
+          if (match && match.code !== currency.code) {
+            setCurrency(match);
+            localStorage.setItem('cs-currency', match.code);
+            toast.success(`Currency switched to ${match.code} based on your country`, {
+              icon: match.flag,
+              duration: 4000
+            });
+          }
+        }
+      } catch (err) {
+        // Silent fallback
+      }
+    };
+
+    detectLocation();
+  }, [currency.code]);
 
   useSEO({
     title: 'Pricing — Cold Scout AI Lead Generation',
@@ -659,8 +774,9 @@ export default function Pricing() {
       <JsonLd data={LD_WEBPAGE_PRICING} id="webpage-pricing" />
       <JsonLd data={LD_FAQ_PRICING} id="faq-pricing" />
       <JsonLd data={LD_BREADCRUMB_PRICING} id="breadcrumb-pricing" />
+      <JsonLd data={LD_SERVICE_PRICING} id="service-pricing" />
       <PublicNavbar />
-      <PricingHero currency={currency} onCurrencyChange={setCurrency} />
+      <PricingHero currency={currency} onCurrencyChange={handleCurrencyChange} />
       <PricingCards currency={currency} />
       <ComparisonTable />
       <FaqSection />
