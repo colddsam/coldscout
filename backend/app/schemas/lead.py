@@ -29,7 +29,16 @@ class LeadBase(BaseModel):
     rating: Optional[float] = None
     review_count: Optional[int] = None
     state: Optional[str] = None
-    
+
+    # International location hierarchy
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    region: Optional[str] = None
+    sub_area: Optional[str] = None
+    postal_code: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
     status: Optional[str] = None
     notes: Optional[str] = None
 
@@ -46,7 +55,6 @@ class LeadResponse(LeadBase):
     email_sent_at: Optional[datetime] = None
     first_opened_at: Optional[datetime] = None
     first_clicked_at: Optional[datetime] = None
-    first_replied_at: Optional[datetime] = None
     first_replied_at: Optional[datetime] = None
     
     followup_count: Optional[int] = None

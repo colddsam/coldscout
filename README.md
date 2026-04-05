@@ -57,7 +57,7 @@
 | [Pipeline Stages](#-pipeline-stages) | Step-by-step AI automation flow |
 | [User Roles & Plans](#-user-roles--plans) | RBAC and billing tier details |
 | [Quick Start](#-quick-start) | Get running in under 10 minutes |
-| [Environment Variables](#-environment-variables) | All 42 configuration parameters |
+| [Environment Variables](#-environment-variables) | All 46 configuration parameters |
 | [Deployment](#-deployment) | Production deployment guide |
 | [Testing](#-testing) | Test suite overview |
 | [Contributing](#-contributing) | How to contribute |
@@ -92,7 +92,7 @@ Empowering high-performance B2B sales teams and freelancers with a tireless, 24/
 
 **Cold Scout** is an enterprise-grade, end-to-end B2B lead generation platform. The system functions as a fully autonomous Sales Development Representative (SDR), capable of:
 
-1. **Discovering** local businesses via Google Places API matching precise targeting parameters
+1. **Discovering** local businesses via Google Places API with international multi-country targeting and paginated results (up to 60 per location)
 2. **Scraping** company websites with Playwright to extract contact signals (email, phone, social)
 3. **Qualifying** leads using Groq AI (Llama 3) against configurable Ideal Customer Profiles (ICPs)
 4. **Personalizing** outreach campaigns with AI-generated emails, PDF proposals, and XLSX reports
@@ -282,6 +282,11 @@ erDiagram
         string business_name
         string email
         string phone
+        string country
+        string country_code
+        string region
+        string city
+        string sub_area
         float qualification_score
         string status
         datetime discovered_at
@@ -390,10 +395,14 @@ erDiagram
 <details>
 <summary><b>🔍 Organic Lead Discovery</b></summary>
 
-- Programmatically queries **Google Places API** using city + business category targeting
+- Programmatically queries **Google Places API** with international multi-country targeting
+- Full location hierarchy: Country → Region → City → Sub-Area (neighborhood/district)
+- `regionCode` and `locationBias` for precise geographic scoping across countries
+- Paginated results (up to 60 per location via `nextPageToken`)
+- Structured geo extraction from `addressComponents` (country, region, postal code, lat/lng)
 - Intelligent deduplication via `place_id` and email matching — never re-discovers known leads
 - `SearchHistory` model prevents redundant API spend within cooling periods
-- Configurable targeting parameters stored in `jobs_config.json`
+- Configurable via `DISCOVERY_COUNTRY_FOCUS`, `DISCOVERY_DEPTH`, `DISCOVERY_TARGET_COUNT`, `DISCOVERY_MAX_PAGES`
 
 </details>
 
@@ -626,6 +635,10 @@ npm run dev
 | **Scheduling** | `DISCOVERY_HOUR/QUALIFICATION_HOUR` | Pipeline execution times |
 | | `PERSONALIZATION_HOUR/OUTREACH_HOUR` | Continued scheduling |
 | | `REPORT_HOUR/REPORT_MINUTE` | Analytics execution |
+| **Discovery** | `DISCOVERY_COUNTRY_FOCUS` | Comma-separated ISO country codes (e.g. `IN,US,AE`) |
+| | `DISCOVERY_TARGET_COUNT` | Targets per daily run (default: 4) |
+| | `DISCOVERY_DEPTH` | Location depth: `country`/`region`/`city`/`sub_area` |
+| | `DISCOVERY_MAX_PAGES` | Google Places pages per search (1-3) |
 | **Billing** | `RAZORPAY_KEY_ID/KEY_SECRET` | Payment gateway |
 | **Frontend** | `VITE_SUPABASE_URL/ANON_KEY` | Auth provider |
 | | `VITE_PROXY_URL` | Backend URL for proxy |

@@ -19,6 +19,9 @@ export function useLeads(params: {
   page?: number;
   limit?: number;
   status?: string;
+  country?: string;
+  country_code?: string;
+  region?: string;
   city?: string;
   category?: string;
 }) {

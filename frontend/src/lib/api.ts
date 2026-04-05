@@ -179,7 +179,7 @@ export interface Lead {
   state: string;
   phone: string | null;
   email: string | null;
-  website: string | null;
+  website_url: string | null;
   google_maps_url: string | null;
   rating: number | null;
   review_count: number | null;
@@ -199,6 +199,14 @@ export interface Lead {
   reply_status: string | null;
   reply_summary: string | null;
   personalized_pitch: string | null;
+  // International location hierarchy
+  country: string | null;
+  country_code: string | null;
+  region: string | null;
+  sub_area: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface SocialNetwork {
@@ -350,6 +358,9 @@ export const getLeads = (params: {
   page?: number;
   limit?: number;
   status?: string;
+  country?: string;
+  country_code?: string;
+  region?: string;
   city?: string;
   category?: string;
   date_from?: string;
@@ -374,7 +385,14 @@ export const updateLead = (id: string, payload: { status?: string; notes?: strin
 export const deleteLead = (id: string) =>
   client.delete(`/api/v1/leads/${id}`).then((r) => r.data);
 
-export const exportLeadsCsv = (params?: { status?: string; city?: string }) =>
+export const exportLeadsCsv = (params?: {
+  status?: string;
+  country?: string;
+  country_code?: string;
+  region?: string;
+  city?: string;
+  category?: string;
+}) =>
   client.get('/api/v1/leads/export/csv', { params, responseType: 'blob' }).then((r) => r.data);
 
 // Campaigns

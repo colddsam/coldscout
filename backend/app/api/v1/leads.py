@@ -35,6 +35,9 @@ router = APIRouter(prefix="/leads", dependencies=[Depends(get_current_user)])
 @router.get("", response_model=LeadListResponse)
 async def list_leads(
     status: Optional[str] = None,
+    country: Optional[str] = None,
+    country_code: Optional[str] = None,
+    region: Optional[str] = None,
     city: Optional[str] = None,
     category: Optional[str] = None,
     date_from: Optional[str] = None,
@@ -46,11 +49,14 @@ async def list_leads(
     """
     Retrieves a paginated, optionally filtered list of discovered leads.
 
-    Supports filtering by lifecycle status, geographic city, business category,
+    Supports filtering by lifecycle status, country, region, city, business category,
     and discovery date range. Results are ordered by creation date (newest first).
 
     Args:
         status: Filter by lead lifecycle status (e.g. 'qualified', 'email_sent').
+        country: Case-insensitive partial match on the lead's country name.
+        country_code: Exact match on ISO 3166-1 alpha-2 code (e.g. 'US', 'IN').
+        region: Case-insensitive partial match on the lead's region/state.
         city: Case-insensitive partial match on the lead's city.
         category: Case-insensitive partial match on the business category.
         date_from: ISO date string — only return leads created on or after this date.
@@ -64,6 +70,12 @@ async def list_leads(
     stmt = select(Lead)
     if status:
         stmt = stmt.where(Lead.status == status)
+    if country_code:
+        stmt = stmt.where(Lead.country_code == country_code.upper())
+    elif country:
+        stmt = stmt.where(Lead.country.ilike(f"%{country}%"))
+    if region:
+        stmt = stmt.where(Lead.region.ilike(f"%{region}%"))
     if city:
         stmt = stmt.where(Lead.city.ilike(f"%{city}%"))
     if category:
@@ -102,6 +114,9 @@ async def list_leads(
 @router.get("/export/csv")
 async def export_leads_csv(
     status: Optional[str] = None,
+    country: Optional[str] = None,
+    country_code: Optional[str] = None,
+    region: Optional[str] = None,
     city: Optional[str] = None,
     category: Optional[str] = None,
     date_from: Optional[str] = None,
@@ -112,8 +127,8 @@ async def export_leads_csv(
     Exports the filtered lead set as a downloadable CSV attachment.
 
     Applies the same filter criteria as the list endpoint. The response streams
-    an RFC-4180-compliant CSV file with columns: ID, Business Name, Email,
-    Phone, City, Category, Status, and Created At.
+    an RFC-4180-compliant CSV file with columns including international location
+    fields: Country, Country Code, Region, Sub-Area, and Postal Code.
 
     Row Limit:
         A hard cap of 10,000 rows is enforced to protect the database from
@@ -124,13 +139,17 @@ async def export_leads_csv(
     Returns:
         StreamingResponse: A `text/csv` attachment named `leads_YYYY-MM-DD.csv`.
     """
-    # Hard cap — prevents a single export request from doing a full table-scan
-    # and streaming gigabytes of data. Adjust via application config if needed.
     CSV_EXPORT_LIMIT = 10_000
 
     stmt = select(Lead)
     if status:
         stmt = stmt.where(Lead.status == status)
+    if country_code:
+        stmt = stmt.where(Lead.country_code == country_code.upper())
+    elif country:
+        stmt = stmt.where(Lead.country.ilike(f"%{country}%"))
+    if region:
+        stmt = stmt.where(Lead.region.ilike(f"%{region}%"))
     if city:
         stmt = stmt.where(Lead.city.ilike(f"%{city}%"))
     if category:
@@ -140,16 +159,14 @@ async def export_leads_csv(
             parsed_from = date.fromisoformat(date_from)
             stmt = stmt.where(func.date(Lead.created_at) >= parsed_from)
         except ValueError:
-            pass  # Ignore invalid date strings; filter is simply not applied
+            pass
     if date_to:
         try:
             parsed_to = date.fromisoformat(date_to)
             stmt = stmt.where(func.date(Lead.created_at) <= parsed_to)
         except ValueError:
-            pass  # Ignore invalid date strings; filter is simply not applied
+            pass
 
-    # Fetch one extra row beyond the cap to detect truncation without a separate
-    # COUNT query; we discard the extra row before writing.
     stmt = stmt.limit(CSV_EXPORT_LIMIT + 1).order_by(Lead.created_at.desc())
     result = await db.execute(stmt)
     leads = result.scalars().all()
@@ -160,11 +177,17 @@ async def export_leads_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Business Name", "Email", "Phone", "City", "Category", "Status", "Created At"])
+    writer.writerow([
+        "ID", "Business Name", "Email", "Phone",
+        "Country", "Country Code", "Region", "City", "Sub-Area", "Postal Code",
+        "Category", "Status", "Created At",
+    ])
     for lead in leads:
         writer.writerow([
             str(lead.id), lead.business_name, lead.email or "", lead.phone or "",
-            lead.city or "", lead.category or "", lead.status, str(lead.created_at)
+            lead.country or "", lead.country_code or "", lead.region or "",
+            lead.city or "", lead.sub_area or "", lead.postal_code or "",
+            lead.category or "", lead.status, str(lead.created_at),
         ])
 
     output.seek(0)

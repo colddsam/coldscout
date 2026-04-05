@@ -11,7 +11,7 @@ import { PageLoader } from '../components/ui/Spinner';
 import PageHeader from '../components/layout/PageHeader';
 import { formatDate, cn } from '../lib/utils';
 import { LEAD_STATUSES } from '../lib/constants';
-import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map } from 'lucide-react';
 
 /**
  * Lead Detail & Management View.
@@ -49,7 +49,7 @@ export default function LeadDetail() {
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
       <PageHeader
         title={lead.business_name}
-        subtitle={`${lead.city || ''} ${lead.state ? '· ' + lead.state : ''} · ${lead.category || ''}`}
+        subtitle={`${[lead.sub_area, lead.city, lead.region, lead.country].filter(Boolean).join(', ') || ''} · ${lead.category || ''}`}
         actions={
           <Button variant="ghost" icon={<ArrowLeft className="w-4 h-4" />} onClick={() => navigate('/leads')}>
             Back to Leads
@@ -83,7 +83,7 @@ export default function LeadDetail() {
               </div>
               <div className="text-center sm:text-left">
                 <h2 className="text-xl font-bold tracking-tight text-gray-900">{lead.business_name}</h2>
-                <p className="text-gray-500 text-sm">{lead.city}{lead.state && `, ${lead.state}`} · {lead.category}</p>
+                <p className="text-gray-500 text-sm">{[lead.sub_area, lead.city, lead.region, lead.country].filter(Boolean).join(', ')} · {lead.category}</p>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
                   {statusBadge(lead.status)}
                   {lead.rating && (
@@ -115,11 +115,11 @@ export default function LeadDetail() {
                   <a href={`mailto:${lead.email}`} className="text-black hover:underline">{lead.email}</a>
                 </div>
               )}
-              {lead.website && (
+              {lead.website_url && (
                 <div className="flex items-center gap-2 text-sm">
                   <Globe className="w-4 h-4 text-gray-400" />
-                  <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-black hover:underline truncate">
-                    {lead.website} <ExternalLink className="w-3 h-3 inline" />
+                  <a href={lead.website_url} target="_blank" rel="noopener noreferrer" className="text-black hover:underline truncate">
+                    {lead.website_url} <ExternalLink className="w-3 h-3 inline" />
                   </a>
                 </div>
               )}
@@ -131,7 +131,39 @@ export default function LeadDetail() {
                   </a>
                 </div>
               )}
+              {lead.latitude && lead.longitude && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Map className="w-4 h-4 text-gray-400" />
+                  <a
+                    href={`https://www.google.com/maps?q=${lead.latitude},${lead.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black hover:underline font-mono text-xs"
+                  >
+                    {lead.latitude.toFixed(4)}, {lead.longitude.toFixed(4)} <ExternalLink className="w-3 h-3 inline" />
+                  </a>
+                </div>
+              )}
             </div>
+            {(lead.country || lead.region || lead.sub_area || lead.postal_code) && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <h4 className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-2">Location Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {lead.country && (
+                    <div><span className="text-gray-400">Country:</span> <span className="text-gray-700">{lead.country} {lead.country_code ? `(${lead.country_code})` : ''}</span></div>
+                  )}
+                  {lead.region && (
+                    <div><span className="text-gray-400">Region:</span> <span className="text-gray-700">{lead.region}</span></div>
+                  )}
+                  {lead.sub_area && (
+                    <div><span className="text-gray-400">Sub-Area:</span> <span className="text-gray-700">{lead.sub_area}</span></div>
+                  )}
+                  {lead.postal_code && (
+                    <div><span className="text-gray-400">Postal Code:</span> <span className="text-gray-700">{lead.postal_code}</span></div>
+                  )}
+                </div>
+              </div>
+            )}
           </Card>
           </motion.div>
 

@@ -36,6 +36,8 @@ export default function Leads() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState('');
+  const [country, setCountry] = useState('');
+  const [region, setRegion] = useState('');
   const [city, setCity] = useState('');
   const [category, setCategory] = useState('');
   const limit = 25;
@@ -44,13 +46,21 @@ export default function Leads() {
     page,
     limit,
     status: status || undefined,
+    country: country || undefined,
+    region: region || undefined,
     city: city || undefined,
     category: category || undefined,
   });
 
   const handleExport = async () => {
     try {
-      const blob = await exportLeadsCsv({ status: status || undefined, city: city || undefined });
+      const blob = await exportLeadsCsv({
+        status: status || undefined,
+        country: country || undefined,
+        region: region || undefined,
+        city: city || undefined,
+        category: category || undefined,
+      });
       downloadBlob(blob, `leads_${new Date().toISOString().split('T')[0]}.csv`);
       toast.success('CSV exported successfully');
     } catch {
@@ -66,7 +76,14 @@ export default function Leads() {
         <span className="text-gray-900 font-medium">{String(row.business_name)}</span>
       ),
     },
-    { key: 'city', label: 'City' },
+    {
+      key: 'city',
+      label: 'Location',
+      render: (_, row) => {
+        const parts = [row.city, row.country_code].filter(Boolean);
+        return <span>{parts.join(', ')}</span>;
+      },
+    },
     { key: 'category', label: 'Category' },
     {
       key: 'ai_score',
@@ -109,16 +126,32 @@ export default function Leads() {
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
       <Card padding={true}>
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-stretch sm:items-center">
-          <div className="relative flex-1 min-w-[180px]">
+          <div className="relative flex-1 min-w-[140px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
             <input
               type="text"
-              placeholder="Search by city..."
-              value={city}
-              onChange={(e) => { setCity(e.target.value); setPage(1); }}
+              placeholder="Country..."
+              value={country}
+              onChange={(e) => { setCountry(e.target.value); setPage(1); }}
               className="w-full bg-accents-1 border border-accents-2 rounded-md pl-10 pr-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
             />
           </div>
+
+          <input
+            type="text"
+            placeholder="Region / State..."
+            value={region}
+            onChange={(e) => { setRegion(e.target.value); setPage(1); }}
+            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[120px]"
+          />
+
+          <input
+            type="text"
+            placeholder="City..."
+            value={city}
+            onChange={(e) => { setCity(e.target.value); setPage(1); }}
+            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[120px]"
+          />
 
           <input
             type="text"

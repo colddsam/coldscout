@@ -218,7 +218,7 @@ This outputs ready-to-use hex strings for:
 
 ## ⚙️ Step 2: Master Environment Variable Reference
 
-Complete reference for all **42 configuration parameters**.
+Complete reference for all **46 configuration parameters**.
 
 ### Security
 
@@ -293,6 +293,10 @@ Complete reference for all **42 configuration parameters**.
 | `OUTREACH_HOUR` | `12` | ✅ |
 | `REPORT_HOUR` | `20` | ✅ |
 | `REPORT_MINUTE` | `0` | ✅ |
+| `DISCOVERY_COUNTRY_FOCUS` | `IN,US,AE,GB` | Optional |
+| `DISCOVERY_TARGET_COUNT` | `4` | Optional |
+| `DISCOVERY_DEPTH` | `sub_area` | Optional |
+| `DISCOVERY_MAX_PAGES` | `3` | Optional |
 
 ### Billing
 

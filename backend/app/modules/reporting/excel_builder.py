@@ -87,19 +87,21 @@ def generate_daily_report_excel(report_data: Dict[str, Any], leads: List[Dict[st
     ws2 = wb.create_sheet("Lead Details")
     ws2.sheet_view.showGridLines = False
     
-    headers = ["Business", "Category", "Location", "Email Sent", "Opened", "Clicked", "Replied", "Status", "Phone", "Google Maps"]
+    headers = ["Business", "Category", "Country", "Region", "Location", "Email Sent", "Opened", "Clicked", "Replied", "Status", "Phone", "Google Maps"]
     for i, h in enumerate(headers):
         c = ws2.cell(row=1, column=i + 1, value=h)
         c.font = header_font
         c.fill = header_fill
         c.alignment = Alignment(horizontal="center", vertical="center")
     ws2.row_dimensions[1].height = 26
-    
+
     for ri, lead in enumerate(leads):
         row = 2 + ri
         values = [
             lead.get("business_name"),
             lead.get("category"),
+            lead.get("country", ""),
+            lead.get("region", ""),
             lead.get("city"),
             "Yes" if lead.get("email_sent_at") else "No",
             "Yes" if lead.get("first_opened_at") else "No",
@@ -117,11 +119,11 @@ def generate_daily_report_excel(report_data: Dict[str, Any], leads: List[Dict[st
             if ri % 2 == 0:
                 c.fill = alt_fill
         ws2.row_dimensions[row].height = 20
-        
+
     for col in ws2.columns:
         ws2.column_dimensions[col[0].column_letter].width = 18
     ws2.column_dimensions['A'].width = 28
-    ws2.column_dimensions['J'].width = 36
+    ws2.column_dimensions['L'].width = 36
     
     # Tab colors (grayscale)
     ws1.sheet_properties.tabColor = "000000"

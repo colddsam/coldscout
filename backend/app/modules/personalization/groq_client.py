@@ -123,7 +123,14 @@ Return ONLY a valid JSON object in the following format:
         mapping = {
             "business_name": _sanitize_prompt_value(lead_data.get('business_name', 'your business')),
             "category": _sanitize_prompt_value(lead_data.get('category', 'business')),
-            "location": _sanitize_prompt_value(lead_data.get('location', 'your area')),
+            "location": _sanitize_prompt_value(
+                ", ".join(filter(None, [
+                    lead_data.get('sub_area'),
+                    lead_data.get('location') or lead_data.get('city'),
+                    lead_data.get('region'),
+                    lead_data.get('country'),
+                ])) or 'your area'
+            ),
             "rating": _sanitize_prompt_value(str(lead_data.get('rating', 'good'))),
             "review_count": _sanitize_prompt_value(str(lead_data.get('review_count', 'some'))),
             "qualification_notes": _sanitize_prompt_value(lead_data.get('qualification_notes', 'needs improvement')),
@@ -168,32 +175,77 @@ Return ONLY a valid JSON object in the following format:
             }
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    async def generate_daily_targets(self, exclude_cities: list, exclude_categories: list) -> dict:
+    async def generate_daily_targets(
+        self,
+        exclude_locations: list,
+        exclude_categories: list,
+        country_focus: list = None,
+        depth: str = "sub_area",
+        target_count: int = 4,
+    ) -> list:
         """
         Determines novel geographic and categorical targets for discovery,
         bypassing recently utilized combinations.
-        """
-        prompt = f"""
-You are an expert sales strategist targeting local businesses in India.
-Generate 2 random mid-tier or tier-2 cities in India and 2 specific local business categories 
-that would benefit from having a modern website and digital presence. 
 
-AVOID these cities (recently used): {exclude_cities}
+        Supports international multi-level targeting with configurable depth.
+
+        Args:
+            exclude_locations: List of dicts {country_code, city, sub_area} recently searched.
+            exclude_categories: List of category strings recently used.
+            country_focus: List of ISO 3166-1 alpha-2 codes to focus on (e.g. ["IN", "US"]).
+                           None or empty means worldwide.
+            depth: How deep to go — "country", "region", "city", or "sub_area".
+            target_count: Number of targets to generate per run.
+
+        Returns:
+            List of target dicts with keys: country, country_code, region, city,
+            sub_area, category.
+        """
+        focus_str = ", ".join(country_focus) if country_focus else "any country — pick diverse markets"
+
+        prompt = f"""
+You are an expert international sales strategist targeting local businesses worldwide.
+
+COUNTRY FOCUS: {focus_str}
+
+Generate {target_count} discovery targets. For each target, provide the FULL location hierarchy:
+- country: Full country name
+- country_code: ISO 3166-1 alpha-2 code (e.g., "US", "IN", "GB", "AE", "AU")
+- region: State/province/emirate (e.g., "California", "Maharashtra", "Dubai")
+- city: City name
+- sub_area: Neighborhood, borough, district, or postal code area (e.g., "Brooklyn", "Bandra West", "Deira", "EC1")
+- category: Specific local business category
+
+DEPTH RULES:
+- Always provide country + country_code + city + category
+- If depth is "region" or deeper, include region
+- If depth is "sub_area", include sub_area for MAXIMUM granularity
+
+Pick locations where small-to-medium businesses would benefit from digital presence.
+Prefer tier-2/tier-3 cities and specific neighborhoods in tier-1 cities.
+Vary across different countries for diversity.
+
+Good category examples: Dentists, Bakeries, Salons, Boutique Hotels, Fitness Trainers, Gyms, Pet Clinics, Accounting Firms, Law Firms, Wedding Planners, Real Estate Agencies, Plumbers, Auto Repair Shops, Photography Studios, Tutoring Centers.
+
+AVOID these locations (recently searched): {exclude_locations}
 AVOID these categories (recently used): {exclude_categories}
 
-Good category examples: Dentists, Bakeries, Salons, Boutique Hotels, Fitness Trainers, Gyms, Pet Clinics, Accounting Firms, Law Firms, Wedding Planners, Real Estate Agencies. 
-
-Return ONLY a JSON object with a key "targets" containing exactly 2 objects with "city" and "category".
-Example format:
+Return ONLY a JSON object:
 {{
   "targets": [
-    {{"city": "Nagpur", "category": "Pet Clinics"}},
-    {{"city": "Jaipur", "category": "Wedding Planners"}}
+    {{
+      "country": "United States",
+      "country_code": "US",
+      "region": "Texas",
+      "city": "Austin",
+      "sub_area": "East Austin",
+      "category": "Yoga Studios"
+    }}
   ]
 }}
 """
         try:
-            logger.info("Calling Groq to generate dynamic daily targets")
+            logger.info("Calling Groq to generate international daily targets")
             chat_completion = await self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model=self.model,
@@ -204,7 +256,7 @@ Example format:
             return data.get("targets", [])
         except Exception as e:
             logger.exception("Error generating daily targets with Groq")
-            raise e # Trigger retry
+            raise e  # Trigger retry
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def generate_followup_email(self, lead_data: dict, followup_number: int) -> dict:
@@ -261,7 +313,14 @@ Return ONLY a valid JSON object in the following format:
         mapping = {
             "business_name": _sanitize_prompt_value(lead_data.get('business_name', 'your business')),
             "category": _sanitize_prompt_value(lead_data.get('category', 'business')),
-            "location": _sanitize_prompt_value(lead_data.get('location', 'your area')),
+            "location": _sanitize_prompt_value(
+                ", ".join(filter(None, [
+                    lead_data.get('sub_area'),
+                    lead_data.get('location') or lead_data.get('city'),
+                    lead_data.get('region'),
+                    lead_data.get('country'),
+                ])) or 'your area'
+            ),
             "followup_number": followup_number,
             "angle": angle,
         }

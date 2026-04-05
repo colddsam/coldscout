@@ -167,6 +167,12 @@ OUTREACH_HOUR=12
 REPORT_HOUR=20
 REPORT_MINUTE=0
 
+# International Discovery (all optional, sensible defaults)
+DISCOVERY_COUNTRY_FOCUS=        # e.g. IN,US,AE,GB — empty = worldwide
+DISCOVERY_TARGET_COUNT=4        # targets per daily run
+DISCOVERY_DEPTH=sub_area        # country | region | city | sub_area
+DISCOVERY_MAX_PAGES=3           # Google Places pages per search (1-3)
+
 # Billing
 RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...

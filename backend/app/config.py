@@ -328,6 +328,32 @@ class Settings(BaseSettings):
     The minute within REPORT_HOUR at which the daily report job fires (0-59).
     """
 
+    # ── International Discovery Configuration ────────────────────────────────
+    DISCOVERY_COUNTRY_FOCUS: str = ""
+    """
+    Comma-separated ISO 3166-1 alpha-2 codes for target countries.
+    Example: "IN,US,AE,GB". Empty string means worldwide (diverse markets).
+    """
+
+    DISCOVERY_TARGET_COUNT: int = 4
+    """
+    Number of location-category targets to generate per daily discovery run.
+    Higher values = more API calls = more leads but higher cost.
+    """
+
+    DISCOVERY_DEPTH: str = "sub_area"
+    """
+    How deep the LLM should go when generating location targets.
+    Options: "country", "region", "city", "sub_area".
+    Deeper = more specific searches = more unique leads.
+    """
+
+    DISCOVERY_MAX_PAGES: int = 3
+    """
+    Maximum Google Places pagination depth per search (1-3).
+    Each page returns up to 20 results. 3 pages = 60 results max.
+    """
+
     # Safety Intervals (Preventing Spam Triggers)
     EMAIL_SEND_INTERVAL_SECONDS: int = 360
     """

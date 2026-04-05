@@ -156,7 +156,7 @@ backend/
 │   ├── manual_trigger.py           ← Manual pipeline stage trigger
 │   ├── run_alembic.py              ← Alembic migration runner
 │   ├── seed_admin.py               ← Admin user seeder
-│   ├── seed_targets.py             ← Target city/category seeder
+│   ├── seed_targets.py             ← International discovery target seeder
 │   └── setup_cronjob.py            ← cron-job.org registration
 │
 ├── static/                         ← Static file assets (logos, favicons)
@@ -319,8 +319,8 @@ graph LR
 | Model | Table | Key Fields |
 |-------|-------|-----------|
 | `User` | `users` | `id`, `email`, `role`, `plan`, `supabase_id` |
-| `Lead` | `leads` | `place_id`, `email`, `phone`, `qualification_score`, `status`, `website_content` |
-| `SearchHistory` | `search_history` | `city`, `category`, `created_at` |
+| `Lead` | `leads` | `place_id`, `email`, `phone`, `country`, `country_code`, `region`, `city`, `sub_area`, `postal_code`, `latitude`, `longitude`, `qualification_score`, `status` |
+| `SearchHistory` | `search_history` | `country`, `country_code`, `region`, `city`, `sub_area`, `category`, `location_depth`, `results_count`, `created_at` |
 | `Campaign` | `campaigns` | `name`, `status`, `target_city`, `target_category` |
 | `EmailOutreach` | `email_outreaches` | `lead_id`, `campaign_id`, `subject`, `body_html`, `tracking_id`, `status` |
 | `EmailEvent` | `email_events` | `outreach_id`, `event_type` (open/click/bounce/reply) |
@@ -344,7 +344,7 @@ graph LR
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/` | List leads (paginated, filterable by status) |
+| `GET` | `/` | List leads (paginated, filterable by status, country, region, city, category) |
 | `GET` | `/{lead_id}` | Get single lead with full detail |
 | `PATCH` | `/{lead_id}` | Update lead status or fields |
 | `DELETE` | `/{lead_id}` | Soft-delete a lead |
@@ -403,10 +403,13 @@ graph LR
 ## 🔄 Pipeline Stages Deep-Dive
 
 ### Stage 1: Discovery (`run_discovery_stage`)
-- Queries `SearchHistory` to find uncovered city+category combinations
-- Calls `GooglePlacesClient.search_businesses()` with configured parameters
+- Generates international targets via Groq AI with full location hierarchy (country → region → city → sub_area)
+- Queries Google Places API with `regionCode` and `locationBias` for precise geographic scoping
+- Paginated fetching: up to 60 results per location-category pair via `nextPageToken`
+- Extracts structured geo data (country, region, postal code, lat/lng) from `addressComponents`
 - Deduplicates by `place_id` AND `email` (prevents re-discovery of known contacts)
-- Inserts new `Lead` records with status `discovered`
+- Configurable via `DISCOVERY_COUNTRY_FOCUS`, `DISCOVERY_DEPTH`, `DISCOVERY_TARGET_COUNT`, `DISCOVERY_MAX_PAGES`
+- Inserts new `Lead` records with status `discovered` and full international location data
 - Sends Telegram alert with count of new leads
 
 ### Stage 2: Scraping / Qualification (`run_qualification_stage`)
@@ -634,7 +637,7 @@ This starts both the backend API and a local PostgreSQL instance.
 | `python scripts/get_users.py` | List all users in database |
 | `python scripts/setup_cronjob.py` | Register cron-job.org health monitor |
 | `python scripts/run_alembic.py` | Execute Alembic migrations |
-| `python scripts/seed_targets.py` | Add city/category targets |
+| `python scripts/seed_targets.py` | Seed international discovery targets |
 
 ---
 

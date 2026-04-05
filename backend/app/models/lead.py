@@ -26,13 +26,23 @@ class SearchHistory(Base):
     """
     Archives discovery parameters to enforce deduplication
     and prevent redundant API queries within cooling periods.
+
+    International support: tracks full location hierarchy
+    (country → region → city → sub_area) to prevent collisions
+    between same-name cities in different countries.
     """
     __tablename__ = "search_history"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    city       = Column(String(100), nullable=False, index=True)
-    category   = Column(String(100), nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    country      = Column(String(100), nullable=True, index=True)
+    country_code = Column(String(5), nullable=True, index=True)
+    region       = Column(String(150), nullable=True, index=True)
+    city         = Column(String(100), nullable=False, index=True)
+    sub_area     = Column(String(150), nullable=True, index=True)
+    category     = Column(String(100), nullable=False, index=True)
+    location_depth = Column(String(20), default="city", nullable=False)
+    results_count  = Column(Integer, default=0)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class Lead(Base):
@@ -69,6 +79,15 @@ class Lead(Base):
     rating         = Column(Float, nullable=True)
     review_count   = Column(Integer, nullable=True)
     state          = Column(String(100), nullable=True)
+
+    # International Location Hierarchy
+    country        = Column(String(100), nullable=True, index=True)
+    country_code   = Column(String(5), nullable=True, index=True)
+    region         = Column(String(150), nullable=True)
+    sub_area       = Column(String(150), nullable=True)
+    postal_code    = Column(String(20), nullable=True)
+    latitude       = Column(Float, nullable=True)
+    longitude      = Column(Float, nullable=True)
 
     # Multi-Channel Attribution (SAFE: nullable, defaults to legacy channel)
     source_channel     = Column(
