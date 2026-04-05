@@ -117,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('llp_user', JSON.stringify(backendUser));
 
       return backendUser;
-    } catch (error) {
+    } catch {
       // Sync failed
       return null;
     }
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         }
-      } catch (err) {
+      } catch {
         localStorage.removeItem('llp_token');
         localStorage.removeItem('llp_user');
       } finally {

@@ -46,7 +46,7 @@ client.interceptors.request.use(async (config) => {
     if (session?.access_token) {
       token = session.access_token;
     }
-  } catch (error) {
+  } catch {
     // Failed to get Supabase session
   }
 
@@ -89,7 +89,7 @@ client.interceptors.response.use(
       // Sign out from Supabase to clear session
       try {
         await supabase.auth.signOut();
-      } catch (signOutError) {
+      } catch {
         // Failed to sign out from Supabase
       }
 

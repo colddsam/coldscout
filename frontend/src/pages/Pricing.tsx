@@ -719,7 +719,7 @@ export default function Pricing() {
       if (match) {
         return match;
       }
-    } catch (e) {
+    } catch {
       // Fallback
     }
     // 3. Global Default
@@ -752,7 +752,7 @@ export default function Pricing() {
             });
           }
         }
-      } catch (err) {
+      } catch {
         // Silent fallback
       }
     };
