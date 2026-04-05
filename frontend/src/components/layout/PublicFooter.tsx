@@ -6,7 +6,7 @@
  */
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Github, Mail, ArrowUpRight } from 'lucide-react';
+import { Heart, Github, Mail, ArrowUpRight, Linkedin } from 'lucide-react';
 import Logo from '../ui/Logo';
 import ScrollReveal from '../ui/ScrollReveal';
 
@@ -72,6 +72,12 @@ export default function PublicFooter() {
                     label: 'Email Cold Scout support',
                     icon: <Mail className="w-4 h-4" />,
                     itemProp: 'email',
+                  },
+                  {
+                    href: 'https://www.linkedin.com/company/coldscout',
+                    label: 'Cold Scout on LinkedIn',
+                    icon: <Linkedin className="w-4 h-4" />,
+                    itemProp: 'sameAs',
                   },
                 ].map((item) => (
                   <motion.a
@@ -149,6 +155,9 @@ export default function PublicFooter() {
                   </a>
                   <a href="https://github.com/colddsam/coldscout/issues" target="_blank" rel="noopener noreferrer" className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
                     Report an Issue
+                  </a>
+                  <a href="https://www.linkedin.com/company/coldscout" target="_blank" rel="noopener noreferrer" className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                    LinkedIn Page
                   </a>
                   <a
                     href="https://github.com/sponsors/colddsam"
