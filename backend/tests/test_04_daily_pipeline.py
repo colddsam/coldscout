@@ -39,12 +39,13 @@ async def test_run_discovery_stage(db_session):
         mock_groq_instance.generate_daily_targets.side_effect = mock_generate_targets
         
         mock_google_instance = mock_google.return_value
-        mock_google_instance.search_places.side_effect = mock_search_places
+        # Fix: Using search_places_paginated as it's now used in the international discovery
+        mock_google_instance.search_places_paginated.side_effect = mock_search_places
         
         await run_discovery_stage()
         
         assert mock_groq_instance.generate_daily_targets.called
-        assert mock_google_instance.search_places.called
+        assert mock_google_instance.search_places_paginated.called
 
 @pytest.mark.asyncio
 async def test_run_qualification_stage(db_session):
