@@ -44,6 +44,12 @@ async def run_discovery_stage(manual: bool = False):
     Executes the discovery phase of the lead generation pipeline.
     Discovers prospective leads via Google Places API and inserts verified new leads.
 
+    International support:
+      - Generates targets with full location hierarchy (country → region → city → sub_area)
+      - Uses regionCode and locationBias for precise geographic scoping
+      - Pagination fetches up to 60 results per location-category pair
+      - Extracts structured geo data from addressComponents
+
     Deduplication rules:
       - place_id match  → skip entirely (never overwrite discovered_at)
       - email match     → skip entirely (prevents duplicate outreach to same client)
@@ -54,125 +60,199 @@ async def run_discovery_stage(manual: bool = False):
         logger.warning("🚨 [discovery] is HOLD. Skipping discovery stage.")
         return
 
-    async with advisory_lock("pipeline_discovery"):
-        discovered_count = 0
-        client = GooglePlacesClient()
-        groq_client = GroqClient()
-        seen_place_ids: set = set()
-        today = date.today()
+    discovered_count = 0
+    client = GooglePlacesClient()
+    groq_client = GroqClient()
+    seen_place_ids: set = set()
+    today = date.today()
+    session_maker = get_session_maker()
 
-        async with get_session_maker()() as db:
-            try:
-                report_stmt = select(DailyReport).where(DailyReport.report_date == today)
-                report_res  = await db.execute(report_stmt)
-                db_report   = report_res.scalars().first()
+    from app.modules.discovery.google_places import get_radius_for_depth, extract_geo_from_place
 
-                if not db_report:
-                    db_report = DailyReport(
-                        report_date=today,
-                        pipeline_status="running",
-                        pipeline_started_at=datetime.utcnow(),
-                    )
-                    db.add(db_report)
-                else:
-                    db_report.pipeline_status    = "running"
-                    db_report.pipeline_started_at = datetime.utcnow()
+    # 1. Initialize or update Daily Report in a brief, locked session
+    async with advisory_lock("pipeline_init"):
+        async with session_maker() as db:
+            report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+            report_res  = await db.execute(report_stmt)
+            db_report   = report_res.scalars().first()
 
-                await db.flush()
+            if not db_report:
+                db_report = DailyReport(
+                    report_date=today,
+                    pipeline_status="running",
+                    pipeline_started_at=datetime.utcnow(),
+                )
+                db.add(db_report)
+            else:
+                db_report.pipeline_status    = "running"
+                db_report.pipeline_started_at = datetime.utcnow()
+            
+            await db.commit()
 
+    # 2. Fetch exclusion data and generate targets in a brief, locked session
+    try:
+        async with advisory_lock("pipeline_discovery_targets"):
+            async with session_maker() as db:
                 sixty_days_ago = datetime.utcnow() - timedelta(days=60)
                 hist_res = await db.execute(
                     select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
                 )
-                recent_searches  = hist_res.scalars().all()
-                exclude_cities   = list({h.city for h in recent_searches})
+                recent_searches = hist_res.scalars().all()
+                exclude_locations = [
+                    {
+                        "country_code": h.country_code,
+                        "city": h.city,
+                        "sub_area": h.sub_area,
+                    }
+                    for h in recent_searches
+                ]
                 exclude_categories = list({h.category for h in recent_searches})
 
+                country_focus = [
+                    c.strip()
+                    for c in settings.DISCOVERY_COUNTRY_FOCUS.split(",")
+                    if c.strip()
+                ] or None
+
                 targets = await groq_client.generate_daily_targets(
-                    exclude_cities, exclude_categories
+                    exclude_locations,
+                    exclude_categories,
+                    country_focus=country_focus,
+                    depth=settings.DISCOVERY_DEPTH,
+                    target_count=settings.DISCOVERY_TARGET_COUNT,
                 )
                 logger.info(f"Generated targets for today: {targets}")
 
-                for target in targets:
-                    city     = target.get("city")
-                    category = target.get("category")
-                    if not city or not category:
-                        continue
+        # 3. Process each target individually
+        for target in targets:
+            country      = target.get("country")
+            country_code = target.get("country_code")
+            region       = target.get("region")
+            city         = target.get("city")
+            sub_area     = target.get("sub_area")
+            category     = target.get("category")
 
-                    places = await client.search_places(city, category, 5000)
-                    # Only log search history if the API call succeeded
-                    db.add(SearchHistory(city=city, category=category))
+            if not city or not category:
+                continue
 
-                    if not places:
-                        continue
+            location_parts = [sub_area, city, region, country]
+            location_str = ", ".join([p for p in location_parts if p])
+            radius = get_radius_for_depth(sub_area, city, region)
 
-                    batch_place_ids = [p["id"] for p in places]
+            # BRIEF LOCK: Only for the Google Search + History Record
+            async with advisory_lock(f"discovery_search_{city}_{category}"):
+                # Fetch from Google Places (Network call)
+                places = await client.search_places_paginated(
+                    location=location_str,
+                    category=category,
+                    country_code=country_code,
+                    radius=radius,
+                    max_pages=settings.DISCOVERY_MAX_PAGES,
+                )
+
+                # Record search history immediately
+                async with session_maker() as db:
+                    db.add(SearchHistory(
+                        country=country,
+                        country_code=country_code,
+                        region=region,
+                        city=city,
+                        sub_area=sub_area,
+                        category=category,
+                        location_depth=settings.DISCOVERY_DEPTH,
+                        results_count=len(places),
+                    ))
+                    await db.commit()
+
+            if not places:
+                continue
+
+            # NO LOCK during scraping phase (the long part)
+            for place in places:
+                place_id = place["id"]
+                
+                # Check existence in a quick read session
+                async with session_maker() as db:
                     existing_res = await db.execute(
-                        select(Lead.place_id).where(Lead.place_id.in_(batch_place_ids))
+                        select(Lead.place_id).where(Lead.place_id == place_id)
                     )
-                    existing_place_ids = set(existing_res.scalars().all())
+                    if existing_res.scalars().first() or place_id in seen_place_ids:
+                        continue
+                
+                seen_place_ids.add(place_id)
+                website_url = place.get("websiteUri")
+                email = None
+                
+                # SCRAPE: Long network call, no DB session or advisory lock held.
+                if website_url:
+                    email = await scrape_contact_email(website_url)
 
-                    for place in places:
-                        place_id = place["id"]
-                        if place_id in seen_place_ids or place_id in existing_place_ids:
+                # Final Save Session: Minimal duration
+                async with session_maker() as db:
+                    if email:
+                        # Final email deduplication check
+                        email_check = await db.execute(
+                            select(Lead).where(Lead.email == email)
+                        )
+                        if email_check.scalars().first():
+                            logger.info(f"Skipping {place.get('displayName', {}).get('text')}: email {email} already in use.")
                             continue
 
-                        seen_place_ids.add(place_id)
-
-                        website_url = place.get("websiteUri")
-                        email = None
-                        if website_url:
-                            email = await scrape_contact_email(website_url)
-
-                        # Email deduplication: skip if another lead already owns this address
-                        if email:
-                            email_check = await db.execute(
-                                select(Lead).where(Lead.email == email)
-                            )
-                            if email_check.scalars().first():
-                                logger.info(
-                                    f"Skipping {place.get('displayName', {}).get('text')}: "
-                                    f"email {email} already in use."
-                                )
-                                continue
-
-                        lead = Lead(
-                            place_id       = place["id"],
-                            business_name  = place.get("displayName", {}).get("text", "Unknown"),
-                            category       = category,
-                            address        = place.get("formattedAddress"),
-                            city           = city,
-                            phone          = place.get("nationalPhoneNumber"),
-                            website_url    = website_url,
-                            google_maps_url = place.get("googleMapsUri"),
-                            rating         = place.get("rating"),
-                            review_count   = place.get("userRatingCount"),
-                            email          = email,
-                            status         = "discovered",
-                            raw_places_data = place,
-                            notes          = "",
-                        )
-                        db.add(lead)
-                        discovered_count += 1
-
-                db_report.pipeline_status   = "completed"
-                db_report.pipeline_ended_at = datetime.utcnow()
-                await db.commit()
-
-                if discovered_count > 0:
-                    await send_telegram_alert(
-                        f"Discovery phase completed. "
-                        f"Identified {discovered_count} new prospective businesses "
-                        f"(Targets: {targets})"
+                    geo = extract_geo_from_place(place, target)
+                    lead = Lead(
+                        place_id        = place["id"],
+                        business_name   = place.get("displayName", {}).get("text", "Unknown"),
+                        category        = category,
+                        address         = place.get("formattedAddress"),
+                        city            = city,
+                        phone           = place.get("nationalPhoneNumber"),
+                        website_url     = website_url,
+                        google_maps_url = place.get("googleMapsUri"),
+                        rating          = place.get("rating"),
+                        review_count    = place.get("userRatingCount"),
+                        email           = email,
+                        status          = "discovered",
+                        raw_places_data = place,
+                        # International location fields
+                        country         = geo.get("country"),
+                        country_code    = geo.get("country_code"),
+                        region          = geo.get("region"),
+                        sub_area        = geo.get("sub_area"),
+                        postal_code     = geo.get("postal_code"),
+                        latitude        = geo.get("latitude"),
+                        longitude       = geo.get("longitude"),
                     )
+                    db.add(lead)
+                    await db.commit()
+                    discovered_count += 1
 
-            except Exception as e:
-                logger.exception("Error in discovery stage")
-                await db.rollback()
+        # 4. Mark report as completed in a final briefly locked session
+        async with advisory_lock("pipeline_finalize"):
+            async with session_maker() as db:
+                report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+                res = await db.execute(report_stmt)
+                db_report = res.scalars().first()
+                if db_report:
+                    db_report.pipeline_status   = "completed"
+                    db_report.pipeline_ended_at = datetime.utcnow()
+                    await db.commit()
+
+        if discovered_count > 0:
+            await send_telegram_alert(
+                f"Discovery phase completed. Identified {discovered_count} new leads."
+            )
+
+    except Exception as e:
+        logger.exception("Error in discovery stage")
+        async with session_maker() as db:
+            report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+            res = await db.execute(report_stmt)
+            db_report = res.scalars().first()
+            if db_report:
                 db_report.pipeline_status = "failed"
                 db_report.error_log       = str(e)
                 await db.commit()
-                raise e
+        raise e
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -250,7 +330,7 @@ async def run_qualification_stage(manual: bool = False):
                     if lead.lead_tier == "A":
                         hot_msg = (
                             f"📞 TIER A PHONE LEAD — {lead.business_name}\n"
-                            f"City: {lead.city} | Category: {lead.category}\n"
+                            f"City: {lead.city}, {lead.country or ''} | Category: {lead.category}\n"
                             f"Score: {lead.ai_score}/100\n"
                             f"Phone: {lead.phone}\n"
                             f"Notes: {lead.qualification_notes[:200] if lead.qualification_notes else 'N/A'}\n"
@@ -261,7 +341,7 @@ async def run_qualification_stage(manual: bool = False):
 
                 # Send a compact summary list for all phone leads to Telegram
                 summary_lines = [
-                    f"  • {l.business_name} ({l.city}) — {l.phone} — Tier {l.lead_tier}"
+                    f"  • {l.business_name} ({l.city}, {l.country or ''}) — {l.phone} — Tier {l.lead_tier}"
                     for l in phone_qualified_leads
                 ]
                 await send_telegram_alert(
@@ -356,13 +436,20 @@ async def run_personalization_stage(manual: bool = False):
                         lead.has_ecommerce         = website_content.get("has_ecommerce")
 
                     from app.modules.enrichment.competitor_finder import find_top_competitor
-                    competitor = await find_top_competitor(lead.category, lead.city, db)
+                    competitor = await find_top_competitor(
+                        lead.category, lead.city, db,
+                        country_code=lead.country_code,
+                    )
 
                     # 1. AI-generated email content
                     ai_data = await groq_client.generate_email_content({
                         "business_name":     lead.business_name,
                         "category":          lead.category,
                         "location":          lead.city,
+                        "city":              lead.city,
+                        "region":            lead.region,
+                        "country":           lead.country,
+                        "sub_area":          lead.sub_area,
                         "rating":            lead.rating,
                         "review_count":      lead.review_count,
                         "qualification_notes": lead.qualification_notes,
@@ -701,6 +788,8 @@ async def generate_daily_report(manual: bool = False):
                     "business_name":   l.business_name,
                     "category":        l.category,
                     "city":            l.city,
+                    "country":         l.country,
+                    "region":          l.region,
                     "email_sent_at":   l.email_sent_at,
                     "first_opened_at": l.first_opened_at,
                     "first_clicked_at": l.first_clicked_at,
