@@ -294,7 +294,7 @@ export default function LeadDetail() {
                   )}>
                     {lead.demo_site_status || 'not_applicable'}
                   </span>
-                  {lead.demo_view_count > 0 && (
+                  {(lead.demo_view_count ?? 0) > 0 && (
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Eye className="w-3 h-3" /> {lead.demo_view_count} views
                     </span>

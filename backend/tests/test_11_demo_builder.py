@@ -25,7 +25,7 @@ from app.modules.demo_builder.generator import (
 
 class TestHTMLValidation:
     def test_valid_html(self):
-        html = '<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Hello</h1></body></html>'
+        html = '<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Hello</h1>' + 'p' * 200 + '</body></html>'
         assert _validate_html(html) is True
 
     def test_empty_html(self):
