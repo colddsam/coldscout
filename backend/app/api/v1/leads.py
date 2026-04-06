@@ -263,6 +263,81 @@ async def update_lead(lead_id: str, update_data: LeadUpdate, db: AsyncSession = 
     await db.refresh(lead)
     return lead
 
+@router.get("/{lead_id}/demo-status")
+async def get_demo_status(lead_id: str, db: AsyncSession = Depends(get_db)):
+    """Returns the demo generation status and metadata for a lead."""
+    stmt = select(
+        Lead.demo_site_status,
+        Lead.demo_generated_at,
+        Lead.demo_view_count,
+        Lead.has_website,
+    ).where(Lead.id == lead_id)
+    result = await db.execute(stmt)
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    status, generated_at, view_count, has_website = row
+    return {
+        "demo_site_status": status,
+        "demo_generated_at": generated_at,
+        "demo_view_count": view_count,
+        "has_website": has_website,
+    }
+
+
+@router.get("/{lead_id}/demo-preview")
+async def preview_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
+    """Returns the demo HTML for admin preview (not the public-facing endpoint)."""
+    from fastapi.responses import HTMLResponse
+
+    stmt = select(Lead.generated_demo_html, Lead.demo_site_status).where(Lead.id == lead_id)
+    result = await db.execute(stmt)
+    row = result.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    html, status = row
+    if status != "generated" or not html:
+        raise HTTPException(status_code=404, detail="Demo not generated for this lead")
+
+    return HTMLResponse(content=html)
+
+
+@router.post("/{lead_id}/demo-regenerate")
+async def regenerate_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
+    """Triggers re-generation of the demo for a lead (resets status to pending)."""
+    stmt = select(Lead).where(Lead.id == lead_id)
+    result = await db.execute(stmt)
+    lead = result.scalars().first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if lead.has_website:
+        raise HTTPException(status_code=400, detail="Lead has a website — demo not applicable")
+
+    lead.demo_site_status = "pending"
+    lead.generated_demo_html = None
+    lead.demo_generated_at = None
+    await db.commit()
+
+    # Trigger generation asynchronously
+    import asyncio
+    from app.modules.demo_builder.generator import generate_demo_for_lead
+
+    async def _generate_and_save():
+        from app.core.database import get_session_maker
+        async with get_session_maker()() as regen_db:
+            regen_result = await regen_db.execute(select(Lead).where(Lead.id == lead_id))
+            regen_lead = regen_result.scalars().first()
+            if regen_lead:
+                await generate_demo_for_lead(regen_lead)
+                await regen_db.commit()
+
+    asyncio.create_task(_generate_and_save())
+
+    return {"message": "Demo regeneration started", "status": "pending"}
+
+
 @router.delete("/{lead_id}", status_code=204)
 async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     """

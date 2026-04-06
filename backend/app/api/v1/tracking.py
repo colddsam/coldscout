@@ -60,18 +60,23 @@ async def track_email_click(token: str, url: str, request: Request, db=Depends(g
     Registers a 'click' event before issuing an HTTP 307 Redirect.
     Includes security validation to prevent Open Redirect vulnerabilities and token spoofing.
     """
-    # Security: Verify token signature
-    if not _verify_tracking_token(token):
-        # Even if signature fails, we redirect to the destination but don't log the event
-        # This ensures the user experience isn't broken by a potential configuration mismatch
-        return RedirectResponse(url=url)
-        
-    # Security: Prevent Open Redirect to untrusted domains
-    is_safe = url.startswith("mailto:") or url.startswith(settings.APP_URL)
-    
+    # Security: Prevent Open Redirect to untrusted domains.
+    # This check runs BEFORE token verification so that even a valid token
+    # cannot be used to redirect users to a malicious external site.
+    is_safe = (
+        url.startswith("mailto:")
+        or url.startswith(settings.APP_URL)
+        or url.startswith(settings.FRONTEND_DOMAIN)
+    )
+
     if not is_safe:
         logger.warning(f"Blocked potential Open Redirect attempt to: {url}")
         return RedirectResponse(url=settings.APP_URL)
+
+    # Security: Verify token signature
+    if not _verify_tracking_token(token):
+        # Invalid signature — redirect to safe destination but don't log event
+        return RedirectResponse(url=url)
 
     await TrackingService.log_event(db, token, "click", request, url_clicked=url)
     return RedirectResponse(url=url)

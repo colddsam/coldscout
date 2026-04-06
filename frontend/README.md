@@ -130,6 +130,9 @@ frontend/
 │   │   ├── Terms.tsx                   ← Terms of service page
 │   │   ├── RefundPolicy.tsx            ← Refund policy page
 │   │   ├── DataDeletion.tsx            ← GDPR data deletion request
+│   │   ├── LeadDemoViewer.tsx         ← Public demo website viewer (sandboxed iframe)
+│   │   ├── Profile.tsx                ← User profile management
+│   │   ├── PublicProfile.tsx          ← Public profile view (/u/:username)
 │   │   └── NotFound.tsx                ← 404 error page
 │   │
 │   ├── App.tsx                         ← React Router route tree

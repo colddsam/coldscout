@@ -320,12 +320,30 @@ class Settings(BaseSettings):
 
     REPORT_HOUR: int = 23
     """
-    The report hour.
+    The hour at which the daily report job fires (0-23, 24-hour format).
     """
 
     REPORT_MINUTE: int = 30
     """
     The minute within REPORT_HOUR at which the daily report job fires (0-59).
+    """
+
+    QUALIFICATION_BATCH_LIMIT: int = 50
+    """
+    The maximum number of "discovered" leads to process in a single qualification run.
+    Helps prevent memory issues and ensures deterministic pipeline performance.
+    """
+
+    PERSONALIZATION_BATCH_LIMIT: int = 20
+    """
+    The maximum number of leads to personalize in a single run.
+    Limited to prevent LLM rate-limiting and high memory usage during PDF/Demo generation.
+    """
+
+    OUTREACH_BATCH_LIMIT: int = 50
+    """
+    The maximum number of queued emails to dispatch in a single run.
+    Ensures a consistent, human-like sending cadence to protect domain reputation.
     """
 
     # ── International Discovery Configuration ────────────────────────────────
@@ -341,6 +359,12 @@ class Settings(BaseSettings):
     Higher values = more API calls = more leads but higher cost.
     """
 
+    DISCOVERY_BATCH_LIMIT: int = 100
+    """
+    The maximum number of new leads to discover in a single pipeline run.
+    Ensures discovery doesn't over-consume API budget or overwhelm subsequent stages.
+    """
+
     DISCOVERY_DEPTH: str = "sub_area"
     """
     How deep the LLM should go when generating location targets.
@@ -352,6 +376,30 @@ class Settings(BaseSettings):
     """
     Maximum Google Places pagination depth per search (1-3).
     Each page returns up to 20 results. 3 pages = 60 results max.
+    """
+
+    # ── Demo Website Generation (for no-website leads) ────────────────────────
+    GEMINI_API_KEY: str = ""
+    """
+    Google Gemini API key for generating interactive landing page demos.
+    Obtain from Google AI Studio (free tier: 15 RPM, 1500 req/day).
+    """
+
+    DEMO_GENERATION_ENABLED: bool = False
+    """
+    Master kill-switch for demo website generation.
+    Set to True only after verifying Gemini API key and testing manually.
+    """
+
+    DEMO_MAX_PER_DAY: int = 10
+    """
+    Maximum number of demo websites to generate per day.
+    Keeps usage safely within Gemini free tier limits.
+    """
+
+    FRONTEND_DOMAIN: str = "https://coldscout.colddsam.com"
+    """
+    The public-facing frontend domain used to construct demo URLs in emails.
     """
 
     # Safety Intervals (Preventing Spam Triggers)
@@ -456,6 +504,11 @@ def set_env_variable(key: str, value: str):
     Updates a given key-value pair in both os.environ (for immediate in-process effect)
     and the .env file (for best-effort persistence across restarts).
     """
+    import re
+    # Validate key to prevent injection into .env files
+    if not re.match(r'^[A-Z][A-Z0-9_]*$', key):
+        raise ValueError(f"Invalid environment variable name: {key}")
+
     # Update in-process environment so all runtime reads see the change immediately
     os.environ[key] = value
 

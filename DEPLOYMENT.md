@@ -183,7 +183,27 @@ Required for freelancer plan upgrades.
 
 ---
 
-### ⏰ 1.8 Service Keep-Alive (Cron Monitor)
+### 🌐 1.8 Google Gemini (Demo Website Generation)
+
+Optional — generates interactive landing page demos for leads without a website.
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Sign in with your Google account
+3. Click **"Get API Key"** → Create a key
+4. Copy as `GEMINI_API_KEY`
+
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Gemini API key (free tier: 15 RPM, 1500 req/day) |
+| `DEMO_GENERATION_ENABLED` | Set to `true` to activate demo generation |
+| `DEMO_MAX_PER_DAY` | Max demos per day (default: 10, stay within free tier) |
+| `FRONTEND_DOMAIN` | Public frontend URL used to construct demo links in emails |
+
+> **Free Tier Limits**: 15 requests/minute, 1,500 requests/day, 1M tokens/day. The default `DEMO_MAX_PER_DAY=10` keeps usage safely within these limits.
+
+---
+
+### ⏰ 1.9 Service Keep-Alive (Cron Monitor)
 
 Ensures Render backend doesn't sleep on free tiers.
 

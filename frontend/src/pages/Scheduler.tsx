@@ -7,6 +7,7 @@ import { PIPELINE_STAGES } from '../lib/constants';
 import { Play, Pause, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, scaleIn } from '../lib/motion';
+import ErrorState from '../components/ui/ErrorState';
 
 /**
  * The Scheduler page provides fine-grained control over the pipeline jobs.
@@ -20,11 +21,20 @@ import { pageTransition, staggerContainer, staggerItem, scaleIn } from '../lib/m
  * scraper to continue running discovery sweeps.
  */
 export default function Scheduler() {
-  const { data: config, isLoading } = useConfigJobs();
+  const { data: config, isLoading, isError, refetch } = useConfigJobs();
   const updateConfig = useUpdateConfig();
   const [localConfig, setLocalConfig] = useState<Record<string, Record<string, string>>>({});
 
   if (isLoading) return null;
+
+  if (isError) {
+    return (
+      <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
+        <PageHeader title="Job Scheduler" subtitle="Error loading scheduler config" />
+        <ErrorState title="Failed to load scheduler" message="Could not fetch job configuration from the server." onRetry={refetch} />
+      </motion.div>
+    );
+  }
 
   const mergedConfig = { ...(config || {}), ...localConfig } as Record<string, Record<string, string>>;
 

@@ -72,7 +72,12 @@ class LeadResponse(LeadBase):
     is_mobile_responsive: Optional[bool] = None
     has_online_booking: Optional[bool] = None
     has_ecommerce: Optional[bool] = None
-    
+
+    # Demo website generation
+    demo_site_status: Optional[str] = None
+    demo_generated_at: Optional[datetime] = None
+    demo_view_count: Optional[int] = None
+
     model_config = ConfigDict(from_attributes=True)
 
 class LeadDetailResponse(LeadResponse):

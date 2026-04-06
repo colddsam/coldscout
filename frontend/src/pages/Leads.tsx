@@ -14,6 +14,7 @@ import { Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { exportLeadsCsv, type Lead } from '../lib/api';
 import toast from 'react-hot-toast';
 import { downloadBlob } from '../lib/utils';
+import ErrorState from '../components/ui/ErrorState';
 
 /**
  * CRM-style Leads Management page.
@@ -42,7 +43,7 @@ export default function Leads() {
   const [category, setCategory] = useState('');
   const limit = 25;
 
-  const { data, isLoading } = useLeads({
+  const { data, isLoading, isError, refetch } = useLeads({
     page,
     limit,
     status: status || undefined,
@@ -109,6 +110,15 @@ export default function Leads() {
       render: (_, row) => <span className="font-mono text-xs">{formatDate(String(row.created_at))}</span>,
     },
   ];
+
+  if (isError) {
+    return (
+      <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
+        <PageHeader title="Leads CRM" subtitle="Error loading leads" />
+        <ErrorState title="Failed to load leads" message="Could not fetch lead data from the server." onRetry={refetch} />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>

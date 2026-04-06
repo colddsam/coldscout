@@ -173,9 +173,16 @@ DISCOVERY_TARGET_COUNT=4        # targets per daily run
 DISCOVERY_DEPTH=sub_area        # country | region | city | sub_area
 DISCOVERY_MAX_PAGES=3           # Google Places pages per search (1-3)
 
+# Demo Website Generation (optional)
+GEMINI_API_KEY=your_gemini_api_key
+DEMO_GENERATION_ENABLED=true
+DEMO_MAX_PER_DAY=10
+FRONTEND_DOMAIN=https://your-frontend.vercel.app
+
 # Billing
 RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
 ```
 
 ### Step 5: Health Check Configuration

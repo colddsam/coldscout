@@ -10,6 +10,7 @@ import { formatDate } from '../lib/utils';
 import { useState } from 'react';
 import { Send, X, Eye, MousePointerClick, Reply } from 'lucide-react';
 import type { Campaign } from '../lib/api';
+import ErrorState from '../components/ui/ErrorState';
 
 function CampaignDetailPanel({ campaign }: { campaign: Campaign }) {
   const { data: stats } = useCampaignStats(campaign.id);
@@ -69,10 +70,19 @@ function CampaignDetailPanel({ campaign }: { campaign: Campaign }) {
  * clicked, and replied, along with calculated conversion rates.
  */
 export default function Campaigns() {
-  const { data: campaigns, isLoading } = useCampaigns();
+  const { data: campaigns, isLoading, isError, refetch } = useCampaigns();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   if (isLoading) return <PageLoader />;
+
+  if (isError) {
+    return (
+      <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
+        <PageHeader title="Campaigns" subtitle="Error loading campaigns" />
+        <ErrorState title="Failed to load campaigns" message="Could not fetch campaign data from the server." onRetry={refetch} />
+      </motion.div>
+    );
+  }
 
   const selected = campaigns?.find((c) => c.id === selectedId);
 

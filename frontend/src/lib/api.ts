@@ -207,6 +207,12 @@ export interface Lead {
   postal_code: string | null;
   latitude: number | null;
   longitude: number | null;
+  // Website qualification
+  has_website: boolean;
+  // Demo website generation
+  demo_site_status: string | null;
+  demo_generated_at: string | null;
+  demo_view_count: number | null;
 }
 
 export interface SocialNetwork {

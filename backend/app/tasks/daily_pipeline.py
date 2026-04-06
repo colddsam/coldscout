@@ -5,7 +5,7 @@ Orchestrates discovery, qualification, personalization, outreach, and reporting 
 import asyncio
 import base64
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from loguru import logger
 from app.core.job_manager import job_manager
 from app.core.locks import advisory_lock
@@ -33,6 +33,7 @@ from app.modules.tracking.reply_tracker import fetch_recent_replies
 from app.modules.reporting.excel_builder import generate_daily_report_excel
 from app.modules.reporting.email_reporter import send_daily_report_email
 from app.modules.personalization.proposal_xlsx_generator import generate_proposal_xlsx
+from app.modules.demo_builder.generator import generate_demo_for_lead
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -80,12 +81,12 @@ async def run_discovery_stage(manual: bool = False):
                 db_report = DailyReport(
                     report_date=today,
                     pipeline_status="running",
-                    pipeline_started_at=datetime.utcnow(),
+                    pipeline_started_at=datetime.now(timezone.utc),
                 )
                 db.add(db_report)
             else:
                 db_report.pipeline_status    = "running"
-                db_report.pipeline_started_at = datetime.utcnow()
+                db_report.pipeline_started_at = datetime.now(timezone.utc)
             
             await db.commit()
 
@@ -93,7 +94,7 @@ async def run_discovery_stage(manual: bool = False):
     try:
         async with advisory_lock("pipeline_discovery_targets"):
             async with session_maker() as db:
-                sixty_days_ago = datetime.utcnow() - timedelta(days=60)
+                sixty_days_ago = datetime.now(timezone.utc) - timedelta(days=60)
                 hist_res = await db.execute(
                     select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
                 )
@@ -169,6 +170,11 @@ async def run_discovery_stage(manual: bool = False):
 
             # NO LOCK during scraping phase (the long part)
             for place in places:
+                # BREAK if discovery batch limit reached
+                if discovered_count >= settings.DISCOVERY_BATCH_LIMIT:
+                    logger.info(f"Discovery batch limit reached ({settings.DISCOVERY_BATCH_LIMIT}). Stopping current run.")
+                    break
+
                 place_id = place["id"]
                 
                 # Check existence in a quick read session
@@ -226,6 +232,10 @@ async def run_discovery_stage(manual: bool = False):
                     await db.commit()
                     discovered_count += 1
 
+            # Outer break if batch limit reached
+            if discovered_count >= settings.DISCOVERY_BATCH_LIMIT:
+                break
+
         # 4. Mark report as completed in a final briefly locked session
         async with advisory_lock("pipeline_finalize"):
             async with session_maker() as db:
@@ -234,7 +244,7 @@ async def run_discovery_stage(manual: bool = False):
                 db_report = res.scalars().first()
                 if db_report:
                     db_report.pipeline_status   = "completed"
-                    db_report.pipeline_ended_at = datetime.utcnow()
+                    db_report.pipeline_ended_at = datetime.now(timezone.utc)
                     await db.commit()
 
         if discovered_count > 0:
@@ -250,7 +260,7 @@ async def run_discovery_stage(manual: bool = False):
             db_report = res.scalars().first()
             if db_report:
                 db_report.pipeline_status = "failed"
-                db_report.error_log       = str(e)
+                db_report.error_log       = f"{type(e).__name__}: {str(e).split(chr(10))[0][:200]}"
                 await db.commit()
         raise e
 
@@ -281,8 +291,21 @@ async def run_qualification_stage(manual: bool = False):
         phone_qualified_leads: list[Lead] = []
 
         async with get_session_maker()() as db:
-            result = await db.execute(select(Lead).where(Lead.status == "discovered"))
-            leads  = result.scalars().all()
+            # Query "discovered" and "qualification_error" leads in batches
+            # qualification_error leads get retried automatically on next run
+            result = await db.execute(
+                select(Lead)
+                .where(Lead.status.in_(["discovered", "qualification_error"]))
+                .order_by(Lead.id.asc())
+                .limit(settings.QUALIFICATION_BATCH_LIMIT)
+            )
+            leads = result.scalars().all()
+
+            if not leads:
+                logger.info("No discovered leads found for qualification.")
+                return
+
+            logger.info(f"Processing batch of {len(leads)} leads for qualification.")
 
             for lead in leads:
                 try:
@@ -292,12 +315,12 @@ async def run_qualification_stage(manual: bool = False):
 
                     if is_qualified and lead.email:
                         lead.status      = "qualified"
-                        lead.qualified_at = datetime.utcnow()
+                        lead.qualified_at = datetime.now(timezone.utc)
                         qualified_count  += 1
 
                     elif is_qualified and lead.phone and not lead.email:
                         lead.status       = "phone_qualified"
-                        lead.qualified_at = datetime.utcnow()
+                        lead.qualified_at = datetime.now(timezone.utc)
                         phone_qualified_count += 1
                         phone_qualified_leads.append(lead)
 
@@ -309,7 +332,13 @@ async def run_qualification_stage(manual: bool = False):
                         f"Qualification failed for lead {lead.id} "
                         f"({lead.business_name}): {e}"
                     )
-                    lead.status = "rejected"
+                    # Mark as qualification_error instead of silent rejection
+                    # so the lead can be retried on the next pipeline run
+                    lead.status = "qualification_error"
+                    # Sanitize: only store exception type and first line, no stack traces or URLs
+                    safe_error = type(e).__name__
+                    first_line = str(e).split('\n')[0][:150]
+                    lead.qualification_notes = f"Error during qualification: {safe_error}: {first_line}"
 
             if leads:
                 await db.commit()
@@ -415,10 +444,20 @@ async def run_personalization_stage(manual: bool = False):
                 await db.flush()
 
             # Only email-qualified leads go through automated personalization
+            # Processed in batches to stay within AI rate limits and memory constraints
             result = await db.execute(
-                select(Lead).where(Lead.status == "qualified")
+                select(Lead)
+                .where(Lead.status == "qualified")
+                .order_by(Lead.id.asc())
+                .limit(settings.PERSONALIZATION_BATCH_LIMIT)
             )
             leads = result.scalars().all()
+
+            if not leads:
+                logger.debug("No qualified leads found for personalization.")
+                return
+
+            logger.info(f"Processing batch of {len(leads)} leads for personalization.")
 
             for lead in leads:
                 try:
@@ -483,14 +522,37 @@ async def run_personalization_stage(manual: bool = False):
                         city=lead.city,
                     )
 
+                    # 2c. Demo Website Generation (ISOLATED — runs BEFORE email render)
+                    # Only for no-website leads; fully wrapped in its own try/except.
+                    # If this fails, the email still sends without the demo link.
+                    if not lead.has_website and settings.DEMO_GENERATION_ENABLED:
+                        try:
+                            await generate_demo_for_lead(lead)
+                        except Exception as demo_err:
+                            logger.warning(
+                                f"Demo generation failed for lead {lead.id} "
+                                f"({lead.business_name}), continuing with normal email: {demo_err}"
+                            )
+
                     # 3. Create Outreach Queue Record — attach both files
                     attachments = [p for p in [pdf_path, xlsx_path] if p]
                     tracking_token = _generate_tracking_token(lead.id, campaign.id)
+
+                    # Build demo URL if demo was generated for this lead
+                    demo_url = None
+                    if (
+                        not lead.has_website
+                        and lead.demo_site_status == "generated"
+                        and lead.generated_demo_html
+                    ):
+                        demo_url = f"{settings.FRONTEND_DOMAIN}/demo/{lead.id}"
+
                     html_body = render_email_html(
                         {"business_name": lead.business_name},
                         ai_data.get('body_html', ''),
                         tracking_token,
                         settings.APP_URL,
+                        demo_url=demo_url,
                     )
 
                     outreach = EmailOutreach(
@@ -512,7 +574,7 @@ async def run_personalization_stage(manual: bool = False):
                     campaign.total_leads += 1
                     lead.status = "queued_for_send"
                     pers_count  += 1
-                    
+
                 except Exception as e:
                     logger.error(f"Personalization failed for lead {lead.id} ({lead.business_name}): {e}")
                     # Keep status as 'qualified' so it can be retried or handled manually
@@ -547,10 +609,20 @@ async def run_outreach_stage(manual: bool = False):
         sent_count = 0
 
         async with get_session_maker()() as db:
+            # Dispatch queued emails in batches to protect domain reputation and prevent timeouts
             result = await db.execute(
-                select(EmailOutreach).where(EmailOutreach.status == "queued")
+                select(EmailOutreach)
+                .where(EmailOutreach.status == "queued")
+                .order_by(EmailOutreach.id.asc())
+                .limit(settings.OUTREACH_BATCH_LIMIT)
             )
             queued_emails = result.scalars().all()
+
+            if not queued_emails:
+                logger.debug("No queued emails found for outreach dispatch.")
+                return
+
+            logger.info(f"Processing batch of {len(queued_emails)} emails for outreach.")
 
             for email_task in queued_emails:
                 attachments = email_task.attachment_names if email_task.has_attachment else []
@@ -563,9 +635,22 @@ async def run_outreach_stage(manual: bool = False):
                         attachment_paths = attachments,
                     )
 
+                    # Retry up to 2 more times on transient failures
+                    for attempt in range(2, 4):
+                        if success:
+                            break
+                        logger.warning(f"Retry {attempt}/3 for email to {email_task.to_email}")
+                        await asyncio.sleep(3 * attempt)
+                        success = await send_email(
+                            to_email     = email_task.to_email,
+                            subject      = email_task.subject,
+                            html_content = email_task.body_html,
+                            attachment_paths = attachments,
+                        )
+
                     if success:
                         email_task.status  = "sent"
-                        email_task.sent_at = datetime.utcnow()
+                        email_task.sent_at = datetime.now(timezone.utc)
                         sent_count += 1
 
                         # Update lead status
@@ -575,7 +660,7 @@ async def run_outreach_stage(manual: bool = False):
                         lead = l_res.scalars().first()
                         if lead:
                             lead.status       = "email_sent"
-                            lead.email_sent_at = datetime.utcnow()
+                            lead.email_sent_at = datetime.now(timezone.utc)
 
                             from app.modules.outreach.followup_engine import schedule_followup
                             await schedule_followup(lead, db)
@@ -589,7 +674,7 @@ async def run_outreach_stage(manual: bool = False):
                             campaign.emails_sent += 1
                             if campaign.status == "pending":
                                 campaign.status     = "active"
-                                campaign.started_at = datetime.utcnow()
+                                campaign.started_at = datetime.now(timezone.utc)
 
                         # Commit immediately per email — prevents batch rollback loss
                         await db.commit()
@@ -746,65 +831,89 @@ async def generate_daily_report(manual: bool = False):
     async with advisory_lock("pipeline_daily_report"):
         today = date.today()
 
-        async with get_session_maker()() as db:
-            # Aggregated metrics for report_data
-            leads_discovered = await db.scalar(
-                select(func.count(Lead.id)).where(func.date(Lead.discovered_at) == today)
-            )
-            leads_qualified = await db.scalar(
-                select(func.count(Lead.id)).where(
-                    (func.date(Lead.qualified_at) == today) & 
-                    Lead.status.in_(["qualified", "phone_qualified"])
+        try:
+            async with get_session_maker()() as db:
+                # Aggregated metrics for report_data
+                leads_discovered = await db.scalar(
+                    select(func.count(Lead.id)).where(func.date(Lead.discovered_at) == today)
                 )
-            )
-            emails_sent = await db.scalar(
-                select(func.count(EmailOutreach.id)).where(
-                    (func.date(EmailOutreach.sent_at) == today) & 
-                    (EmailOutreach.status == "sent")
+                leads_qualified = await db.scalar(
+                    select(func.count(Lead.id)).where(
+                        (func.date(Lead.qualified_at) == today) &
+                        Lead.status.in_(["qualified", "phone_qualified"])
+                    )
                 )
-            )
-            
-            # Fetch leads involved in today's activities for detail list
-            leads_res = await db.execute(
-                select(Lead).where(
-                    (func.date(Lead.discovered_at) == today)
-                    | (func.date(Lead.email_sent_at) == today)
-                    | (func.date(Lead.first_replied_at) == today)
+                emails_sent = await db.scalar(
+                    select(func.count(EmailOutreach.id)).where(
+                        (func.date(EmailOutreach.sent_at) == today) &
+                        (EmailOutreach.status == "sent")
+                    )
                 )
-            )
-            report_leads = leads_res.scalars().all()
-            
-            report_data = {
-                "leads_discovered": leads_discovered or 0,
-                "leads_qualified": leads_qualified or 0,
-                "emails_sent": emails_sent or 0,
-                "emails_opened": len([l for l in report_leads if l.first_opened_at and l.first_opened_at.date() == today]),
-                "links_clicked": len([l for l in report_leads if l.first_clicked_at and l.first_clicked_at.date() == today]),
-                "replies_received": len([l for l in report_leads if l.first_replied_at and l.first_replied_at.date() == today]),
-            }
 
-            lead_dicts = [
-                {
-                    "business_name":   l.business_name,
-                    "category":        l.category,
-                    "city":            l.city,
-                    "country":         l.country,
-                    "region":          l.region,
-                    "email_sent_at":   l.email_sent_at,
-                    "first_opened_at": l.first_opened_at,
-                    "first_clicked_at": l.first_clicked_at,
-                    "first_replied_at": l.first_replied_at,
-                    "status":          l.status,
-                    "phone":           l.phone,
-                    "google_maps_url": l.google_maps_url,
-                    "lead_tier":       l.lead_tier,
+                # Fetch leads involved in today's activities for detail list
+                leads_res = await db.execute(
+                    select(Lead).where(
+                        (func.date(Lead.discovered_at) == today)
+                        | (func.date(Lead.email_sent_at) == today)
+                        | (func.date(Lead.first_replied_at) == today)
+                    )
+                )
+                report_leads = leads_res.scalars().all()
+
+                report_data = {
+                    "leads_discovered": leads_discovered or 0,
+                    "leads_qualified": leads_qualified or 0,
+                    "emails_sent": emails_sent or 0,
+                    "emails_opened": len([l for l in report_leads if l.first_opened_at and l.first_opened_at.date() == today]),
+                    "links_clicked": len([l for l in report_leads if l.first_clicked_at and l.first_clicked_at.date() == today]),
+                    "replies_received": len([l for l in report_leads if l.first_replied_at and l.first_replied_at.date() == today]),
                 }
-                for l in report_leads
-            ]
 
-            excel_path = generate_daily_report_excel(report_data, lead_dicts, today)
-            await send_daily_report_email(report_data, excel_path, today)
-            await db.commit()
+                lead_dicts = [
+                    {
+                        "business_name":   l.business_name,
+                        "category":        l.category,
+                        "city":            l.city,
+                        "country":         l.country,
+                        "region":          l.region,
+                        "email_sent_at":   l.email_sent_at,
+                        "first_opened_at": l.first_opened_at,
+                        "first_clicked_at": l.first_clicked_at,
+                        "first_replied_at": l.first_replied_at,
+                        "status":          l.status,
+                        "phone":           l.phone,
+                        "google_maps_url": l.google_maps_url,
+                        "lead_tier":       l.lead_tier,
+                    }
+                    for l in report_leads
+                ]
+
+                # Excel generation fallback — report still sends even if Excel fails
+                excel_path = None
+                try:
+                    excel_path = generate_daily_report_excel(report_data, lead_dicts, today)
+                except Exception as excel_err:
+                    logger.error(f"Excel report generation failed: {excel_err}. Sending report without attachment.")
+
+                # Email dispatch fallback — log failure, don't crash pipeline
+                try:
+                    await send_daily_report_email(report_data, excel_path, today)
+                except Exception as email_err:
+                    logger.error(f"Daily report email dispatch failed: {email_err}")
+                    await send_telegram_alert(
+                        f"Daily report email failed: {email_err}. "
+                        f"Stats: discovered={report_data['leads_discovered']}, "
+                        f"sent={report_data['emails_sent']}"
+                    )
+
+                await db.commit()
+
+        except Exception as e:
+            logger.exception(f"Daily report generation failed: {e}")
+            try:
+                await send_telegram_alert(f"Daily report generation failed: {e}")
+            except Exception:
+                logger.error("Failed to send Telegram alert for report failure")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

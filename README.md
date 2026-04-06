@@ -57,7 +57,7 @@
 | [Pipeline Stages](#-pipeline-stages) | Step-by-step AI automation flow |
 | [User Roles & Plans](#-user-roles--plans) | RBAC and billing tier details |
 | [Quick Start](#-quick-start) | Get running in under 10 minutes |
-| [Environment Variables](#-environment-variables) | All 46 configuration parameters |
+| [Environment Variables](#-environment-variables) | All configuration parameters |
 | [Deployment](#-deployment) | Production deployment guide |
 | [Testing](#-testing) | Test suite overview |
 | [Contributing](#-contributing) | How to contribute |
@@ -289,6 +289,9 @@ erDiagram
         string sub_area
         float qualification_score
         string status
+        string demo_site_status
+        text generated_demo_html
+        int demo_view_count
         datetime discovered_at
     }
     Campaign {
@@ -352,6 +355,7 @@ erDiagram
 | **Migrations** | Alembic 1.13 | Schema version control |
 | **Scheduler** | APScheduler 3.10 | Cron/interval background tasks |
 | **AI Engine** | Groq SDK (Llama 3) | Lead qualification + email generation |
+| **AI Demo Builder** | Google Gemini 1.5 Flash | Interactive landing page generation |
 | **Web Scraping** | Playwright 1.48 | Headless browser automation |
 | **HTTP Client** | HTTPX 0.27 | Async HTTP requests |
 | **HTML Parsing** | BeautifulSoup4 | Website content extraction |
@@ -474,6 +478,22 @@ erDiagram
 </details>
 
 <details>
+<summary><b>🌐 AI Demo Website Builder</b></summary>
+
+- Generates interactive, brand-personalized landing pages for leads **without a website**
+- Two-stage AI pipeline: **Groq** extracts brand blueprint → **Gemini** generates full HTML
+- Self-contained single-file HTML with Tailwind CSS, Alpine.js, and Google Fonts via CDN
+- Anti-AI design system enforces editorial neo-minimalist aesthetics (no glassmorphism, no neon)
+- HTML validation (DOCTYPE, structure, size cap at 500KB) and sanitization (strips unauthorized scripts)
+- Strict CSP headers on public serving endpoint; frontend wraps in sandboxed iframe
+- Public `/demo/:leadId` route — recipients click directly from email, no auth required
+- Demo view count tracking for engagement analytics
+- Admin preview, regeneration, and status tracking in lead detail view
+- Configurable via `GEMINI_API_KEY`, `DEMO_GENERATION_ENABLED`, `DEMO_MAX_PER_DAY`
+
+</details>
+
+<details>
 <summary><b>🧵 Threads Integration</b></summary>
 
 - Meta Threads API integration for social outreach discovery
@@ -498,7 +518,7 @@ erDiagram
 │  │      │      │ENRICH│      │  ON  │      │  TION│      │      │        │
 │  └──────┘      └──────┘      └──────┘      └──────┘      └──────┘        │
 │  Google        Playwright    Groq AI        Groq AI        Brevo          │
-│  Places API    BeautifulSoup  Llama 3        Email + PDF    SMTP           │
+│  Places API    BeautifulSoup  Llama 3        Email+PDF+Demo SMTP           │
 │  ↓             ↓              ↓              ↓              ↓              │
 │  Stage 6       Stage 7        Stage 8                                      │
 │  ┌──────┐      ┌──────┐      ┌──────┐                                     │
@@ -639,6 +659,10 @@ npm run dev
 | | `DISCOVERY_TARGET_COUNT` | Targets per daily run (default: 4) |
 | | `DISCOVERY_DEPTH` | Location depth: `country`/`region`/`city`/`sub_area` |
 | | `DISCOVERY_MAX_PAGES` | Google Places pages per search (1-3) |
+| **Demo Builder** | `GEMINI_API_KEY` | Google Gemini API key for demo generation |
+| | `DEMO_GENERATION_ENABLED` | Master kill-switch (`true`/`false`) |
+| | `DEMO_MAX_PER_DAY` | Max demos per day (default: 10) |
+| | `FRONTEND_DOMAIN` | Public frontend URL for demo links |
 | **Billing** | `RAZORPAY_KEY_ID/KEY_SECRET` | Payment gateway |
 | **Frontend** | `VITE_SUPABASE_URL/ANON_KEY` | Auth provider |
 | | `VITE_PROXY_URL` | Backend URL for proxy |
@@ -674,7 +698,7 @@ Refer to **[DEPLOYMENT.md](./DEPLOYMENT.md)** for step-by-step production deploy
 
 ## 🧪 Testing
 
-The backend includes a comprehensive pytest test suite with 10 test modules:
+The backend includes a comprehensive pytest test suite with 11 test modules:
 
 ```
 tests/
@@ -687,7 +711,8 @@ tests/
 ├── test_07_reply_classifier.py    ← Intent classification
 ├── test_08_enrichment_modules.py  ← Scraping & enrichment
 ├── test_09_pipeline_api.py        ← Pipeline REST endpoints
-└── test_10_leads_api.py           ← Leads REST endpoints
+├── test_10_leads_api.py           ← Leads REST endpoints
+└── test_11_demo_builder.py        ← Demo website generation & serving
 ```
 
 ```bash

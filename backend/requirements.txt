@@ -31,6 +31,7 @@ dnspython==2.7.0
 
 # AI
 groq==0.11.0
+google-generativeai>=0.8.3
 
 # Email
 aiosmtplib==3.0.1

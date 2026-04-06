@@ -17,6 +17,7 @@ import { cn } from '../lib/utils';
 import type { Lead } from '../lib/api';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, fadeInUp, defaultViewport } from '../lib/motion';
+import ErrorState from '../components/ui/ErrorState';
 
 /**
  * System Overview Dashboard.
@@ -26,14 +27,28 @@ import { pageTransition, staggerContainer, staggerItem, fadeInUp, defaultViewpor
  * to primary system controls.
  */
 export default function Overview() {
-  const { data: health } = useHealth();
-  const { data: pipeline } = usePipelineStatus();
-  const { data: leads } = useLeads({ page: 1, limit: 5 });
-  const { data: jobsConfig } = useJobsConfig();
+  const { data: health, isError: healthError, refetch: refetchHealth } = useHealth();
+  const { data: pipeline, isError: pipelineError, refetch: refetchPipeline } = usePipelineStatus();
+  const { data: leads, isError: leadsError, refetch: refetchLeads } = useLeads({ page: 1, limit: 5 });
+  const { data: jobsConfig, isError: jobsError, refetch: refetchJobs } = useJobsConfig();
   const triggerPipeline = useTriggerPipeline();
   const navigate = useNavigate();
 
   const totalLeads = leads?.total ?? 0;
+
+  const hasError = healthError || pipelineError || leadsError || jobsError;
+  if (hasError) {
+    return (
+      <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
+        <PageHeader title="System Overview" subtitle="Real-time operational dashboard" />
+        <ErrorState
+          title="Failed to load dashboard"
+          message="One or more data sources could not be reached. Check your connection and try again."
+          onRetry={() => { refetchHealth(); refetchPipeline(); refetchLeads(); refetchJobs(); }}
+        />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">

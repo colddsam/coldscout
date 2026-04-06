@@ -4,7 +4,7 @@ Manages the lifecycle, scheduling, and dynamic content generation for multi-touc
 email sequences targeting unresponsive leads.
 """
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ async def schedule_followup(lead: Lead, db: AsyncSession):
     Initializes the follow-up sequence for a lead upon successful transmission of the 
     initial outreach email.
     """
-    lead.next_followup_at = datetime.utcnow() + timedelta(days=3)
+    lead.next_followup_at = datetime.now(timezone.utc) + timedelta(days=3)
     lead.followup_sequence_active = True
 
 async def cancel_followup_sequence(lead_id: UUID, db: AsyncSession):
@@ -64,7 +64,7 @@ async def run_followup_dispatch(manual: bool = False):
         
     groq_client = GroqClient()
     sent_count = 0
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     async with get_session_maker()() as db:
         from datetime import date
@@ -118,6 +118,21 @@ async def run_followup_dispatch(manual: bool = False):
                     attachment_paths=[]
                 )
                 
+                # Retry up to 2 more times on transient failures
+                MAX_RETRIES = 3
+                for attempt in range(1, MAX_RETRIES + 1):
+                    if success:
+                        break
+                    if attempt > 1:
+                        logger.warning(f"Retry {attempt}/{MAX_RETRIES} for follow-up to {lead.email}")
+                        await asyncio.sleep(3 * attempt)  # Exponential backoff
+                        success = await send_email(
+                            to_email=lead.email,
+                            subject=subject,
+                            html_content=html_body,
+                            attachment_paths=[]
+                        )
+
                 if success:
                     outreach = EmailOutreach(
                         lead_id=lead.id,
@@ -133,19 +148,19 @@ async def run_followup_dispatch(manual: bool = False):
                         sent_at=now
                     )
                     db.add(outreach)
-                    
+
                     lead.followup_count = next_count
                     if next_count >= 3:
                         lead.followup_sequence_active = False
                     else:
                         next_interval = FOLLOWUP_SCHEDULE[next_count]["days_after"] - FOLLOWUP_SCHEDULE[next_count-1]["days_after"]
                         lead.next_followup_at = now + timedelta(days=next_interval)
-                        
+
                     campaign.emails_sent += 1
                     sent_count += 1
                     await db.commit()
                 else:
-                    logger.error(f"Failed to send follow-up to {lead.email}")
+                    logger.error(f"Failed to send follow-up to {lead.email} after {MAX_RETRIES} attempts")
                 
                 await asyncio.sleep(2)
             except Exception as e:

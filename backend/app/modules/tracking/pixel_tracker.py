@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from fastapi import Request
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.email_event import EmailEvent
 from app.models.campaign import EmailOutreach, Campaign
@@ -72,7 +72,7 @@ class TrackingService:
 
             if event_type == "open":
                 if not lead.first_opened_at:
-                    lead.first_opened_at = datetime.utcnow()
+                    lead.first_opened_at = datetime.now(timezone.utc)
                     if campaign:
                         campaign.emails_opened += 1
                 
@@ -80,7 +80,7 @@ class TrackingService:
                     lead.status = "opened"
                 
                 if not outreach.delivered_at:
-                    outreach.delivered_at = datetime.utcnow()
+                    outreach.delivered_at = datetime.now(timezone.utc)
                 
                 # Cascade status upward to outreach level
                 if outreach.status in ["sent", "queued", "delivered"]:
@@ -88,7 +88,7 @@ class TrackingService:
             
             elif event_type == "click":
                 if not lead.first_clicked_at:
-                    lead.first_clicked_at = datetime.utcnow()
+                    lead.first_clicked_at = datetime.now(timezone.utc)
                     if campaign:
                         campaign.links_clicked += 1
                     
@@ -101,7 +101,7 @@ class TrackingService:
                     await cancel_followup_sequence(lead.id, db)
                         
                 if not lead.first_opened_at:
-                    lead.first_opened_at = datetime.utcnow()
+                    lead.first_opened_at = datetime.now(timezone.utc)
                     if campaign:
                         campaign.emails_opened += 1
                     

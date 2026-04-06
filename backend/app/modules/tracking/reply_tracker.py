@@ -10,7 +10,7 @@ from typing import List, Tuple
 from app.config import get_settings
 settings = get_settings()
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import email.utils
 
 logger = logging.getLogger(__name__)
@@ -52,9 +52,13 @@ async def fetch_recent_replies(since_minutes: int = 30) -> List[Tuple[str, str, 
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
                     
-                    subject, encoding = decode_header(msg["Subject"])[0]
-                    if isinstance(subject, bytes):
-                        subject = subject.decode(encoding if encoding else "utf-8")
+                    try:
+                        raw_subject = msg.get("Subject", "")
+                        subject, encoding = decode_header(raw_subject)[0]
+                        if isinstance(subject, bytes):
+                            subject = subject.decode(encoding or "utf-8", errors="replace")
+                    except (UnicodeDecodeError, LookupError, TypeError):
+                        subject = str(msg.get("Subject", "(no subject)"))
                         
                     sender = msg.get("From", "")
                     if not sender:
@@ -66,22 +70,26 @@ async def fetch_recent_replies(since_minutes: int = 30) -> List[Tuple[str, str, 
                     date_str = msg.get("Date")
                     try:
                         reply_time = email.utils.parsedate_to_datetime(date_str).replace(tzinfo=None)
-                    except:
-                        reply_time = datetime.utcnow()
+                    except (TypeError, ValueError, AttributeError):
+                        reply_time = datetime.now(timezone.utc)
                         
                     body = ""
                     if msg.is_multipart():
                         for part in msg.walk():
                             if part.get_content_type() == "text/plain":
                                 try:
-                                    body = part.get_payload(decode=True).decode()
+                                    payload = part.get_payload(decode=True)
+                                    if payload:
+                                        body = payload.decode(errors="replace")
                                     break
-                                except:
+                                except (UnicodeDecodeError, AttributeError, LookupError):
                                     pass
                     else:
                         try:
-                            body = msg.get_payload(decode=True).decode()
-                        except:
+                            payload = msg.get_payload(decode=True)
+                            if payload:
+                                body = payload.decode(errors="replace")
+                        except (UnicodeDecodeError, AttributeError, LookupError):
                             pass
                             
                     if sender:
@@ -97,5 +105,5 @@ async def fetch_recent_replies(since_minutes: int = 30) -> List[Tuple[str, str, 
         try:
             if 'mail' in locals() and mail:
                 mail.logout()
-        except:
+        except (imaplib.IMAP4.error, OSError):
             pass

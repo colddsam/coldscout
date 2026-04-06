@@ -12,6 +12,7 @@ import { Search, CheckCircle, Sparkles, Send, BarChart2, TrendingUp, Play, Zap }
 import type { PipelineStage } from '../lib/api';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, fadeInUp, defaultViewport } from '../lib/motion';
+import ErrorState from '../components/ui/ErrorState';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Search, CheckCircle, Sparkles, Send, BarChart2, TrendingUp,
@@ -25,7 +26,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
  * operation logging for real-time feedback.
  */
 export default function Pipeline() {
-  const { data: pipeline } = usePipelineStatus(5000);
+  const { data: pipeline, isError, refetch } = usePipelineStatus(5000);
   const trigger = useTriggerPipeline();
   const [showConfirm, setShowConfirm] = useState(false);
   const [logEntries, setLogEntries] = useState<string[]>([]);
@@ -46,6 +47,15 @@ export default function Pipeline() {
   };
 
   const isRunning = pipeline?.last_run?.status === 'running';
+
+  if (isError) {
+    return (
+      <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
+        <PageHeader title="Pipeline Control" subtitle="Error loading pipeline status" />
+        <ErrorState title="Failed to load pipeline" message="Could not fetch pipeline status from the server." onRetry={refetch} />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">

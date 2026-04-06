@@ -111,10 +111,15 @@ async def verify_tables_exist():
                         [sys.executable, "-m", "alembic", "upgrade", "head"],
                         check=True,
                         capture_output=True,
-                        text=True
+                        text=True,
+                        timeout=120,
                     )
                     logger.info("Successfully provisioned database schema using Alembic!")
                     logger.debug(f"Alembic output: {result.stdout}")
+                except subprocess.TimeoutExpired:
+                    error_msg = "Alembic migration timed out after 120s — possible schema lock contention."
+                    logger.error(error_msg)
+                    sys.exit(error_msg)
                 except subprocess.CalledProcessError as sub_e:
                     error_msg = f"Auto-creation failed during alembic upgrade: {sub_e.stderr}"
                     logger.error(error_msg)

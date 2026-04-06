@@ -45,6 +45,7 @@ import Support from './pages/Support';
 import RefundPolicy from './pages/RefundPolicy';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
+import LeadDemoViewer from './pages/LeadDemoViewer';
 
 /**
  * Shared QueryClient instance with optimized development defaults.
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/support" element={<Support />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/u/:username" element={<PublicProfile />} />
+            <Route path="/demo/:leadId" element={<LeadDemoViewer />} />
 
             {/* Protected: Client Welcome (clients only — freelancers redirected to /overview) */}
             <Route element={<ClientRoute />}>

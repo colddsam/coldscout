@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import DataTable, { type Column } from '../components/ui/DataTable';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, fadeInUp, defaultViewport } from '../lib/motion';
+import ErrorState from '../components/ui/ErrorState';
 
 /**
  * The Analytics page visualizes historical performance data.
@@ -26,7 +27,7 @@ import { pageTransition, staggerContainer, staggerItem, fadeInUp, defaultViewpor
  * raw report data as JSON.
  */
 export default function Analytics() {
-  const { data: reports, isLoading } = useAnalytics();
+  const { data: reports, isLoading, isError, refetch } = useAnalytics();
 
   const chartData = useMemo(() => {
     if (!reports?.length) return { line: [], bar: [], funnel: [] };
@@ -109,6 +110,15 @@ export default function Analytics() {
   ];
 
   if (isLoading) return <PageLoader />;
+
+  if (isError) {
+    return (
+      <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
+        <PageHeader title="Analytics" subtitle="Error loading reports" />
+        <ErrorState title="Failed to load analytics" message="Could not fetch daily reports from the server." onRetry={refetch} />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>

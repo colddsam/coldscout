@@ -11,7 +11,9 @@ import { PageLoader } from '../components/ui/Spinner';
 import PageHeader from '../components/layout/PageHeader';
 import { formatDate, cn } from '../lib/utils';
 import { LEAD_STATUSES } from '../lib/constants';
-import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map, Monitor, RefreshCw, Eye } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { client } from '../lib/api';
 
 /**
  * Lead Detail & Management View.
@@ -29,6 +31,7 @@ export default function LeadDetail() {
   const [editNotes, setEditNotes] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   if (isLoading) return <PageLoader />;
   if (!lead) return <div className="text-center py-12 text-gray-500 font-mono">Lead not found</div>;
@@ -271,6 +274,78 @@ export default function LeadDetail() {
             </p>
           </Card>
           </motion.div>
+
+          {/* Demo Website Status (only for no-website leads) */}
+          {!lead.has_website && (
+            <motion.div variants={staggerItem}>
+            <Card>
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">
+                <Monitor className="w-3.5 h-3.5 inline mr-1.5" />Demo Website
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    'px-2 py-1 rounded-md text-xs font-mono font-medium',
+                    lead.demo_site_status === 'generated' && 'bg-green-50 text-green-700 border border-green-200',
+                    lead.demo_site_status === 'generating' && 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+                    lead.demo_site_status === 'pending' && 'bg-blue-50 text-blue-700 border border-blue-200',
+                    lead.demo_site_status === 'failed' && 'bg-red-50 text-red-700 border border-red-200',
+                    lead.demo_site_status === 'not_applicable' && 'bg-gray-50 text-gray-500 border border-gray-200',
+                  )}>
+                    {lead.demo_site_status || 'not_applicable'}
+                  </span>
+                  {lead.demo_view_count > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Eye className="w-3 h-3" /> {lead.demo_view_count} views
+                    </span>
+                  )}
+                </div>
+
+                {lead.demo_site_status === 'generated' && (
+                  <a
+                    href={`/demo/${lead.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <Button size="sm" className="w-full" icon={<ExternalLink className="w-3.5 h-3.5" />}>
+                      Preview Demo
+                    </Button>
+                  </a>
+                )}
+
+                {(lead.demo_site_status === 'failed' || lead.demo_site_status === 'not_applicable') && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full"
+                    icon={<RefreshCw className="w-3.5 h-3.5" />}
+                    loading={regenerating}
+                    onClick={async () => {
+                      setRegenerating(true);
+                      try {
+                        await client.post(`/api/v1/leads/${lead.id}/demo-regenerate`);
+                        toast.success('Demo regeneration started');
+                      } catch {
+                        toast.error('Failed to trigger regeneration');
+                      } finally {
+                        setRegenerating(false);
+                      }
+                    }}
+                  >
+                    {lead.demo_site_status === 'failed' ? 'Retry Generation' : 'Generate Demo'}
+                  </Button>
+                )}
+
+                {lead.demo_generated_at && (
+                  <p className="text-[10px] text-gray-400 font-mono">
+                    Generated: {formatDate(lead.demo_generated_at)}
+                  </p>
+                )}
+              </div>
+            </Card>
+            </motion.div>
+          )}
 
           {/* Metadata */}
           <motion.div variants={staggerItem}>

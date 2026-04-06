@@ -235,11 +235,22 @@ async def qualify_lead(lead: Lead, db) -> tuple[bool, int, str]:
 
     # ── Website checks ────────────────────────────────────────────────────────
     if lead.website_url:
-        # Run DNS/HTTP check and quality fetch concurrently
-        (is_dns_valid, is_http_valid, _), quality = await asyncio.gather(
-            check_website(lead.website_url),
-            get_website_quality(lead.website_url),
-        )
+        # Run DNS/HTTP check and quality fetch concurrently with an overall timeout
+        # Prevents slow/hanging domains from blocking the entire qualification batch
+        try:
+            (is_dns_valid, is_http_valid, _), quality = await asyncio.wait_for(
+                asyncio.gather(
+                    check_website(lead.website_url),
+                    get_website_quality(lead.website_url),
+                ),
+                timeout=20.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"Website checks timed out for '{lead.business_name}' "
+                f"({lead.website_url}). Quality assessment skipped."
+            )
+            all_notes.append("Website check timed out — quality assessment skipped.")
 
     # ── Social check (only when site is confirmed live) ───────────────────────
     if lead.website_url and is_http_valid:

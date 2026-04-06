@@ -6,7 +6,7 @@ loops to autonomously refine outreach prompt configurations.
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.models.lead import Lead
 from app.models.campaign import Campaign, EmailOutreach
@@ -22,7 +22,7 @@ async def _run_weekly_optimization_core(db: AsyncSession):
     """
     logger.info("Starting Weekly Optimization Engine...")
     
-    one_week_ago = datetime.utcnow() - timedelta(days=7)
+    one_week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     
     # 1. Analyze campaign stats
     stmt = select(func.sum(Campaign.emails_sent), func.sum(Campaign.emails_opened), 
@@ -110,5 +110,13 @@ async def run_weekly_optimization(manual: bool = False):
 
     from app.core.database import get_session_maker
     async_session = get_session_maker()
-    async with async_session() as db:
-        await _run_weekly_optimization_core(db)
+    try:
+        async with async_session() as db:
+            await _run_weekly_optimization_core(db)
+    except Exception as e:
+        logger.exception(f"Weekly optimization failed: {e}")
+        try:
+            from app.modules.notifications.telegram_bot import send_telegram_alert
+            await send_telegram_alert(f"Weekly optimization failed: {e}")
+        except Exception:
+            logger.error("Failed to send Telegram alert for optimization failure")

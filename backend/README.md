@@ -88,6 +88,11 @@ backend/
 │   │   │   └── performance_analyzer.py   ← Funnel metric calculations
 │   │   ├── billing/
 │   │   │   └── razorpay_client.py        ← Order creation, signature verification
+│   │   ├── demo_builder/
+│   │   │   ├── __init__.py               ← Module description
+│   │   │   ├── brand_extractor.py        ← Groq-powered brand blueprint extraction
+│   │   │   ├── gemini_client.py          ← Gemini API client for HTML generation
+│   │   │   └── generator.py              ← Orchestrator: validate, sanitize, store
 │   │   ├── discovery/
 │   │   │   ├── google_places.py          ← Places API client, deduplication
 │   │   │   └── scraper.py                ← Playwright contact extraction
@@ -207,6 +212,7 @@ FastAPI Router (/api/v1/...)
     │   ├── GET  /track/pixel/{id}    ← Email open pixel
     │   ├── POST /webhooks/brevo      ← Brevo events
     │   ├── GET  /unsubscribe/{token} ← One-click unsubscribe
+    │   ├── GET  /public/demo/{id}    ← Public demo website (CSP-hardened)
     │   └── GET  /threads/...         ← Threads public endpoints
     │
     └── Private Routes (X-API-Key required)

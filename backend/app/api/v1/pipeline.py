@@ -13,7 +13,7 @@ Key Features:
 """
 from fastapi import APIRouter, Depends, HTTPException, Body
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 from loguru import logger
 from sqlalchemy import select
@@ -86,7 +86,7 @@ async def trigger_pipeline(request: TriggerRequest = Body(...)):
     return {
         "status": "triggered",
         "stage": request.stage,
-        "triggered_at": datetime.utcnow().isoformat()
+        "triggered_at": datetime.now(timezone.utc).isoformat()
     }
 
 @router.get("/pipeline/status")
@@ -175,6 +175,7 @@ async def resume_pipeline():
 
 
 from app.core.job_manager import job_manager
+
 
 @router.get("/pipeline/jobs_config")
 async def get_jobs_config():
