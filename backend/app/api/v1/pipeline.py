@@ -11,7 +11,7 @@ Key Features:
 3. Scheduler Transparency: Provides visibility into APScheduler's active job pool.
 4. Dynamic Configuration: Enables patching of cron-based schedules without service restarts.
 """
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
 import asyncio
 from datetime import datetime, timezone
 from pydantic import BaseModel
@@ -28,6 +28,10 @@ from app.tasks.daily_pipeline import (
 )
 from app.modules.analytics.performance_analyzer import run_weekly_optimization
 from app.core.scheduler import scheduler
+from app.core.pipeline_tracker import (
+    enqueue_job, mark_running, mark_completed, mark_failed,
+    append_log, get_active_jobs, get_job_history, is_stage_busy,
+)
 
 from app.api.deps import get_current_user
 
@@ -44,75 +48,132 @@ class TriggerRequest(BaseModel):
     stage: str
     dry_run: bool = False
 
+STAGE_FUNCTIONS = {
+    "discovery": run_discovery_stage,
+    "qualification": run_qualification_stage,
+    "personalization": run_personalization_stage,
+    "outreach": run_outreach_stage,
+    "daily_report": generate_daily_report,
+    "weekly_optimization": run_weekly_optimization,
+    "threads_discovery": run_threads_discovery_stage,
+    "threads_qualification": run_threads_qualification_stage,
+    "threads_engagement": run_threads_engagement_stage,
+    "threads_response_check": run_threads_response_check,
+}
+
+ALL_PIPELINE_STAGES = [
+    "discovery", "qualification", "personalization", "outreach", "daily_report"
+]
+
+# ── Global serial job queue ───────────────────────────────────────────────────
+# All manually triggered jobs are pushed here and consumed one at a time by a
+# single background worker. This guarantees that if job A is running and job B
+# is triggered, B stays in "queued" state until A finishes.
+
+_job_queue: asyncio.Queue | None = None
+_worker_running = False
+
+
+def _get_queue() -> asyncio.Queue:
+    global _job_queue
+    if _job_queue is None:
+        _job_queue = asyncio.Queue()
+    return _job_queue
+
+
+async def _ensure_worker():
+    """Start the queue consumer if it isn't already running."""
+    global _worker_running
+    if _worker_running:
+        return
+    _worker_running = True
+    asyncio.create_task(_queue_worker())
+
+
+async def _queue_worker():
+    """Pulls jobs from the queue one at a time and runs them sequentially."""
+    global _worker_running
+    q = _get_queue()
+    try:
+        while True:
+            stage_name, stage_func, manual = await asyncio.wait_for(q.get(), timeout=60.0)
+            try:
+                await mark_running(stage_name)
+                await stage_func(manual=manual)
+                await mark_completed(stage_name, f"{stage_name} completed successfully")
+            except Exception as e:
+                await mark_failed(stage_name, f"{type(e).__name__}: {str(e)[:200]}")
+                logger.exception(f"Tracked stage {stage_name} failed")
+            finally:
+                q.task_done()
+    except asyncio.TimeoutError:
+        # No jobs for 60s — shut down the worker, it will restart on next trigger
+        pass
+    finally:
+        _worker_running = False
+
+
 @router.post("/pipeline/trigger")
 async def trigger_pipeline(request: TriggerRequest = Body(...)):
     """
-    Asynchronously triggers a selected pipeline stage for immediate manual execution.
-    
-    This endpoint permits administrators to bypass the APScheduler and manually invoke
-    critical business workflows independently (e.g., discovery, outreach).
-    
-    Args:
-        request (TriggerRequest): Contains the specific 'stage' to be triggered.
-            Allowed arguments: 'all', 'discovery', 'qualification', 'personalization', 
-                               'outreach', 'report', 'optimization'.
+    Triggers pipeline stage(s) for manual execution via a serial job queue.
+
+    Jobs are enqueued immediately (shown as "queued" in UI) and processed
+    one at a time. If a job is already running, new jobs wait in the queue.
+    The response includes the current active_stages snapshot so the frontend
+    can update instantly without waiting for the next poll.
     """
-    valid_stages = {
-        "all": [
-            run_discovery_stage, 
-            run_qualification_stage, 
-            run_personalization_stage, 
-            run_outreach_stage, 
-            generate_daily_report
-        ],
-        "discovery": [run_discovery_stage],
-        "qualification": [run_qualification_stage],
-        "personalization": [run_personalization_stage],
-        "outreach": [run_outreach_stage],
-        "daily_report": [generate_daily_report],
-        "weekly_optimization": [run_weekly_optimization],
-        "threads_discovery": [run_threads_discovery_stage],
-        "threads_qualification": [run_threads_qualification_stage],
-        "threads_engagement": [run_threads_engagement_stage],
-        "threads_response_check": [run_threads_response_check]
-    }
-    
-    if request.stage not in valid_stages:
+    if request.stage == "all":
+        stages_to_run = ALL_PIPELINE_STAGES
+    elif request.stage in STAGE_FUNCTIONS:
+        stages_to_run = [request.stage]
+    else:
         raise HTTPException(status_code=400, detail="Invalid stage specified")
-        
-    for stage_func in valid_stages[request.stage]:
-        asyncio.create_task(stage_func(manual=True))
-        
+
+    q = _get_queue()
+    triggered = []
+    for stage_name in stages_to_run:
+        await enqueue_job(stage_name, triggered_by="manual")
+        stage_func = STAGE_FUNCTIONS[stage_name]
+        await q.put((stage_name, stage_func, True))
+        triggered.append(stage_name)
+
+    await _ensure_worker()
+
+    # Return a snapshot of active stages so the UI can update instantly
+    active_stages = await get_active_jobs()
+
     return {
         "status": "triggered",
         "stage": request.stage,
-        "triggered_at": datetime.now(timezone.utc).isoformat()
+        "stages": triggered,
+        "triggered_at": datetime.now(timezone.utc).isoformat(),
+        "active_stages": active_stages,
     }
 
 @router.get("/pipeline/status")
 async def pipeline_status():
     """
-    Retrieves the holistic system status, aggregating data from the latest pipeline run
-    and verifying the active status of the APScheduler and its registered job pool.
+    Retrieves the holistic system status including per-stage active job tracking.
 
     Returns:
-        dict: A comprehensive payload detailing the last execution timeframe, the 
-              scheduler's operational status, and a list of all currently active jobs.
+        dict: last_run info, scheduler status, scheduled jobs list, and
+              active_stages map showing which stages are currently queued/running.
     """
     async with get_session_maker()() as db:
         stmt = select(DailyReport).order_by(DailyReport.report_date.desc()).limit(1)
         res = await db.execute(stmt)
         latest_report = res.scalars().first()
-        
+
     last_run = None
     if latest_report:
         last_run = {
-            "stage": "discovery",
+            "stage": latest_report.pipeline_status,
             "status": latest_report.pipeline_status,
             "at": latest_report.pipeline_ended_at.isoformat() if latest_report.pipeline_ended_at else (
                   latest_report.pipeline_started_at.isoformat() if latest_report.pipeline_started_at else None)
         }
-        
+
     jobs = []
     if scheduler.running:
         for job in scheduler.get_jobs():
@@ -120,12 +181,34 @@ async def pipeline_status():
                 "id": job.id,
                 "next_run": job.next_run_time.isoformat() if job.next_run_time else None
             })
-            
+
+    # Per-stage active job tracking
+    active_stages = {}
+    try:
+        active_stages = await get_active_jobs()
+    except Exception as e:
+        logger.warning(f"Failed to fetch active jobs from Redis: {e}")
+
     return {
         "last_run": last_run,
         "scheduler_running": scheduler.running,
-        "jobs": jobs
+        "jobs": jobs,
+        "active_stages": active_stages,
     }
+
+
+@router.get("/pipeline/history")
+async def pipeline_history(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
+    """
+    Returns persistent job run history for the Pipeline Log UI.
+    Results are ordered newest-first with pagination support.
+    """
+    try:
+        history = await get_job_history(limit=limit, offset=offset)
+        return {"history": history, "limit": limit, "offset": offset}
+    except Exception as e:
+        logger.error(f"Failed to fetch pipeline history: {e}")
+        return {"history": [], "limit": limit, "offset": offset}
 
 @router.post("/pipeline/hold")
 async def hold_pipeline():

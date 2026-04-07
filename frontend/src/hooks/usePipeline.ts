@@ -1,21 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPipelineStatus, triggerPipeline, type PipelineStage } from '../lib/api';
+import {
+  getPipelineStatus,
+  getPipelineHistory,
+  triggerPipeline,
+  type PipelineStage,
+  type PipelineStatusResponse,
+} from '../lib/api';
 import toast from 'react-hot-toast';
 
 /**
- * Polls the backend for real-time pipeline status every 30 seconds (default).
- *
- * The polling interval helps the Overview and Pipeline pages act like live
- * dashboards — they automatically refresh without requiring manual page reloads.
- * The interval can be overridden when a faster refresh is needed (e.g., 5000ms
- * immediately after triggering a pipeline stage).
- *
- * @param refetchInterval - How often to re-fetch in milliseconds. Defaults to 30,000 (30s).
- * @returns TanStack Query result with the current `PipelineStatus` payload.
- *
- * @example
- * // Poll every 5 seconds right after triggering a stage
- * const { data } = usePipelineStatus(5000);
+ * Polls the backend for real-time pipeline status.
+ * Includes per-stage active_stages map for granular UI locking.
  */
 export function usePipelineStatus(refetchInterval?: number) {
   return useQuery({
@@ -26,26 +21,43 @@ export function usePipelineStatus(refetchInterval?: number) {
 }
 
 /**
- * Mutation hook for manually triggering a specific pipeline stage via the API.
+ * Fetches persistent pipeline job history for the log panel.
+ */
+export function usePipelineHistory(refetchInterval?: number) {
+  return useQuery({
+    queryKey: ['pipeline-history'],
+    queryFn: () => getPipelineHistory(50),
+    refetchInterval: refetchInterval ?? 10000,
+  });
+}
+
+/**
+ * Mutation hook for manually triggering a pipeline stage.
  *
- * After a successful trigger, the pipeline-status cache is invalidated so the
- * live status card updates within the next polling cycle. A success/error toast
- * gives the operator immediate visual feedback.
- *
- * @returns TanStack Mutation object — call `.mutate(stage)` where `stage` is a
- *   valid `PipelineStage` string (e.g., `'discovery'`, `'qualification'`, `'outreach'`).
- *
- * @example
- * const trigger = useTriggerPipeline();
- * trigger.mutate('discovery');
+ * On success, the trigger response includes the latest `active_stages`
+ * snapshot from Redis. We merge this directly into the cached pipeline-status
+ * so the UI updates instantly — no waiting for the next poll cycle.
  */
 export function useTriggerPipeline() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (stage: PipelineStage) => triggerPipeline(stage),
-    onSuccess: (_data, stage) => {
-      toast.success(`Pipeline stage "${stage}" triggered successfully`);
+    onSuccess: (data, stage) => {
+      const label = stage === 'all' ? 'Full pipeline' : `Stage "${stage}"`;
+      toast.success(`${label} triggered successfully`);
+
+      // Optimistic update: merge the active_stages from the trigger response
+      // into the cached pipeline-status so the UI shows "queued" immediately.
+      if (data?.active_stages) {
+        qc.setQueryData<PipelineStatusResponse>(['pipeline-status'], (old) => {
+          if (!old) return old;
+          return { ...old, active_stages: data.active_stages };
+        });
+      }
+
+      // Also refetch to pick up any server-side changes we might have missed
       qc.invalidateQueries({ queryKey: ['pipeline-status'] });
+      qc.invalidateQueries({ queryKey: ['pipeline-history'] });
     },
     onError: (err: Error) => {
       toast.error(`Pipeline trigger failed: ${err.message}`);

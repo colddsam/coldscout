@@ -132,8 +132,12 @@ export type PipelineStage =
   | 'qualification'
   | 'personalization'
   | 'outreach'
-  | 'report'
-  | 'optimization'
+  | 'daily_report'
+  | 'weekly_optimization'
+  | 'threads_discovery'
+  | 'threads_qualification'
+  | 'threads_engagement'
+  | 'threads_response_check'
   | 'all';
 
 export interface HealthResponse {
@@ -143,6 +147,16 @@ export interface HealthResponse {
   last_pipeline_status: string;
   scheduler_running: boolean;
   production_status: boolean;
+}
+
+export interface ActiveStageJob {
+  stage: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  triggered_by: string;
+  queued_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  logs: string[];
 }
 
 export interface PipelineStatusResponse {
@@ -156,6 +170,23 @@ export interface PipelineStatusResponse {
     id: string;
     next_run: string | null;
   }>;
+  active_stages: Record<string, ActiveStageJob>;
+}
+
+export interface PipelineHistoryEntry {
+  stage: string;
+  status: 'completed' | 'failed';
+  triggered_by: string;
+  queued_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+  logs: string[];
+}
+
+export interface PipelineHistoryResponse {
+  history: PipelineHistoryEntry[];
+  limit: number;
+  offset: number;
 }
 
 export interface JobConfig {
@@ -334,11 +365,26 @@ export const resumeSystem = () =>
 export const getPipelineStatus = () =>
   client.get<PipelineStatusResponse>('/api/v1/pipeline/status').then((r) => r.data);
 
+export interface TriggerPipelineResponse {
+  status: string;
+  stage: string;
+  stages: string[];
+  triggered_at: string;
+  active_stages: Record<string, ActiveStageJob>;
+}
+
 /**
  * Manually triggers a specific pipeline stage by slug (default: 'all').
+ * Returns the current active_stages snapshot for instant UI update.
  */
 export const triggerPipeline = (stage: PipelineStage = 'all') =>
-  client.post('/api/v1/pipeline/trigger', { stage }).then((r) => r.data);
+  client.post<TriggerPipelineResponse>('/api/v1/pipeline/trigger', { stage }).then((r) => r.data);
+
+/**
+ * Fetches persistent pipeline job run history for the log panel.
+ */
+export const getPipelineHistory = (limit = 50, offset = 0) =>
+  client.get<PipelineHistoryResponse>('/api/v1/pipeline/history', { params: { limit, offset } }).then((r) => r.data);
 
 // Jobs Config
 /**
@@ -732,6 +778,12 @@ export interface PortfolioItemUpdate {
   display_order?: number;
 }
 
+export interface PublicVerificationItem {
+  field_name: string;
+  status: 'verified' | 'failed' | 'pending' | 'expired';
+  verified_at?: string | null;
+}
+
 export interface PublicProfile {
   username: string;
   full_name?: string | null;
@@ -750,7 +802,30 @@ export interface PublicProfile {
   business?: BusinessProfile | null;
   freelancer?: FreelancerProfile | null;
   portfolio?: PortfolioItem[] | null;
+  verifications?: PublicVerificationItem[] | null;
   member_since?: string | null;
+}
+
+export interface VerificationStatusItem {
+  field_name: string;
+  field_value: string;
+  status: 'pending' | 'verified' | 'failed' | 'expired';
+  method?: string | null;
+  failure_reason?: string | null;
+  verified_at?: string | null;
+  expires_at?: string | null;
+  updated_at: string;
+}
+
+export interface VerificationStatusResponse {
+  verifications: VerificationStatusItem[];
+  verified_count: number;
+  total_count: number;
+}
+
+export interface VerifyResultResponse {
+  results: VerificationStatusItem[];
+  message: string;
 }
 
 export interface FileUploadResponse {
@@ -814,3 +889,10 @@ export const updatePortfolioItem = (id: number, payload: PortfolioItemUpdate) =>
 
 export const deletePortfolioItem = (id: number) =>
   client.delete(`/api/v1/profile/me/portfolio/${id}`).then((r) => r.data);
+
+// Verification
+export const verifyProfileFields = (fields: string[]) =>
+  client.post<VerifyResultResponse>('/api/v1/profile/me/verify', { fields }).then((r) => r.data);
+
+export const getVerificationStatus = () =>
+  client.get<VerificationStatusResponse>('/api/v1/profile/me/verification-status').then((r) => r.data);

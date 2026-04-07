@@ -16,7 +16,7 @@ alembic==1.13.3
 # Uncomment these when reactivating the Celery approach.
 # ============================================================
 # celery==5.4.0
-# redis==5.2.0
+redis==5.2.0
 
 # Scheduler
 # ✅ ACTIVE — Scheduler (replaces Celery Beat)

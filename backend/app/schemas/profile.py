@@ -305,6 +305,13 @@ class PortfolioItemOut(BaseModel):
 
 # ── Public Profile (aggregated view) ─────────────────────────────────────────
 
+class PublicVerificationItem(BaseModel):
+    """Minimal verification info exposed on public profiles."""
+    field_name: str
+    status: str
+    verified_at: Optional[datetime] = None
+
+
 class PublicProfileOut(BaseModel):
     """Aggregated public-facing profile returned for /u/{username}."""
     # Core
@@ -329,6 +336,9 @@ class PublicProfileOut(BaseModel):
     business: Optional[BusinessProfileOut] = None
     freelancer: Optional[FreelancerProfileOut] = None
     portfolio: Optional[List[PortfolioItemOut]] = None
+
+    # Verification badges
+    verifications: Optional[List[PublicVerificationItem]] = None
 
     member_since: Optional[datetime] = None
 

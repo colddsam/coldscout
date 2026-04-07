@@ -9,12 +9,12 @@ import { cn } from '../../lib/utils';
 
 interface SpinnerProps {
   /** Size variant for the spinner icon */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   /** Additional CSS classes */
   className?: string;
 }
 
-const sizeMap = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-10 h-10' };
+const sizeMap = { xs: 'w-3 h-3', sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-10 h-10' };
 
 export default function Spinner({ size = 'md', className }: SpinnerProps) {
   return <Loader2 className={cn('animate-spin text-black', sizeMap[size], className)} />;

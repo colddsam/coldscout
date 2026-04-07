@@ -37,5 +37,8 @@ from app.models.threads import (
     ThreadsAuth,
 )
 
+# ── Profile verification ──────────────────────────────────────────────────────
+from app.models.verification import ProfileVerification
+
 # ── Billing models (depend on User) ───────────────────────────────────────────
 from app.models.subscription import Subscription, PaymentOrder

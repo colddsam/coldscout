@@ -18,7 +18,8 @@ import toast from 'react-hot-toast';
 import {
   User, Camera, Building2, Briefcase, FolderOpen, Shield, Check, X,
   Plus, Trash2, ExternalLink, Loader2, Globe, Phone, MapPin,
-  Edit3, Eye, EyeOff, Link2, AtSign, Copy,
+  Edit3, Eye, EyeOff, Link2, AtSign, Copy, BadgeCheck, AlertCircle,
+  RefreshCw, Clock,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/ui/Button';
@@ -33,22 +34,25 @@ import {
   getMyBusinessProfile, updateMyBusinessProfile,
   getMyFreelancerProfile, updateMyFreelancerProfile,
   getMyPortfolio, createPortfolioItem, updatePortfolioItem, deletePortfolioItem,
+  verifyProfileFields, getVerificationStatus,
 } from '../lib/api';
 import type {
   UserProfile, UserProfileUpdate, BusinessProfile, BusinessProfileUpdate,
   FreelancerProfile, FreelancerProfileUpdate, PortfolioItem, PortfolioItemCreate,
   Gender, Availability, CompanySize,
+  VerificationStatusItem,
 } from '../lib/api';
 
 // ── Tab definitions ──────────────────────────────────────────────────────────
 
-type TabId = 'basic' | 'business' | 'freelancer' | 'portfolio' | 'privacy';
+type TabId = 'basic' | 'business' | 'freelancer' | 'portfolio' | 'verification' | 'privacy';
 
 const TAB_CONFIG: Record<string, { label: string; icon: React.ElementType; roles?: string[] }> = {
   basic: { label: 'Basic Info', icon: User },
   business: { label: 'Business', icon: Building2, roles: ['client'] },
   freelancer: { label: 'Professional', icon: Briefcase, roles: ['freelancer'] },
   portfolio: { label: 'Portfolio', icon: FolderOpen, roles: ['freelancer'] },
+  verification: { label: 'Verification', icon: BadgeCheck },
   privacy: { label: 'Privacy', icon: Shield },
 };
 
@@ -574,6 +578,9 @@ export default function Profile() {
             {activeTab === 'portfolio' && (
               <PortfolioTab items={portfolioQuery.data || []} queryClient={queryClient} />
             )}
+            {activeTab === 'verification' && (
+              <VerificationTab />
+            )}
             {activeTab === 'privacy' && (
               <PrivacyTab profile={profile} onSave={(d) => profileMutation.mutate(d)} saving={profileMutation.isPending} />
             )}
@@ -1039,6 +1046,197 @@ function PortfolioItemModal({
     </Modal>
   );
 }
+
+// ── Verification Tab ────────────────────────────────────────────────────────
+
+const VERIFIABLE_FIELDS: { key: string; label: string; group: string }[] = [
+  { key: 'email', label: 'Email Address', group: 'Basic' },
+  { key: 'phone', label: 'Phone Number', group: 'Basic' },
+  { key: 'website', label: 'Website', group: 'Basic' },
+  { key: 'linkedin_url', label: 'LinkedIn', group: 'Social' },
+  { key: 'github_url', label: 'GitHub', group: 'Social' },
+  { key: 'twitter_url', label: 'Twitter / X', group: 'Social' },
+  { key: 'dribbble_url', label: 'Dribbble', group: 'Social' },
+  { key: 'behance_url', label: 'Behance', group: 'Social' },
+  { key: 'personal_website', label: 'Personal Website', group: 'Professional' },
+  { key: 'booking_url', label: 'Booking Link', group: 'Professional' },
+  { key: 'company_website', label: 'Company Website', group: 'Business' },
+  { key: 'biz_linkedin_url', label: 'Company LinkedIn', group: 'Business' },
+  { key: 'biz_twitter_url', label: 'Company Twitter', group: 'Business' },
+  { key: 'biz_facebook_url', label: 'Company Facebook', group: 'Business' },
+  { key: 'biz_instagram_url', label: 'Company Instagram', group: 'Business' },
+];
+
+function VerificationStatusIcon({ status }: { status: string }) {
+  if (status === 'verified') return <Check className="w-4 h-4 text-green-600" />;
+  if (status === 'failed') return <X className="w-4 h-4 text-red-500" />;
+  if (status === 'expired') return <Clock className="w-4 h-4 text-amber-500" />;
+  return <Clock className="w-4 h-4 text-gray-400" />;
+}
+
+function VerificationTab() {
+  const queryClient = useQueryClient();
+  const [verifying, setVerifying] = useState<Set<string>>(new Set());
+
+  const { data: statusData, isLoading } = useQuery({
+    queryKey: ['verification-status'],
+    queryFn: getVerificationStatus,
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: (fields: string[]) => verifyProfileFields(fields),
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ['verification-status'] });
+      setVerifying(new Set());
+    },
+    onError: (err: Error) => {
+      toast.error(`Verification failed: ${err.message}`);
+      setVerifying(new Set());
+    },
+  });
+
+  const verificationMap = new Map(
+    (statusData?.verifications || []).map((v) => [v.field_name, v])
+  );
+
+  const handleVerify = (fieldKey: string) => {
+    setVerifying((prev) => new Set(prev).add(fieldKey));
+    verifyMutation.mutate([fieldKey]);
+  };
+
+  const handleVerifyAll = () => {
+    const allKeys = VERIFIABLE_FIELDS.map((f) => f.key);
+    setVerifying(new Set(allKeys));
+    verifyMutation.mutate(allKeys);
+  };
+
+  const verifiedCount = statusData?.verified_count ?? 0;
+  const totalChecked = statusData?.total_count ?? 0;
+
+  // Group fields
+  const groups = new Map<string, typeof VERIFIABLE_FIELDS>();
+  for (const f of VERIFIABLE_FIELDS) {
+    const list = groups.get(f.group) || [];
+    list.push(f);
+    groups.set(f.group, list);
+  }
+
+  return (
+    <SectionCard>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-black">Profile Verification</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Verify your profile details to build trust with leads and clients.
+              {totalChecked > 0 && (
+                <span className="ml-2 font-medium text-black">
+                  {verifiedCount}/{totalChecked} verified
+                </span>
+              )}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleVerifyAll}
+            loading={verifyMutation.isPending}
+            icon={<RefreshCw className="w-3.5 h-3.5" />}
+          >
+            Verify All
+          </Button>
+        </div>
+
+        {/* Progress bar */}
+        {totalChecked > 0 && (
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div
+              className="bg-green-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${Math.round((verifiedCount / Math.max(totalChecked, 1)) * 100)}%` }}
+            />
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Array.from(groups.entries()).map(([groupName, fields]) => (
+              <div key={groupName}>
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">{groupName}</h3>
+                <div className="space-y-2">
+                  {fields.map((field) => {
+                    const vStatus = verificationMap.get(field.key);
+                    const isFieldVerifying = verifying.has(field.key);
+                    const status = vStatus?.status || 'unverified';
+
+                    return (
+                      <div
+                        key={field.key}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          status === 'verified'
+                            ? 'border-green-200 bg-green-50/50'
+                            : status === 'failed'
+                            ? 'border-red-200 bg-red-50/50'
+                            : status === 'expired'
+                            ? 'border-amber-200 bg-amber-50/50'
+                            : 'border-gray-200 bg-gray-50/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <VerificationStatusIcon status={status} />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{field.label}</p>
+                            {vStatus?.field_value && (
+                              <p className="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-[300px]">
+                                {vStatus.field_value}
+                              </p>
+                            )}
+                            {vStatus?.failure_reason && (
+                              <p className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {vStatus.failure_reason}
+                              </p>
+                            )}
+                            {status === 'verified' && vStatus?.verified_at && (
+                              <p className="text-xs text-green-600 mt-0.5">
+                                Verified {new Date(vStatus.verified_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleVerify(field.key)}
+                          disabled={isFieldVerifying}
+                          className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                            status === 'verified'
+                              ? 'text-green-700 bg-green-100 hover:bg-green-200'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          } disabled:opacity-50`}
+                        >
+                          {isFieldVerifying ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : status === 'verified' ? (
+                            'Re-verify'
+                          ) : (
+                            'Verify'
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
 
 // ── Privacy Tab ──────────────────────────────────────────────────────────────
 

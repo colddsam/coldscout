@@ -27,16 +27,18 @@ Private endpoints (auth required):
 import uuid
 import base64
 from typing import Any, Optional
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from loguru import logger
 
 from app.api import deps
 from app.core.database import get_db
 from app.models.user import User
 from app.models.profile import UserProfile, BusinessProfile, FreelancerProfile, PortfolioItem
+from app.models.verification import ProfileVerification
 from app.schemas.profile import (
     UserProfileCreate, UserProfileUpdate, UserProfileOut,
     BusinessProfileUpdate, BusinessProfileOut,
@@ -45,6 +47,12 @@ from app.schemas.profile import (
     PublicProfileOut, UsernameCheckResponse, FileUploadResponse,
     USERNAME_PATTERN, RESERVED_USERNAMES,
 )
+from app.schemas.verification import (
+    VerifyFieldRequest, VerificationStatusItem, VerificationStatusResponse,
+    VerifyResultResponse,
+)
+from app.schemas.profile import PublicVerificationItem  # noqa: used in public profile endpoint
+from app.modules.verification.checker import run_verification, URL_FIELDS
 from app.config import get_settings
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -204,6 +212,24 @@ async def get_public_profile(
         items = result.scalars().all()
         if items:
             out.portfolio = [PortfolioItemOut.model_validate(i) for i in items]
+
+    # Attach verification badges (only verified fields)
+    result = await db.execute(
+        select(ProfileVerification).where(
+            ProfileVerification.user_id == user.id,
+            ProfileVerification.status == "verified",
+        )
+    )
+    verifications = result.scalars().all()
+    if verifications:
+        out.verifications = [
+            PublicVerificationItem(
+                field_name=v.field_name,
+                status=v.status,
+                verified_at=v.verified_at,
+            )
+            for v in verifications
+        ]
 
     return out
 
@@ -489,3 +515,211 @@ async def delete_portfolio_item(
 
     await db.delete(item)
     await db.commit()
+
+
+# ── Verification ─────────────────────────────────────────────────────────────
+
+# Maps field_name → (profile_model, column_name) for resolving current values.
+# None model means look at the User model directly.
+_FIELD_SOURCE_MAP = {
+    # User model
+    "email": (None, "email"),
+    # UserProfile
+    "phone": ("user_profile", "phone"),
+    "website": ("user_profile", "website"),
+    # FreelancerProfile
+    "linkedin_url": ("freelancer", "linkedin_url"),
+    "github_url": ("freelancer", "github_url"),
+    "twitter_url": ("freelancer", "twitter_url"),
+    "dribbble_url": ("freelancer", "dribbble_url"),
+    "behance_url": ("freelancer", "behance_url"),
+    "personal_website": ("freelancer", "personal_website"),
+    "booking_url": ("freelancer", "booking_url"),
+    # BusinessProfile
+    "company_website": ("business", "company_website"),
+    "biz_linkedin_url": ("business", "linkedin_url"),
+    "biz_twitter_url": ("business", "twitter_url"),
+    "biz_facebook_url": ("business", "facebook_url"),
+    "biz_instagram_url": ("business", "instagram_url"),
+}
+
+
+async def _resolve_field_value(
+    field_name: str, user: User, db: AsyncSession
+) -> Optional[str]:
+    """Look up the current value of a verifiable field from the appropriate profile."""
+    source = _FIELD_SOURCE_MAP.get(field_name)
+    if not source:
+        return None
+
+    model_key, col_name = source
+
+    if model_key is None:
+        return getattr(user, col_name, None)
+
+    if model_key == "user_profile":
+        result = await db.execute(select(UserProfile).where(UserProfile.user_id == user.id))
+        profile = result.scalars().first()
+        return getattr(profile, col_name, None) if profile else None
+
+    if model_key == "freelancer":
+        result = await db.execute(select(FreelancerProfile).where(FreelancerProfile.user_id == user.id))
+        profile = result.scalars().first()
+        return getattr(profile, col_name, None) if profile else None
+
+    if model_key == "business":
+        result = await db.execute(select(BusinessProfile).where(BusinessProfile.user_id == user.id))
+        profile = result.scalars().first()
+        return getattr(profile, col_name, None) if profile else None
+
+    return None
+
+
+@router.post("/me/verify", response_model=VerifyResultResponse)
+async def verify_profile_fields(
+    payload: VerifyFieldRequest,
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Trigger verification for specified profile fields.
+
+    Runs automated checks (format validation, HTTP reachability) and
+    stores results in the profile_verifications table. Verifications
+    expire after 90 days and can be re-triggered.
+    """
+    results = []
+
+    for field_name in payload.fields:
+        if field_name not in _FIELD_SOURCE_MAP:
+            results.append(VerificationStatusItem(
+                field_name=field_name,
+                field_value="",
+                status="failed",
+                method="auto_check",
+                failure_reason=f"Unknown field: {field_name}",
+                updated_at=datetime.now(timezone.utc),
+            ))
+            continue
+
+        # Resolve current value
+        value = await _resolve_field_value(field_name, current_user, db)
+        if not value or not value.strip():
+            results.append(VerificationStatusItem(
+                field_name=field_name,
+                field_value="",
+                status="failed",
+                method="auto_check",
+                failure_reason="Field is empty — add a value first",
+                updated_at=datetime.now(timezone.utc),
+            ))
+            continue
+
+        # Run the check
+        check_status, method, failure_reason = await run_verification(field_name, value)
+
+        now = datetime.now(timezone.utc)
+        verified_at = now if check_status == "verified" else None
+        expires_at = (now + timedelta(days=90)) if check_status == "verified" else None
+
+        # Upsert verification record
+        result = await db.execute(
+            select(ProfileVerification).where(
+                ProfileVerification.user_id == current_user.id,
+                ProfileVerification.field_name == field_name,
+            )
+        )
+        existing = result.scalars().first()
+
+        if existing:
+            existing.field_value = value
+            existing.status = check_status
+            existing.method = method
+            existing.failure_reason = failure_reason
+            existing.verified_at = verified_at
+            existing.expires_at = expires_at
+        else:
+            record = ProfileVerification(
+                user_id=current_user.id,
+                field_name=field_name,
+                field_value=value,
+                status=check_status,
+                method=method,
+                failure_reason=failure_reason,
+                verified_at=verified_at,
+                expires_at=expires_at,
+            )
+            db.add(record)
+
+        results.append(VerificationStatusItem(
+            field_name=field_name,
+            field_value=value,
+            status=check_status,
+            method=method,
+            failure_reason=failure_reason,
+            verified_at=verified_at,
+            expires_at=expires_at,
+            updated_at=now,
+        ))
+
+    await db.commit()
+
+    verified_count = sum(1 for r in results if r.status == "verified")
+    return VerifyResultResponse(
+        results=results,
+        message=f"{verified_count}/{len(results)} fields verified successfully",
+    )
+
+
+@router.get("/me/verification-status", response_model=VerificationStatusResponse)
+async def get_verification_status(
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    Returns the current verification status for all of the user's verified fields.
+    Automatically marks expired verifications.
+    """
+    result = await db.execute(
+        select(ProfileVerification).where(ProfileVerification.user_id == current_user.id)
+    )
+    records = result.scalars().all()
+
+    now = datetime.now(timezone.utc)
+    items = []
+    needs_commit = False
+
+    for rec in records:
+        # Auto-expire stale verifications
+        if rec.status == "verified" and rec.expires_at and rec.expires_at < now:
+            rec.status = "expired"
+            rec.failure_reason = "Verification expired — please re-verify"
+            needs_commit = True
+
+        # Check if the current profile value has changed since verification
+        current_value = await _resolve_field_value(rec.field_name, current_user, db)
+        if rec.status == "verified" and current_value and current_value.strip() != rec.field_value.strip():
+            rec.status = "expired"
+            rec.failure_reason = "Field value changed since last verification"
+            needs_commit = True
+
+        items.append(VerificationStatusItem(
+            field_name=rec.field_name,
+            field_value=rec.field_value,
+            status=rec.status,
+            method=rec.method,
+            failure_reason=rec.failure_reason,
+            verified_at=rec.verified_at,
+            expires_at=rec.expires_at,
+            updated_at=rec.updated_at,
+        ))
+
+    if needs_commit:
+        await db.commit()
+
+    verified_count = sum(1 for i in items if i.status == "verified")
+    return VerificationStatusResponse(
+        verifications=items,
+        verified_count=verified_count,
+        total_count=len(items),
+    )

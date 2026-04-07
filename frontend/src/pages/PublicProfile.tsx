@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import {
   User, MapPin, Globe, Mail, Phone, Calendar, Briefcase, Building2,
   ExternalLink, ArrowLeft, Lock, Loader2, Award, GraduationCap,
-  Languages, Clock, DollarSign, Users, Hash,
+  Languages, Clock, DollarSign, Users, Hash, BadgeCheck,
 } from 'lucide-react';
 import { getPublicProfile } from '../lib/api';
 import type { PublicProfile } from '../lib/api';
@@ -225,12 +225,19 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
 
   const bookingUrl = profile.freelancer?.booking_url;
 
+  // Build a set of verified field names for quick lookup
+  const verifiedFields = new Set(
+    (profile.verifications || [])
+      .filter((v) => v.status === 'verified')
+      .map((v) => v.field_name)
+  );
+
   const contactLinks = [
-    bookingUrl ? { href: `/book/${profile.username}`, icon: Calendar, label: 'Book a Meeting' } : null,
-    profile.email ? { href: `mailto:${profile.email}`, icon: Mail, label: profile.email } : null,
-    profile.phone ? { href: `tel:${profile.phone}`, icon: Phone, label: profile.phone } : null,
-    profile.website ? { href: profile.website, icon: Globe, label: 'Website', external: true } : null,
-  ].filter(Boolean) as { href: string; icon: React.ElementType; label: string; external?: boolean }[];
+    bookingUrl ? { href: `/book/${profile.username}`, icon: Calendar, label: 'Book a Meeting', field: 'booking_url' } : null,
+    profile.email ? { href: `mailto:${profile.email}`, icon: Mail, label: profile.email, field: 'email' } : null,
+    profile.phone ? { href: `tel:${profile.phone}`, icon: Phone, label: profile.phone, field: 'phone' } : null,
+    profile.website ? { href: profile.website, icon: Globe, label: 'Website', external: true, field: 'website' } : null,
+  ].filter(Boolean) as { href: string; icon: React.ElementType; label: string; external?: boolean; field?: string }[];
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-4">
@@ -284,8 +291,13 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
           {/* Name + headline + meta */}
           <motion.div variants={staggerContainer} initial="hidden" animate="visible">
             <motion.div variants={staggerItem}>
-              <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight flex items-center gap-2">
                 {profile.full_name || profile.username}
+                {profile.verifications && profile.verifications.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-blue-600" title={`${profile.verifications.length} verified field${profile.verifications.length > 1 ? 's' : ''}`}>
+                    <BadgeCheck className="w-6 h-6" />
+                  </span>
+                )}
               </h1>
               {headline && (
                 <p className="text-base text-gray-700 mt-0.5">{headline}</p>
@@ -293,7 +305,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
               <p className="text-sm text-secondary mt-0.5">@{profile.username}</p>
             </motion.div>
 
-            {/* Location + Joined + Role badge row */}
+            {/* Location + Joined + Role + Verification badge row */}
             <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-secondary">
               {profile.location && (
                 <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{profile.location}</span>
@@ -305,6 +317,11 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-700">
                   {profile.role === 'freelancer' ? <Briefcase className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                   {profile.role === 'freelancer' ? 'Freelancer' : 'Business'}
+                </span>
+              )}
+              {profile.verifications && profile.verifications.length >= 3 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-xs font-medium text-blue-700 border border-blue-200">
+                  <BadgeCheck className="w-3 h-3" /> Verified Profile
                 </span>
               )}
             </motion.div>
@@ -329,6 +346,9 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                     >
                       <Icon className="w-4 h-4" />
                       {i === 0 && link.icon === Mail ? 'Contact' : link.label}
+                      {link.field && verifiedFields.has(link.field) && (
+                        <BadgeCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      )}
                     </motion.a>
                   );
                 })}
@@ -349,10 +369,10 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
       )}
 
       {/* ── Freelancer Details Card ── */}
-      {hasFreelancer && <FreelancerCard data={profile.freelancer!} />}
+      {hasFreelancer && <FreelancerCard data={profile.freelancer!} verifiedFields={verifiedFields} />}
 
       {/* ── Business Details Card ── */}
-      {hasBusiness && <BusinessCard data={profile.business!} />}
+      {hasBusiness && <BusinessCard data={profile.business!} verifiedFields={verifiedFields} />}
 
       {/* ── Portfolio Card ── */}
       {profile.portfolio && profile.portfolio.length > 0 && (
@@ -364,20 +384,20 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
 
 // ── Freelancer Card ─────────────────────────────────────────────────────────
 
-function FreelancerCard({ data }: { data: NonNullable<PublicProfile['freelancer']> }) {
+function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProfile['freelancer']>; verifiedFields: Set<string> }) {
   const stats = [
     data.experience_years != null ? { icon: Clock, label: 'Experience', value: `${data.experience_years} years` } : null,
     data.hourly_rate ? { icon: DollarSign, label: 'Rate', value: data.hourly_rate } : null,
   ].filter(Boolean) as { icon: React.ElementType; label: string; value: string }[];
 
   const socialLinks = [
-    { url: data.linkedin_url, label: 'LinkedIn' },
-    { url: data.github_url, label: 'GitHub' },
-    { url: data.twitter_url, label: 'Twitter' },
-    { url: data.dribbble_url, label: 'Dribbble' },
-    { url: data.behance_url, label: 'Behance' },
-    { url: data.personal_website, label: 'Website' },
-  ].filter((l) => l.url) as { url: string; label: string }[];
+    { url: data.linkedin_url, label: 'LinkedIn', field: 'linkedin_url' },
+    { url: data.github_url, label: 'GitHub', field: 'github_url' },
+    { url: data.twitter_url, label: 'Twitter', field: 'twitter_url' },
+    { url: data.dribbble_url, label: 'Dribbble', field: 'dribbble_url' },
+    { url: data.behance_url, label: 'Behance', field: 'behance_url' },
+    { url: data.personal_website, label: 'Website', field: 'personal_website' },
+  ].filter((l) => l.url) as { url: string; label: string; field: string }[];
 
   return (
     <>
@@ -511,8 +531,11 @@ function FreelancerCard({ data }: { data: NonNullable<PublicProfile['freelancer'
                   className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-colors group"
                 >
                   <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-black">{l.label}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-black flex items-center gap-1.5">
+                      {l.label}
+                      {verifiedFields.has(l.field) && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                    </p>
                     <p className="text-xs text-secondary truncate">{l.url}</p>
                   </div>
                 </motion.a>
@@ -527,7 +550,7 @@ function FreelancerCard({ data }: { data: NonNullable<PublicProfile['freelancer'
 
 // ── Business Card ───────────────────────────────────────────────────────────
 
-function BusinessCard({ data }: { data: NonNullable<PublicProfile['business']> }) {
+function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfile['business']>; verifiedFields: Set<string> }) {
   const infoItems = [
     data.industry ? { icon: Hash, label: 'Industry', value: data.industry } : null,
     data.company_size ? { icon: Users, label: 'Company Size', value: `${data.company_size} employees` } : null,
@@ -540,12 +563,12 @@ function BusinessCard({ data }: { data: NonNullable<PublicProfile['business']> }
   ].filter(Boolean) as { icon: React.ElementType; label: string; value: string }[];
 
   const socialLinks = [
-    { url: data.linkedin_url, label: 'LinkedIn' },
-    { url: data.twitter_url, label: 'Twitter' },
-    { url: data.facebook_url, label: 'Facebook' },
-    { url: data.instagram_url, label: 'Instagram' },
-    { url: data.company_website, label: 'Website' },
-  ].filter((l) => l.url) as { url: string; label: string }[];
+    { url: data.linkedin_url, label: 'LinkedIn', field: 'biz_linkedin_url' },
+    { url: data.twitter_url, label: 'Twitter', field: 'biz_twitter_url' },
+    { url: data.facebook_url, label: 'Facebook', field: 'biz_facebook_url' },
+    { url: data.instagram_url, label: 'Instagram', field: 'biz_instagram_url' },
+    { url: data.company_website, label: 'Website', field: 'company_website' },
+  ].filter((l) => l.url) as { url: string; label: string; field: string }[];
 
   return (
     <SectionCard>
@@ -608,6 +631,7 @@ function BusinessCard({ data }: { data: NonNullable<PublicProfile['business']> }
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-secondary hover:text-black hover:border-black transition-colors"
               >
                 <ExternalLink className="w-3 h-3" /> {l.label}
+                {verifiedFields.has(l.field) && <BadgeCheck className="w-3 h-3 text-blue-500" />}
               </motion.a>
             ))}
           </div>
