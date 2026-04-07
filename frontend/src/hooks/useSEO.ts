@@ -15,6 +15,14 @@
 
 import { useEffect } from 'react';
 
+/** Profile-specific Open Graph properties (og:profile:*). */
+interface ProfileMeta {
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  gender?: string;
+}
+
 interface SEOOptions {
   /** Page title — recommended ≤60 chars. */
   title: string;
@@ -35,6 +43,10 @@ interface SEOOptions {
   publishedTime?: string;
   /** Article modified date (ISO 8601) for article pages. */
   modifiedTime?: string;
+  /** Profile-specific OG properties for og:type="profile" pages. */
+  profileMeta?: ProfileMeta;
+  /** Twitter @handle of the content creator (distinct from site handle). */
+  twitterCreator?: string;
 }
 
 const SITE_NAME = 'Cold Scout';
@@ -79,6 +91,8 @@ export function useSEO({
   keywords,
   publishedTime,
   modifiedTime,
+  profileMeta,
+  twitterCreator,
 }: SEOOptions) {
   useEffect(() => {
     // Title
@@ -132,6 +146,14 @@ export function useSEO({
     }
     setMeta('og:image:alt', ogImageAlt, true);
 
+    // Profile-specific OG tags (og:type="profile")
+    if (profileMeta) {
+      if (profileMeta.firstName) setMeta('profile:first_name', profileMeta.firstName, true);
+      if (profileMeta.lastName) setMeta('profile:last_name', profileMeta.lastName, true);
+      if (profileMeta.username) setMeta('profile:username', profileMeta.username, true);
+      if (profileMeta.gender) setMeta('profile:gender', profileMeta.gender, true);
+    }
+
     // Article dates (for docs and blog-style pages)
     if (publishedTime) setMeta('article:published_time', publishedTime, true);
     if (modifiedTime) setMeta('article:modified_time', modifiedTime, true);
@@ -139,11 +161,12 @@ export function useSEO({
     // Twitter Card
     setMeta('twitter:card', 'summary_large_image');
     setMeta('twitter:site', TWITTER_SITE);
+    if (twitterCreator) setMeta('twitter:creator', twitterCreator);
     setMeta('twitter:url', canonical ?? `${BASE_URL}/`);
     setMeta('twitter:title', title);
     setMeta('twitter:description', description);
     setMeta('twitter:image', ogImage);
     setMeta('twitter:image:alt', ogImageAlt);
 
-  }, [title, description, canonical, ogImage, ogType, ogImageAlt, index, keywords, publishedTime, modifiedTime]);
+  }, [title, description, canonical, ogImage, ogType, ogImageAlt, index, keywords, publishedTime, modifiedTime, profileMeta, twitterCreator]);
 }

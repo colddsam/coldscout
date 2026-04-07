@@ -73,87 +73,43 @@ async def login_access_token(
 async def sync_supabase_user(
     user_data: SupabaseUserSync,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
     Syncs a Supabase Auth user to the local database.
 
+    **Authenticated**: Requires a valid Supabase JWT in the Authorization
+    header. The user's identity (supabase_uid, email) is derived from the
+    verified token via ``get_current_user``, NOT from the request body.
+    The body is only used for supplementary fields (role hint for first
+    creation, which ``get_current_user`` already handles via its upsert).
+
     This endpoint is called by the frontend after a successful Supabase
     authentication to ensure the user exists in our local database.
-    Creates a new user if they don't exist, or updates existing user data.
-
-    This is part of the "upsert on first login" pattern that enables
-    seamless social authentication without pre-registration.
-
-    Request Body:
-        supabase_uid: The Supabase Auth user UUID
-        email: The user's email address
-        role: The user's role ('client' or 'freelancer')
-        auth_provider: The OAuth provider used
-        full_name: The user's full name (optional)
-        avatar_url: The user's avatar URL (optional)
 
     Returns:
         UserOut: The synced user record
     """
-    # Check if user exists by supabase_uid
-    result = await db.execute(
-        select(User).where(User.supabase_uid == user_data.supabase_uid)
-    )
-    user = result.scalars().first()
+    # Identity is already verified and upserted by get_current_user.
+    # We only need to update supplementary metadata that may have changed.
+    updated = False
 
-    if user:
-        # Update existing user — do NOT overwrite role.
-        # Role is the authoritative record set at account creation; it is only
-        # changed by admin action or a payment webhook, never by the sync call.
-        if user_data.full_name:
-            user.full_name = user_data.full_name
-        if user_data.avatar_url:
-            user.avatar_url = user_data.avatar_url
-        if user_data.auth_provider:
-            user.auth_provider = user_data.auth_provider
+    if user_data.full_name and current_user.full_name != user_data.full_name:
+        current_user.full_name = user_data.full_name
+        updated = True
+    if user_data.avatar_url and current_user.avatar_url != user_data.avatar_url:
+        current_user.avatar_url = user_data.avatar_url
+        updated = True
+    if user_data.auth_provider and current_user.auth_provider != user_data.auth_provider:
+        current_user.auth_provider = user_data.auth_provider
+        updated = True
 
+    if updated:
         await db.commit()
-        await db.refresh(user)
-        logger.info(f"Updated user {user.email} from Supabase sync")
-        return user
+        await db.refresh(current_user)
+        logger.info(f"Updated user {current_user.email} from authenticated sync")
 
-    # Check if user exists by email (might be a legacy user)
-    result = await db.execute(
-        select(User).where(User.email == user_data.email)
-    )
-    user = result.scalars().first()
-
-    if user:
-        # Link existing email user to Supabase — preserve their existing role.
-        user.supabase_uid = user_data.supabase_uid
-        user.auth_provider = user_data.auth_provider
-        if user_data.full_name:
-            user.full_name = user_data.full_name
-        if user_data.avatar_url:
-            user.avatar_url = user_data.avatar_url
-
-        await db.commit()
-        await db.refresh(user)
-        logger.info(f"Linked existing user {user.email} to Supabase UID {user_data.supabase_uid}")
-        return user
-
-    # Create new user
-    new_user = User(
-        supabase_uid=user_data.supabase_uid,
-        email=user_data.email,
-        role=user_data.role,
-        auth_provider=user_data.auth_provider,
-        full_name=user_data.full_name,
-        avatar_url=user_data.avatar_url,
-        hashed_password=None,  # No password for social login users
-        is_active=True,
-        is_superuser=False
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-    logger.info(f"Created new user {new_user.email} from Supabase sync")
-    return new_user
+    return current_user
 
 
 @router.get("/me", response_model=UserOut)

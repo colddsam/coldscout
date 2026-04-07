@@ -17,6 +17,10 @@
   Content-Type: application/xml; charset=utf-8
   Cache-Control: public, max-age=86400
 
+/api/v1/seo/sitemap-profiles.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
 /llms.txt
   Content-Type: text/plain; charset=utf-8
   Cache-Control: public, max-age=86400

@@ -17,6 +17,7 @@ from app.api.v1.profile import router as profile_router
 from app.api.v1.threads import public_router as threads_public, router as threads_private
 from app.api.v1.public_demos import router as public_demos_router
 from app.api.v1.booking import router as booking_router
+from app.api.v1.seo import router as seo_router
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -37,6 +38,7 @@ public_router.include_router(public_demos_router, tags=["public-demos"])
 # profile views and username checks don't require X-API-Key.
 public_router.include_router(profile_router, tags=["profile"])
 public_router.include_router(booking_router, tags=["booking"])
+public_router.include_router(seo_router, tags=["seo"])
 
 # Private routes (System-level authentication required)
 private_router.include_router(auth.router, tags=["auth"])

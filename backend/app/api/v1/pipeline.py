@@ -33,9 +33,9 @@ from app.core.pipeline_tracker import (
     append_log, get_active_jobs, get_job_history, is_stage_busy,
 )
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_superuser
 
-router = APIRouter(dependencies=[Depends(get_current_user)])
+router = APIRouter(dependencies=[Depends(get_current_active_superuser)])
 
 from app.tasks.threads_pipeline import (
     run_threads_discovery_stage,

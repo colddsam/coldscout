@@ -88,7 +88,7 @@ Disallow: /welcome
 Disallow: /auth/
 Disallow: /api/
 
-# ── AI & LLM Crawlers — allow public/docs for discovery ──────────────────────
+# ── AI & LLM Crawlers — allow public/docs + profiles for discovery ────────────
 User-agent: GPTBot
 Allow: /$
 Allow: /pricing
@@ -97,6 +97,7 @@ Allow: /privacy
 Allow: /terms
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /leads
@@ -115,6 +116,7 @@ Allow: /privacy
 Allow: /terms
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /leads
@@ -131,6 +133,7 @@ Allow: /pricing
 Allow: /docs
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -140,6 +143,7 @@ Allow: /pricing
 Allow: /docs
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /leads
@@ -153,6 +157,7 @@ Allow: /pricing
 Allow: /docs
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -161,6 +166,7 @@ Allow: /$
 Allow: /pricing
 Allow: /docs
 Allow: /support
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -181,6 +187,7 @@ Allow: /pricing
 Allow: /docs
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -191,6 +198,7 @@ Allow: /pricing
 Allow: /docs
 Allow: /support
 Allow: /refund-policy
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -200,6 +208,7 @@ Allow: /$
 Allow: /pricing
 Allow: /docs
 Allow: /support
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -225,6 +234,7 @@ Disallow: /
 # ── Sitemaps ───────────────────────────────────────────────────────────────────
 Sitemap: https://coldscout.colddsam.com/sitemap.xml
 Sitemap: https://coldscout.colddsam.com/sitemap-images.xml
+Sitemap: https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml
 
 # ── LLM / AI agent policy ─────────────────────────────────────────────────────
 # AI agent policy (summary): https://coldscout.colddsam.com/llms.txt

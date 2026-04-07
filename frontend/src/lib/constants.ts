@@ -67,3 +67,11 @@ export const NAV_ITEMS = [
   { path: '/profile', label: 'Profile', icon: 'User', roles: ['freelancer', 'client'] },
   { path: '/settings', label: 'Settings', icon: 'Settings', roles: ['freelancer'] },
 ] as const;
+
+/**
+ * Global Booking URL for Cold Scout consultations.
+ * Prioritizes the environment variable VITE_APP_BOOKING_URL,
+ * with a fallback to the common Cold Scout Calendly slug.
+ */
+export const DEFAULT_BOOKING_URL = import.meta.env.VITE_APP_BOOKING_URL || 'https://calendly.com/cold-scout';
+

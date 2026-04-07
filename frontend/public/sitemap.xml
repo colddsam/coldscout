@@ -5,6 +5,12 @@
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
+  <!--
+    Static pages sitemap. Public profile URLs are served dynamically at:
+    https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml
+    Both sitemaps are referenced in robots.txt for crawler discovery.
+  -->
+
   <!-- Homepage — Primary landing page -->
   <url>
     <loc>https://coldscout.colddsam.com/</loc>

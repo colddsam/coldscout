@@ -402,6 +402,13 @@ class Settings(BaseSettings):
     The public-facing frontend domain used to construct demo URLs in emails.
     """
 
+    REDIRECT_DOMAIN_WHITELIST: str = ""
+    """
+    Comma-separated list of additional domains allowed for tracking redirects.
+    These are merged with the built-in whitelist (calendly.com, linkedin.com, etc.).
+    Example: ``mysite.com,client-portal.io``
+    """
+
     # Safety Intervals (Preventing Spam Triggers)
     EMAIL_SEND_INTERVAL_SECONDS: int = 360
     """

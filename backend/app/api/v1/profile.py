@@ -276,6 +276,7 @@ async def setup_profile(
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
+    await db.refresh(current_user)
 
     logger.info(f"Profile created for user {current_user.email} with username @{payload.username}")
     return _build_profile_out(profile, current_user)
@@ -310,6 +311,7 @@ async def update_my_profile(
     # Also update full_name on the User model if it was indirectly changed
     await db.commit()
     await db.refresh(profile)
+    await db.refresh(current_user)
 
     return _build_profile_out(profile, current_user)
 

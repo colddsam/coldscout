@@ -13,6 +13,8 @@ import {
   staggerItem,
   defaultViewport,
 } from '../lib/motion';
+import { DEFAULT_BOOKING_URL } from '../lib/constants';
+
 import {
   Sparkles,
   Target,
@@ -101,12 +103,7 @@ export default function Welcome() {
               >
                 Profile
               </Link>
-              <Link
-                to="/billing"
-                className="text-sm text-gray-600 hover:text-black transition-colors"
-              >
-                Billing
-              </Link>
+
               <button
                 onClick={logout}
                 className="text-sm text-gray-600 hover:text-black transition-colors"
@@ -142,8 +139,9 @@ export default function Welcome() {
 
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
               <a
-                href="https://calendly.com/coldscout"
+                href={DEFAULT_BOOKING_URL}
                 target="_blank"
+
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
               >
@@ -225,8 +223,9 @@ export default function Welcome() {
             can help grow your business.
           </p>
           <a
-            href="https://calendly.com/coldscout"
+            href={DEFAULT_BOOKING_URL}
             target="_blank"
+
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white text-black rounded-md text-sm font-medium hover:bg-gray-100 transition-colors"
           >

@@ -101,6 +101,8 @@ export default function App() {
                 <Route path="/campaigns" element={<Campaigns />} />
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/billing" element={<Billing />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 
@@ -108,8 +110,6 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<Shell />}>
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/billing" element={<Billing />} />
-                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 

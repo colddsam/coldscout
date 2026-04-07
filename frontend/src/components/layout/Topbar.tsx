@@ -14,6 +14,7 @@ import Button from '../ui/Button';
 import { NAV_ITEMS } from '../../lib/constants';
 import { timeAgo } from '../../lib/utils';
 import { Menu } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -24,6 +25,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const { data: health, dataUpdatedAt } = useHealth();
   const systemToggle = useSystemToggle();
   const [showConfirm, setShowConfirm] = useState(false);
+  const { user } = useAuth();
+  const role = user?.role || 'freelancer';
 
   const currentNav = NAV_ITEMS.find((n) => location.pathname.startsWith(n.path));
   const pageTitle = currentNav?.label || 'Dashboard';
@@ -59,9 +62,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
-          <span className="hidden sm:inline text-[10px] font-mono text-subtle">
-            Updated {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
-          </span>
+          {!(role === 'client' && location.pathname === '/profile') && (
+            <span className="hidden sm:inline text-[10px] font-mono text-subtle">
+              Updated {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
+            </span>
+          )}
 
           {health && (
             <Badge
@@ -72,34 +77,38 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             />
           )}
 
-          <Button
-            variant={isRunning ? 'danger' : 'primary'}
-            size="sm"
-            onClick={handleToggle}
-            loading={systemToggle.isPending}
-            className="px-2 md:px-4 text-[10px] md:text-xs"
-          >
-            <span className="hidden xs:inline">{isRunning ? '⏸ HOLD SYSTEM' : '▶ RESUME SYSTEM'}</span>
-            <span className="xs:hidden">{isRunning ? '⏸' : '▶'}</span>
-          </Button>
+          {role !== 'client' && (
+            <Button
+              variant={isRunning ? 'danger' : 'primary'}
+              size="sm"
+              onClick={handleToggle}
+              loading={systemToggle.isPending}
+              className="px-2 md:px-4 text-[10px] md:text-xs"
+            >
+              <span className="hidden xs:inline">{isRunning ? '⏸ HOLD SYSTEM' : '▶ RESUME SYSTEM'}</span>
+              <span className="xs:hidden">{isRunning ? '⏸' : '▶'}</span>
+            </Button>
+          )}
         </div>
       </header>
 
-      <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm System Toggle">
-        <p className="text-secondary text-sm mb-4">
-          {isRunning
-            ? 'This will pause ALL automated pipeline operations. Are you sure?'
-            : 'This will resume all automated pipeline operations. Are you sure?'}
-        </p>
-        <div className="flex gap-3 justify-end">
-          <Button variant="ghost" onClick={() => setShowConfirm(false)}>
-            Cancel
-          </Button>
-          <Button variant={isRunning ? 'danger' : 'primary'} onClick={confirmToggle}>
-            {isRunning ? 'Hold System' : 'Resume System'}
-          </Button>
-        </div>
-      </Modal>
+      {role !== 'client' && (
+        <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm System Toggle">
+          <p className="text-secondary text-sm mb-4">
+            {isRunning
+              ? 'This will pause ALL automated pipeline operations. Are you sure?'
+              : 'This will resume all automated pipeline operations. Are you sure?'}
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button variant="ghost" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant={isRunning ? 'danger' : 'primary'} onClick={confirmToggle}>
+              {isRunning ? 'Hold System' : 'Resume System'}
+            </Button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
