@@ -223,7 +223,10 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
     ? `${profile.business?.company_name || ''}${profile.business?.industry ? ` · ${profile.business.industry}` : ''}`
     : null;
 
+  const bookingUrl = profile.freelancer?.booking_url;
+
   const contactLinks = [
+    bookingUrl ? { href: `/book/${profile.username}`, icon: Calendar, label: 'Book a Meeting' } : null,
     profile.email ? { href: `mailto:${profile.email}`, icon: Mail, label: profile.email } : null,
     profile.phone ? { href: `tel:${profile.phone}`, icon: Phone, label: profile.phone } : null,
     profile.website ? { href: profile.website, icon: Globe, label: 'Website', external: true } : null,

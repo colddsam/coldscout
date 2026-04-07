@@ -16,6 +16,7 @@ from app.api.v1 import auth, tracking, webhooks, pipeline, leads, campaigns, rep
 from app.api.v1.profile import router as profile_router
 from app.api.v1.threads import public_router as threads_public, router as threads_private
 from app.api.v1.public_demos import router as public_demos_router
+from app.api.v1.booking import router as booking_router
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -35,6 +36,7 @@ public_router.include_router(public_demos_router, tags=["public-demos"])
 # the get_current_user dependency. Placed on the public router so that public
 # profile views and username checks don't require X-API-Key.
 public_router.include_router(profile_router, tags=["profile"])
+public_router.include_router(booking_router, tags=["booking"])
 
 # Private routes (System-level authentication required)
 private_router.include_router(auth.router, tags=["auth"])

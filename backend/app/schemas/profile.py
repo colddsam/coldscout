@@ -202,9 +202,19 @@ class FreelancerProfileUpdate(BaseModel):
     dribbble_url: Optional[str] = Field(None, max_length=500)
     behance_url: Optional[str] = Field(None, max_length=500)
     personal_website: Optional[str] = Field(None, max_length=500)
+    booking_url: Optional[str] = Field(None, max_length=500)
     is_public: Optional[bool] = None
     show_rates: Optional[bool] = None
     show_availability: Optional[bool] = None
+
+    @field_validator("booking_url")
+    @classmethod
+    def validate_booking_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return v
+        if not v.startswith(("https://", "http://")):
+            raise ValueError("Booking URL must start with https:// or http://")
+        return v
 
     @field_validator("availability")
     @classmethod
@@ -234,6 +244,7 @@ class FreelancerProfileOut(BaseModel):
     dribbble_url: Optional[str] = None
     behance_url: Optional[str] = None
     personal_website: Optional[str] = None
+    booking_url: Optional[str] = None
     is_public: bool = True
     show_rates: bool = True
     show_availability: bool = True

@@ -153,6 +153,8 @@ class FreelancerProfile(Base):
     dribbble_url = Column(String(500), nullable=True)
     behance_url = Column(String(500), nullable=True)
     personal_website = Column(String(500), nullable=True)
+    booking_url = Column(String(500), nullable=True)
+    """External scheduling link (Calendly, Cal.com, etc.)."""
 
     # Visibility
     is_public = Column(Boolean, default=True, nullable=False)

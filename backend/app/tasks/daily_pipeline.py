@@ -34,6 +34,7 @@ from app.modules.reporting.excel_builder import generate_daily_report_excel
 from app.modules.reporting.email_reporter import send_daily_report_email
 from app.modules.personalization.proposal_xlsx_generator import generate_proposal_xlsx
 from app.modules.demo_builder.generator import generate_demo_for_lead
+from app.modules.personalization.booking_utils import get_resolved_booking_url
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -432,6 +433,9 @@ async def run_personalization_stage(manual: bool = False):
         groq_client = GroqClient()
 
         async with get_session_maker()() as db:
+            # Resolve the booking URL once per batch (system-wide or admin-specific)
+            resolved_booking_url = await get_resolved_booking_url(db)
+            
             # Ensure today's campaign exists
             today = date.today()
             camp_res = await db.execute(
@@ -553,6 +557,7 @@ async def run_personalization_stage(manual: bool = False):
                         tracking_token,
                         settings.APP_URL,
                         demo_url=demo_url,
+                        booking_url=resolved_booking_url,
                     )
 
                     outreach = EmailOutreach(

@@ -367,6 +367,16 @@
 
       <!-- CTA -->
       <div class="cta-wrap">
+        {% if booking_url %}
+        <a href="{{ app_url }}/api/v1/track/click/{{ tracking_token }}?url={{ booking_url | urlencode }}"
+           class="cta-btn">
+          {% if demo_url %}
+          Claim This Website — Book a Call →
+          {% else %}
+          Book a Free 20-Min Strategy Call →
+          {% endif %}
+        </a>
+        {% else %}
         <a href="{{ app_url }}/api/v1/track/click/{{ tracking_token }}?url={{ ('mailto:' ~ reply_email ~ '?subject=Let\'s discuss ' ~ business_name) | urlencode }}"
            class="cta-btn">
           {% if demo_url %}
@@ -375,6 +385,7 @@
           Book a Free 20-Min Strategy Call →
           {% endif %}
         </a>
+        {% endif %}
         <p class="cta-note">No cost. No commitment. Just a conversation.</p>
       </div>
 

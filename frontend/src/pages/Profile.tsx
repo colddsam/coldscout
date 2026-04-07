@@ -806,6 +806,7 @@ function FreelancerTab({
     dribbble_url: data?.dribbble_url || '',
     behance_url: data?.behance_url || '',
     personal_website: data?.personal_website || '',
+    booking_url: data?.booking_url || '',
   });
 
   const set = (key: string) => (val: string | string[] | number | boolean | null) => setForm((p) => ({ ...p, [key]: val }));
@@ -863,7 +864,9 @@ function FreelancerTab({
               <InputField label="Dribbble" value={form.dribbble_url} onChange={set('dribbble_url')} placeholder="https://dribbble.com/..." />
               <InputField label="Behance" value={form.behance_url} onChange={set('behance_url')} placeholder="https://behance.net/..." />
               <InputField label="Personal Website" value={form.personal_website} onChange={set('personal_website')} icon={Globe} placeholder="https://yoursite.com" />
+              <InputField label="Booking URL" value={form.booking_url} onChange={set('booking_url')} icon={Link2} placeholder="https://calendly.com/your-link" />
             </div>
+            <p className="mt-2 text-xs text-gray-400">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
           </div>
         </SectionCard>
       </motion.div>

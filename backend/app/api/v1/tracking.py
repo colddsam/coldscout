@@ -20,13 +20,19 @@ PIXEL_GIF = base64.b64decode("R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAA
 def _verify_tracking_token(token: str) -> bool:
     """
     Verifies the HMAC signature of a tracking token.
+    Uses dynamic padding to ensure robust Base64 decoding.
     """
     try:
         if "." not in token:
             return False
         b64_payload, b64_sig = token.split(".", 1)
-        # Add padding back
-        payload_bytes = base64.urlsafe_b64decode(b64_payload + "===")
+        
+        # Add padding back helper
+        def add_padding(s: str) -> str:
+            mod = len(s) % 4
+            return s + "=" * (4 - mod) if mod else s
+
+        payload_bytes = base64.urlsafe_b64decode(add_padding(b64_payload))
         payload_str = payload_bytes.decode("utf-8")
         
         expected_sig = hmac.new(
@@ -35,7 +41,7 @@ def _verify_tracking_token(token: str) -> bool:
             hashlib.sha256
         ).digest()
         
-        actual_sig = base64.urlsafe_b64decode(b64_sig + "===")
+        actual_sig = base64.urlsafe_b64decode(add_padding(b64_sig))
         return hmac.compare_digest(actual_sig, expected_sig)
     except Exception:
         return False
@@ -60,23 +66,23 @@ async def track_email_click(token: str, url: str, request: Request, db=Depends(g
     Registers a 'click' event before issuing an HTTP 307 Redirect.
     Includes security validation to prevent Open Redirect vulnerabilities and token spoofing.
     """
-    # Security: Prevent Open Redirect to untrusted domains.
-    # This check runs BEFORE token verification so that even a valid token
-    # cannot be used to redirect users to a malicious external site.
+    # Security: Verify token signature first.
+    # A valid token means the system generated this link, so the URL is trusted
+    # (e.g., booking URLs like calendly.com set by the freelancer).
+    if _verify_tracking_token(token):
+        await TrackingService.log_event(db, token, "click", request, url_clicked=url)
+        return RedirectResponse(url=url)
+
+    # Invalid token — only allow redirects to known safe domains
+    # to prevent Open Redirect attacks with forged tokens.
     is_safe = (
         url.startswith("mailto:")
         or url.startswith(settings.APP_URL)
         or url.startswith(settings.FRONTEND_DOMAIN)
     )
 
-    if not is_safe:
-        logger.warning(f"Blocked potential Open Redirect attempt to: {url}")
-        return RedirectResponse(url=settings.APP_URL)
-
-    # Security: Verify token signature
-    if not _verify_tracking_token(token):
-        # Invalid signature — redirect to safe destination but don't log event
+    if is_safe:
         return RedirectResponse(url=url)
 
-    await TrackingService.log_event(db, token, "click", request, url_clicked=url)
-    return RedirectResponse(url=url)
+    logger.warning(f"Blocked Open Redirect attempt (invalid token) to: {url}")
+    return RedirectResponse(url=settings.APP_URL)

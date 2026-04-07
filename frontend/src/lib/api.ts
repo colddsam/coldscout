@@ -660,6 +660,7 @@ export interface FreelancerProfile {
   dribbble_url?: string | null;
   behance_url?: string | null;
   personal_website?: string | null;
+  booking_url?: string | null;
   is_public: boolean;
   show_rates: boolean;
   show_availability: boolean;
@@ -682,6 +683,7 @@ export interface FreelancerProfileUpdate {
   dribbble_url?: string;
   behance_url?: string;
   personal_website?: string;
+  booking_url?: string;
   is_public?: boolean;
   show_rates?: boolean;
   show_availability?: boolean;

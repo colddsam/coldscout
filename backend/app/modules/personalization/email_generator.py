@@ -27,7 +27,7 @@ def get_template_env() -> Environment:
 
 import bleach
 
-def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_token: str, app_url: str, demo_url: str = None) -> str:
+def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_token: str, app_url: str, demo_url: str = None, booking_url: str = None) -> str:
     """
     Renders the final HTML email body payload, merging static template structures
     with dynamic LLM-generated content and unique tracking pixels.
@@ -67,6 +67,7 @@ def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_tok
             reply_email=settings.REPLY_TO_EMAIL or settings.FROM_EMAIL,
             logo_url=settings.IMAGE_BASE_URL,
             demo_url=demo_url,
+            booking_url=booking_url,
         )
         return html_content
     except Exception as e:

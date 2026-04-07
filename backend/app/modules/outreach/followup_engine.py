@@ -14,6 +14,7 @@ from app.models.lead import Lead
 from app.models.campaign import Campaign, EmailOutreach
 from app.modules.personalization.groq_client import GroqClient
 from app.modules.personalization.email_generator import render_email_html
+from app.modules.personalization.booking_utils import get_resolved_booking_url
 from app.modules.outreach.email_sender import send_email
 from app.config import get_settings
 
@@ -30,7 +31,11 @@ async def schedule_followup(lead: Lead, db: AsyncSession):
     Initializes the follow-up sequence for a lead upon successful transmission of the 
     initial outreach email.
     """
-    lead.next_followup_at = datetime.now(timezone.utc) + timedelta(days=3)
+    # Schedule for 3 days from now, normalized to start of day (00:00 UTC)
+    # to ensure it's picked up by the next available morning cron window.
+    lead.next_followup_at = (datetime.now(timezone.utc) + timedelta(days=3)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     lead.followup_sequence_active = True
 
 async def cancel_followup_sequence(lead_id: UUID, db: AsyncSession):
@@ -78,6 +83,9 @@ async def run_followup_dispatch(manual: bool = False):
             db.add(campaign)
             await db.flush()
 
+        # Resolve the booking URL once per batch (system-wide or admin-specific)
+        resolved_booking_url = await get_resolved_booking_url(db)
+
         stmt = select(Lead).where(
             Lead.status.in_(["email_sent", "opened"]),
             Lead.followup_sequence_active == True,
@@ -103,10 +111,11 @@ async def run_followup_dispatch(manual: bool = False):
                 
                 tracking_token = _generate_tracking_token(lead.id, campaign.id)
                 html_body = render_email_html(
-                    {"business_name": lead.business_name}, 
-                    ai_data.get('body_html', ''), 
-                    tracking_token, 
-                    settings.APP_URL
+                    {"business_name": lead.business_name},
+                    ai_data.get('body_html', ''),
+                    tracking_token,
+                    settings.APP_URL,
+                    booking_url=resolved_booking_url,
                 )
                 
                 subject = ai_data.get('subject', f"Following up: {lead.business_name}")
@@ -154,7 +163,10 @@ async def run_followup_dispatch(manual: bool = False):
                         lead.followup_sequence_active = False
                     else:
                         next_interval = FOLLOWUP_SCHEDULE[next_count]["days_after"] - FOLLOWUP_SCHEDULE[next_count-1]["days_after"]
-                        lead.next_followup_at = now + timedelta(days=next_interval)
+                        # Normalize to start of day for consistent daily dispatch
+                        lead.next_followup_at = (now + timedelta(days=next_interval)).replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
 
                     campaign.emails_sent += 1
                     sent_count += 1
