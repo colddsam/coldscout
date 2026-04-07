@@ -40,7 +40,6 @@ import type {
   UserProfile, UserProfileUpdate, BusinessProfile, BusinessProfileUpdate,
   FreelancerProfile, FreelancerProfileUpdate, PortfolioItem, PortfolioItemCreate,
   Gender, Availability, CompanySize,
-  VerificationStatusItem,
 } from '../lib/api';
 
 // ── Tab definitions ──────────────────────────────────────────────────────────
