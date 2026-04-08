@@ -33,9 +33,9 @@ from app.core.pipeline_tracker import (
     append_log, get_active_jobs, get_job_history, is_stage_busy,
 )
 
-from app.api.deps import get_current_active_superuser
+from app.api.deps import get_current_active_superuser, get_current_user
 
-router = APIRouter(dependencies=[Depends(get_current_active_superuser)])
+router = APIRouter()
 
 from app.tasks.threads_pipeline import (
     run_threads_discovery_stage,
@@ -113,7 +113,7 @@ async def _queue_worker():
         _worker_running = False
 
 
-@router.post("/pipeline/trigger")
+@router.post("/pipeline/trigger", dependencies=[Depends(get_current_active_superuser)])
 async def trigger_pipeline(request: TriggerRequest = Body(...)):
     """
     Triggers pipeline stage(s) for manual execution via a serial job queue.
@@ -210,7 +210,7 @@ async def pipeline_history(limit: int = Query(50, ge=1, le=200), offset: int = Q
         logger.error(f"Failed to fetch pipeline history: {e}")
         return {"history": [], "limit": limit, "offset": offset}
 
-@router.post("/pipeline/hold")
+@router.post("/pipeline/hold", dependencies=[Depends(get_current_active_superuser)])
 async def hold_pipeline():
     """
     Sets PRODUCTION_STATUS=HOLD at runtime as a global pipeline kill-switch.
@@ -233,7 +233,7 @@ async def hold_pipeline():
         logger.error(f"Failed to hold pipeline: {e}")
         raise HTTPException(status_code=500, detail="Failed to hold pipeline")
 
-@router.post("/pipeline/resume")
+@router.post("/pipeline/resume", dependencies=[Depends(get_current_active_superuser)])
 async def resume_pipeline():
     """
     Sets PRODUCTION_STATUS=RUN at runtime to resume pipeline execution.
@@ -273,7 +273,7 @@ async def get_jobs_config():
     """
     return job_manager.load_config(force_reload=True)
 
-@router.patch("/pipeline/jobs_config")
+@router.patch("/pipeline/jobs_config", dependencies=[Depends(get_current_active_superuser)])
 async def update_jobs_config(config_updates: dict = Body(...)):
     """
     Mutates the persistent scheduling configuration via a strict merge-patch strategy.
