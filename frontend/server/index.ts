@@ -32,7 +32,7 @@ const API_KEY = process.env.API_KEY || process.env.VITE_API_KEY;
 console.log(`[PROXY] Initializing with:`);
 console.log(`  - Environment File: ${envPath}`);
 console.log(`  - Target URL: ${API_BASE_URL}`);
-console.log(`  - API Key Loaded: ${API_KEY ? 'YES (prefix: ' + API_KEY.slice(0, 8) + '...)' : 'NO'}`);
+console.log(`  - API Key Loaded: ${API_KEY ? 'YES' : 'NO'}`);
 
 // Ensure required environment variables are present
 if (!API_BASE_URL || !API_KEY) {
@@ -62,7 +62,7 @@ app.use(createProxyMiddleware({
       }
       
       // Log outbound proxy request
-      console.log(`[PROXY] ${req.method} ${req.url} | Auth: ${authHeader ? 'Bearer ...' + (authHeader as string).slice(-8) : 'NONE'}`);
+console.log(`[PROXY] ${req.method} ${req.url} | Auth: ${authHeader ? 'PRESENT' : 'NONE'}`);
     },
     proxyRes: (proxyRes, req) => {
       // Log inbound proxy response

@@ -34,6 +34,7 @@ from app.core.pipeline_tracker import (
 )
 
 from app.api.deps import get_current_active_superuser, get_current_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -113,8 +114,22 @@ async def _queue_worker():
         _worker_running = False
 
 
-@router.post("/pipeline/trigger", dependencies=[Depends(get_current_active_superuser)])
-async def trigger_pipeline(request: TriggerRequest = Body(...)):
+@router.post("/pipeline/trigger")
+async def trigger_pipeline(
+    request: TriggerRequest = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Triggers pipeline stage(s) for manual execution via a serial job queue.
+    
+    Authorization:
+    Allowed for 'superuser' OR 'freelancer' role.
+    """
+    if not current_user.is_superuser and current_user.role != "freelancer":
+        raise HTTPException(
+            status_code=403, 
+            detail="The user doesn't have enough privileges to trigger pipeline jobs"
+        )
     """
     Triggers pipeline stage(s) for manual execution via a serial job queue.
 

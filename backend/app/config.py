@@ -54,6 +54,37 @@ class Settings(BaseSettings):
     The base URL of the application.
     """
 
+    # Logging Configuration
+    LOG_LEVEL: str = "INFO"
+    """
+    The minimum level of severity for log messages to be recorded.
+    """
+
+    # Attachment Security
+    ATTACHMENT_DIR: str | None = None
+    """
+    The directory where email attachments (PDFs, Excel reports) are stored.
+    Defaults to a 'tmp' folder in the backend root.
+    """
+
+    @field_validator("ATTACHMENT_DIR", mode="before")
+    @classmethod
+    def assemble_attachment_dir(cls, v: str | None) -> str:
+        """
+        Parses the ATTACHMENT_DIR environment variable.
+        Ensures it returns an absolute path, defaulting to {backend_root}/tmp.
+        """
+        if v:
+            return os.path.abspath(v)
+        
+        # Default to {backend_root}/tmp
+        backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        default_dir = os.path.join(backend_root, "tmp")
+        
+        # Ensure the directory exists
+        os.makedirs(default_dir, exist_ok=True)
+        return default_dir
+
     IMAGE_BASE_URL: str = ""
     """
     The base URL for image assets.
@@ -63,6 +94,22 @@ class Settings(BaseSettings):
     """
     The expiration time for access tokens in minutes.
     """
+
+    SUPERUSER_EMAILS: list[str] | str = []
+    """
+    A comma-separated list of emails that should be automatically granted
+    superuser and admin privileges upon their first Supabase-linked sign-in.
+    """
+
+    @field_validator("SUPERUSER_EMAILS", mode="before")
+    @classmethod
+    def assemble_superuser_emails(cls, v: str | list[str]) -> list[str]:
+        """
+        Parses the SUPERUSER_EMAILS environment variable.
+        """
+        if isinstance(v, str):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     # Dynamic CORS Configuration
     # Accepts a comma-separated list of origins (e.g., "https://coldscout.colddsam.com")

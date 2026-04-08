@@ -32,13 +32,13 @@ _MAX_HTML_SIZE = 512_000
 
 # Allowed CDN script sources — any other <script> tags are stripped
 _ALLOWED_SCRIPT_PATTERNS = [
-    r'cdn\.tailwindcss\.com',
-    r'cdn\.jsdelivr\.net/npm/alpinejs',
-    r'cdnjs\.cloudflare\.com',
-    r'unpkg\.com',
-    r'fonts\.googleapis\.com',
-    r'fonts\.gstatic\.com',
-    r'placehold\.co',
+    r'https://cdn\.tailwindcss\.com',
+    r'https://cdn\.jsdelivr\.net/npm/alpinejs',
+    r'https://cdnjs\.cloudflare\.com',
+    r'https://unpkg\.com',
+    r'https://fonts\.googleapis\.com',
+    r'https://fonts\.gstatic\.com',
+    r'https://placehold\.co',
 ]
 
 
@@ -87,8 +87,15 @@ def _sanitize_html(html: str) -> str:
     def _filter_script(match):
         """Keep script tags that reference allowed CDNs, strip everything else."""
         tag_content = match.group(0)
-        if re.search(allowed_pattern, tag_content):
-            return tag_content
+        
+        # Extract src attribute value
+        src_match = re.search(r'src=["\']([^"\']+)["\']', tag_content, re.IGNORECASE)
+        if src_match:
+            src_url = src_match.group(1)
+            # Check if src starts with any of the allowed patterns
+            if any(re.match(pattern, src_url) for pattern in _ALLOWED_SCRIPT_PATTERNS):
+                return tag_content
+        
         # Check if it's a Tailwind config block (inline tailwind.config)
         if "tailwind" in tag_content.lower() and "config" in tag_content.lower():
             return tag_content
@@ -99,8 +106,9 @@ def _sanitize_html(html: str) -> str:
         return ""
 
     # Match all <script ...>...</script> and self-closing <script .../> tags
+    # Handles whitespace in tags (e.g., </script >) to prevent filter bypass
     sanitized = re.sub(
-        r'<script[^>]*>.*?</script>|<script[^>]*/\s*>',
+        r'<script\b[^>]*>.*?</script\s*>|<script\b[^>]*/\s*>',
         _filter_script,
         html,
         flags=re.DOTALL | re.IGNORECASE,

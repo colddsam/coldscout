@@ -30,7 +30,7 @@ settings = get_settings()
 # Any path that resolves outside this root is rejected before the file is
 # opened, preventing directory traversal exploitation.
 # ---------------------------------------------------------------------------
-_ALLOWED_ATTACHMENT_DIR = Path(os.environ.get("ATTACHMENT_DIR", "/app/attachments")).resolve()
+_ALLOWED_ATTACHMENT_DIR = Path(settings.ATTACHMENT_DIR).resolve()
 
 _ALLOWED_EXTENSIONS = {".pdf", ".xlsx", ".xls", ".csv", ".txt"}
 

@@ -9,6 +9,9 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import date
 import os
 from typing import List, Dict, Any
+from app.config import get_settings
+
+settings = get_settings()
 
 def generate_daily_report_excel(report_data: Dict[str, Any], leads: List[Dict[str, Any]], output_date: date) -> str:
     """
@@ -129,9 +132,9 @@ def generate_daily_report_excel(report_data: Dict[str, Any], leads: List[Dict[st
     ws1.sheet_properties.tabColor = "000000"
     ws2.sheet_properties.tabColor = "333333"
         
-    os.makedirs("tmp", exist_ok=True)
+    os.makedirs(settings.ATTACHMENT_DIR, exist_ok=True)
     filename = f"ColdScout_Report_{output_date.strftime('%Y-%m-%d')}.xlsx"
-    filepath = os.path.join("tmp", filename)
+    filepath = os.path.join(settings.ATTACHMENT_DIR, filename)
     wb.save(filepath)
     
     return filepath

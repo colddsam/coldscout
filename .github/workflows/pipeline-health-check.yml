@@ -5,6 +5,9 @@ on:
     - cron: '30 1 * * *'    # 7:00 AM IST = 01:30 UTC — check after discovery should have run
   workflow_dispatch:          # Allow manual trigger from GitHub UI
 
+permissions:
+  contents: read
+
 jobs:
   health-check:
     runs-on: ubuntu-latest

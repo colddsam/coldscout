@@ -35,11 +35,11 @@ google-generativeai>=0.8.3
 
 # Email
 aiosmtplib==3.0.1
-jinja2==3.1.4
+jinja2==3.1.6
 
 # PDF
 reportlab==4.2.5
-weasyprint==62.3
+weasyprint==68.0
 
 # Excel / Reports
 openpyxl==3.1.5
@@ -53,13 +53,13 @@ loguru==0.7.2
 python-dotenv==1.0.1
 slowapi==0.1.9
 tenacity==9.0.0       # Retry logic
-python-multipart==0.0.12
+python-multipart==0.0.22
 bleach==6.1.0         # XSS Sanitization
 
 # Authentication
 bcrypt==4.2.0
-python-jose[cryptography]==3.3.0
-PyJWT==2.8.0
+python-jose[cryptography]==3.4.0
+PyJWT==2.12.0
 
 # Supabase
 supabase==2.10.0

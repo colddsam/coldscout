@@ -142,6 +142,12 @@ async def get_or_create_user_by_supabase_uid(
             user.full_name = full_name
         if avatar_url:
             user.avatar_url = avatar_url
+            
+        settings = get_settings()
+        if user.email in settings.SUPERUSER_EMAILS and not user.is_superuser:
+            user.is_superuser = True
+            logger.info(f"Auto-promoted {user.email} to superuser via whitelist.")
+            
         await db.commit()
         await db.refresh(user)
         logger.info(f"Linked existing user {email} to Supabase UID {supabase_uid}")
@@ -157,7 +163,7 @@ async def get_or_create_user_by_supabase_uid(
         role=role,
         hashed_password=None,  # No password for social login users
         is_active=True,
-        is_superuser=False
+        is_superuser=(email in get_settings().SUPERUSER_EMAILS)
     )
     db.add(new_user)
     await db.commit()

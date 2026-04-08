@@ -33,12 +33,13 @@ def main():
     for key, desc in secrets_to_gen.items():
         val = generate_hex()
         results[key] = val
-        print(f"✅ {key}: {val}")
+        masked_val = f"{val[:8]}...[REDACTED]"
+        print(f"✅ {key}: {masked_val}")
         print(f"   ↳ {desc}\n")
 
     print("-" * 50)
     
-    # Check if .env exists to offer auto-update
+    # Handle file output
     env_path = Path(".env")
     if env_path.exists():
         confirm = input("Would you like to append these to your .env file? (y/n): ").lower()
@@ -52,13 +53,23 @@ def main():
             except Exception as e:
                 print(f"❌ Error updating .env: {e}")
     else:
-        print("\n💡 Tip: Create a .env file to store these securely.")
+        confirm = input("\n💡 .env file not found. Create one with these secrets? (y/n): ").lower()
+        if confirm == 'y':
+            try:
+                with open(env_path, "w") as f:
+                    f.write("# Generated Secrets\n")
+                    for key, val in results.items():
+                        f.write(f"{key}={val}\n")
+                print(f"\n✨ Created {env_path} successfully!")
+            except Exception as e:
+                print(f"❌ Error creating .env: {e}")
+        else:
+            print("\n⚠️  Secrets were NOT saved. Please run again and select 'y' to save to .env.")
 
     print("\n" + "="*50)
     print(" 📝 INSTRUCTIONS:")
-    print(" 1. Copy the keys above if not appended.")
-    print(" 2. Ensure they are added to your Render/Vercel dashboards.")
-    print(" 3. NEVER share your .env file publicly.")
+    print(" 1. Ensure secrets are added to your Render/Vercel dashboards.")
+    print(" 2. NEVER share your .env file publicly.")
     print("="*50 + "\n")
 
 if __name__ == "__main__":

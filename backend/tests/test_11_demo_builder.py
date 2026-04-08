@@ -53,11 +53,11 @@ class TestHTMLValidation:
 class TestHTMLSanitization:
     def test_preserves_tailwind_cdn(self):
         html = '<script src="https://cdn.tailwindcss.com"></script>'
-        assert 'cdn.tailwindcss.com' in _sanitize_html(html)
+        assert 'src="https://cdn.tailwindcss.com"' in _sanitize_html(html)
 
     def test_preserves_alpine_cdn(self):
         html = '<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>'
-        assert 'alpinejs' in _sanitize_html(html)
+        assert 'src="https://cdn.jsdelivr.net/npm/alpinejs' in _sanitize_html(html)
 
     def test_strips_malicious_script(self):
         html = '<script>alert("xss")</script>'
@@ -225,7 +225,8 @@ class TestPublicDemoEndpoint:
         response = await client.get(f"/api/v1/public/demo/{lead.id}")
         assert response.status_code == 200
         assert "Content-Security-Policy" in response.headers
-        assert "cdn.tailwindcss.com" in response.headers["Content-Security-Policy"]
+        csp = response.headers["Content-Security-Policy"]
+        assert "cdn.tailwindcss.com" in [s for d in csp.split(';') for s in d.split()]
         assert "Demo" in response.text
 
     @pytest.mark.asyncio

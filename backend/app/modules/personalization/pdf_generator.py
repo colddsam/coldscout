@@ -9,6 +9,9 @@ data-driven growth chart, and a strong CTA footer.
 import os
 from datetime import date
 from typing import List, Optional
+from app.config import get_settings
+
+settings = get_settings()
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -370,8 +373,8 @@ def generate_proposal_pdf(
         str: Relative path to generated PDF, or None on failure.
     """
     try:
-        os.makedirs("tmp", exist_ok=True)
-        filepath = os.path.join("tmp", output_filename)
+        os.makedirs(settings.ATTACHMENT_DIR, exist_ok=True)
+        filepath = os.path.join(settings.ATTACHMENT_DIR, output_filename)
 
         c = canvas.Canvas(filepath, pagesize=A4)
         c.setTitle(f"Digital Growth Proposal — {business_name}")

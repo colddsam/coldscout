@@ -10,8 +10,7 @@ Brand identity: black & white with shades of gray.
 """
 import os
 from datetime import date, timedelta
-from typing import List, Optional
-
+from typing import List, Optional, Dict, Any
 from openpyxl import Workbook
 from openpyxl.styles import (
     Alignment, Border, Font, GradientFill, PatternFill, Side
@@ -20,6 +19,9 @@ from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, Reference
 from openpyxl.chart.series import SeriesLabel
 from loguru import logger
+from app.config import get_settings
+
+settings = get_settings()
 
 # ── Brand colours (openpyxl uses ARGB hex — Black & White theme) ──────────────
 BLACK      = "000000"
@@ -417,8 +419,8 @@ def generate_proposal_xlsx(
         str: Path to the generated file, or None on failure.
     """
     try:
-        os.makedirs("tmp", exist_ok=True)
-        filepath = os.path.join("tmp", output_filename)
+        os.makedirs(settings.ATTACHMENT_DIR, exist_ok=True)
+        filepath = os.path.join(settings.ATTACHMENT_DIR, output_filename)
 
         wb = Workbook()
 

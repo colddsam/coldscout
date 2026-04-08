@@ -37,14 +37,28 @@ _BUILTIN_DOMAINS = frozenset({
 
 
 def _get_redirect_whitelist() -> frozenset[str]:
-    """Merge built-in domains with user-configured REDIRECT_DOMAIN_WHITELIST."""
+    """Merge built-in domains, app domains, and user-configured REDIRECT_DOMAIN_WHITELIST."""
+    # Start with built-ins
+    whitelist = set(_BUILTIN_DOMAINS)
+    
+    # Add app's own domains
+    for url_str in [settings.APP_URL, settings.FRONTEND_DOMAIN]:
+        if url_str:
+            try:
+                parsed = urlparse(url_str)
+                if parsed.netloc:
+                    whitelist.add(parsed.netloc.lower().split(":")[0])
+            except Exception:
+                pass
+                
+    # Add custom overrides
     extra = settings.REDIRECT_DOMAIN_WHITELIST.strip()
-    if not extra:
-        return _BUILTIN_DOMAINS
-    custom = frozenset(
-        d.strip().lower() for d in extra.split(",") if d.strip()
-    )
-    return _BUILTIN_DOMAINS | custom
+    if extra:
+        for d in extra.split(","):
+            if d.strip():
+                whitelist.add(d.strip().lower())
+                
+    return frozenset(whitelist)
 
 
 def _is_whitelisted_redirect(url: str) -> bool:
@@ -54,6 +68,7 @@ def _is_whitelisted_redirect(url: str) -> bool:
     try:
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
+            # For safety, we only allow absolute URLs for external redirects
             return False
         # Only allow http/https schemes
         if parsed.scheme not in ("http", "https"):
@@ -120,15 +135,10 @@ async def track_email_click(token: str, url: str, request: Request, db=Depends(g
     # Always enforce domain whitelist — even valid tokens should only redirect
     # to known-safe destinations. This defends against phishing if a tracking
     # URL is forwarded or a token is leaked.
-    is_own_domain = (
-        url.startswith(settings.APP_URL)
-        or url.startswith(settings.FRONTEND_DOMAIN)
-    )
-    is_safe = is_own_domain or _is_whitelisted_redirect(url)
-
-    if not is_safe:
+    if not _is_whitelisted_redirect(url):
         logger.warning(f"Blocked redirect to non-whitelisted domain: {url}")
-        return RedirectResponse(url=settings.APP_URL)
+        # Default to a safe destination (the app's own homepage)
+        return RedirectResponse(url=settings.APP_URL or "/")
 
     if _verify_tracking_token(token):
         await TrackingService.log_event(db, token, "click", request, url_clicked=url)
