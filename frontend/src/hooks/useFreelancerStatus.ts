@@ -4,7 +4,6 @@ import {
   updateFreelancerStatus,
   updateFreelancerStatusAdmin,
   type FreelancerProductionStatus,
-  type FreelancerStatusResponse,
 } from '../lib/api';
 import { broadcastPipelineStatusChange } from '../lib/realtime';
 import toast from 'react-hot-toast';
