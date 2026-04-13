@@ -9,6 +9,9 @@ Checks:
   2. Per-user cooldown (default: 24 hours) — no replying to the same user within window
   3. Tracks state via database queries on the threads_engagements table
 
+All queries are scoped to a freelancer (``user_id``) so each freelancer
+gets their own daily cap and cooldown bucket.
+
 SAFE: Read-only — never modifies engagement records itself.
 """
 from datetime import datetime, timedelta, timezone
@@ -29,20 +32,17 @@ class ThreadsRateLimiter:
     """
 
     async def can_send_reply(
-        self, threads_profile_id: str | None = None
+        self, threads_profile_id: str | None = None,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         """
-        Check if we can send a reply right now.
+        Check if we can send a reply right now for the given freelancer.
 
-        Args:
-            threads_profile_id: If provided, also checks per-user cooldown.
-
-        Returns:
-            Tuple of (allowed: bool, reason: str).
-            If allowed=False, reason explains why.
+        When ``user_id`` is None the limiter falls back to a global view of
+        all engagements (legacy behavior) — prefer passing user_id so each
+        freelancer has their own independent cap.
         """
         async with get_session_maker()() as db:
-            # 1. Check daily cap
             today_start = datetime.now(timezone.utc).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
@@ -53,18 +53,18 @@ class ThreadsRateLimiter:
                     ThreadsEngagement.replied_at >= today_start,
                 )
             )
+            if user_id is not None:
+                daily_count_stmt = daily_count_stmt.where(
+                    ThreadsEngagement.user_id == user_id
+                )
             result = await db.execute(daily_count_stmt)
             daily_count = result.scalar() or 0
 
-            # Retrieve the daily reply cap from the application settings
             cap = settings.THREADS_DAILY_REPLY_CAP
             if daily_count >= cap:
-                # If the daily reply cap has been reached, return False with a reason
                 return False, f"Daily reply cap reached ({daily_count}/{cap})"
 
-            # 2. Check per-user cooldown (if profile specified)
             if threads_profile_id:
-                # Retrieve the cooldown period from the application settings
                 cooldown_hours = settings.THREADS_REPLY_COOLDOWN_HOURS
                 cutoff = datetime.now(timezone.utc) - timedelta(hours=cooldown_hours)
 
@@ -76,32 +76,32 @@ class ThreadsRateLimiter:
                         ThreadsEngagement.replied_at >= cutoff,
                     )
                 )
+                if user_id is not None:
+                    user_recent_stmt = user_recent_stmt.where(
+                        ThreadsEngagement.user_id == user_id
+                    )
                 result = await db.execute(user_recent_stmt)
                 user_recent = result.scalar() or 0
 
                 if user_recent > 0:
-                    # If the cooldown period has not expired, return False with a reason
                     return False, (
                         f"Cooldown active for profile {threads_profile_id} "
                         f"({cooldown_hours}h window, {user_recent} recent reply)"
                     )
 
-            # Calculate the remaining replies for the day
             remaining = cap - daily_count
-            # Return True with the remaining replies
             return True, f"OK — {remaining} replies remaining today"
 
-    async def get_daily_stats(self) -> dict:
+    async def get_daily_stats(self, user_id: int | None = None) -> dict:
         """
-        Return current daily reply usage stats for dashboards / reporting.
+        Return current daily reply usage stats for dashboards / reporting,
+        scoped to a single freelancer when ``user_id`` is provided.
         """
         async with get_session_maker()() as db:
-            # Get the start of the current day
             today_start = datetime.now(timezone.utc).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
 
-            # Define SQL statements to retrieve the daily reply usage stats
             sent_stmt = (
                 select(func.count(ThreadsEngagement.id))
                 .where(
@@ -124,12 +124,17 @@ class ThreadsRateLimiter:
                 )
             )
 
-            # Execute the SQL statements and retrieve the results
+            if user_id is not None:
+                sent_stmt = sent_stmt.where(ThreadsEngagement.user_id == user_id)
+                failed_stmt = failed_stmt.where(ThreadsEngagement.user_id == user_id)
+                replied_back_stmt = replied_back_stmt.where(
+                    ThreadsEngagement.user_id == user_id
+                )
+
             sent = (await db.execute(sent_stmt)).scalar() or 0
             failed = (await db.execute(failed_stmt)).scalar() or 0
             replied_back = (await db.execute(replied_back_stmt)).scalar() or 0
 
-            # Return the daily reply usage stats
             return {
                 "daily_sent": sent,
                 "daily_failed": failed,

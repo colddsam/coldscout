@@ -34,10 +34,14 @@ console.log(`  - Environment File: ${envPath}`);
 console.log(`  - Target URL: ${API_BASE_URL}`);
 console.log(`  - API Key Loaded: ${API_KEY ? 'YES' : 'NO'}`);
 
-// Ensure required environment variables are present
+// Ensure required environment variables are present.
+// In production the proxy must not start without credentials — otherwise requests
+// will silently lose auth and fail with opaque errors.
 if (!API_BASE_URL || !API_KEY) {
   console.error('❌ Configuration Error: Missing API_BASE_URL or API_KEY in .env.local');
-  // We don't exit here to allow debugging, but requests will likely fail
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
 }
 
 // Enable CORS for authorized development origins

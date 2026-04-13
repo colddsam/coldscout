@@ -31,19 +31,20 @@ from app.modules.threads.rate_limiter import ThreadsRateLimiter
 settings = get_settings()
 
 
-async def run_threads_engagement() -> dict:
+async def run_threads_engagement(manual: bool = False, user_id: int | None = None) -> dict:
     """
-    Main entry point for the Threads engagement stage.
+    Main entry point for the Threads engagement stage for one freelancer.
 
     Finds qualified profiles with unengaged posts, generates replies,
     and publishes them while respecting rate limits and anti-spam rules.
+    All queries and the OAuth token are scoped to ``user_id`` when given.
     """
     if not settings.THREADS_ENABLED:
         return {"status": "disabled"}
 
     rate_limiter = ThreadsRateLimiter()
     token_mgr = ThreadsTokenManager()
-    token = await token_mgr.get_valid_token()
+    token = await token_mgr.get_valid_token(user_id=user_id)
 
     if not token:
         logger.warning("Threads engagement skipped — no valid access token.")
@@ -60,8 +61,10 @@ async def run_threads_engagement() -> dict:
                 select(ThreadsProfile)
                 .where(ThreadsProfile.qualification_status == "qualified")
                 .options(selectinload(ThreadsProfile.posts))
-                .limit(30)
             )
+            if user_id is not None:
+                stmt = stmt.where(ThreadsProfile.user_id == user_id)
+            stmt = stmt.limit(30)
             result = await db.execute(stmt)
             profiles = result.scalars().unique().all()
 
@@ -78,9 +81,10 @@ async def run_threads_engagement() -> dict:
 
                     stats["considered"] += 1
 
-                    # Rate limit check
+                    # Rate limit check (per-freelancer cap + cooldown)
                     allowed, reason = await rate_limiter.can_send_reply(
-                        threads_profile_id=str(profile.id)
+                        threads_profile_id=str(profile.id),
+                        user_id=user_id,
                     )
                     if not allowed:
                         logger.info(f"Rate limited: {reason}")
@@ -109,6 +113,7 @@ async def run_threads_engagement() -> dict:
 
                         # Record engagement
                         engagement = ThreadsEngagement(
+                            user_id=user_id,
                             threads_profile_id=profile.id,
                             threads_post_id=post.id,
                             reply_threads_media_id=str(publish_result.get("id", "")),
@@ -137,6 +142,7 @@ async def run_threads_engagement() -> dict:
 
                         # Record failed engagement for tracking
                         engagement = ThreadsEngagement(
+                            user_id=user_id,
                             threads_profile_id=profile.id,
                             threads_post_id=post.id,
                             reply_text=reply_text if 'reply_text' in dir() else "generation_failed",
@@ -253,16 +259,16 @@ Return ONLY a JSON object:
     return is_safe
 
 
-async def check_engagement_responses() -> dict:
+async def check_engagement_responses(manual: bool = False, user_id: int | None = None) -> dict:
     """
-    Monitor sent engagements for responses from leads.
+    Monitor one freelancer's sent engagements for responses from leads.
     Updates engagement status to 'replied_back' when a response is detected.
     """
     if not settings.THREADS_ENABLED:
         return {"status": "disabled"}
 
     token_mgr = ThreadsTokenManager()
-    token = await token_mgr.get_valid_token()
+    token = await token_mgr.get_valid_token(user_id=user_id)
     if not token:
         return {"status": "no_token"}
 
@@ -275,8 +281,10 @@ async def check_engagement_responses() -> dict:
                 select(ThreadsEngagement)
                 .where(ThreadsEngagement.status == "sent")
                 .where(ThreadsEngagement.reply_threads_media_id.isnot(None))
-                .limit(50)
             )
+            if user_id is not None:
+                stmt = stmt.where(ThreadsEngagement.user_id == user_id)
+            stmt = stmt.limit(50)
             result = await db.execute(stmt)
             sent_engagements = result.scalars().all()
 

@@ -1,98 +1,65 @@
 """
 Threads Pipeline Task Wrappers.
 
-Thin async wrappers for APScheduler integration. These functions are
-registered in the job_map and called by the scheduler at configured intervals.
-Each wrapper logs the start/end of its stage and catches top-level exceptions
-to prevent scheduler crashes.
+Thin async wrappers for APScheduler / manual-trigger integration. Each
+wrapper accepts ``manual`` and ``user_id`` kwargs to match the signature
+contract of the shared pipeline queue worker in ``app/api/v1/pipeline.py``.
 
-This module contains the following tasks:
-- `run_threads_discovery_stage`: Scheduler task for Threads keyword search and profile discovery.
-- `run_threads_qualification_stage`: Scheduler task for AI-powered Threads profile qualification.
-- `run_threads_engagement_stage`: Scheduler task for generating and publishing Threads replies.
-- `run_threads_response_check`: Scheduler task for monitoring sent engagements for lead responses.
+When ``user_id`` is None the underlying module preserves legacy global
+behavior (operates across all rows). Otherwise the stage is scoped to
+that freelancer only.
 """
 
 from loguru import logger
 
-from app.config import get_settings
 from app.modules.threads.discovery import run_threads_discovery
 from app.modules.threads.qualifier import run_threads_qualification
 from app.modules.threads.engagement import run_threads_engagement, check_engagement_responses
 
-def get_settings():
-    """
-    Retrieves application settings from the configuration module.
-    """
-    return get_settings()
 
-async def run_threads_discovery_stage():
-    """
-    Scheduler task: Threads keyword search and profile discovery.
-
-    This task is responsible for discovering new Threads profiles using keyword search.
-    It logs the start and end of the stage, and catches any top-level exceptions to prevent scheduler crashes.
-
-    Returns:
-        None
-    """
-    logger.info("🔍 [THREADS] Starting Discovery Stage...")
+async def run_threads_discovery_stage(manual: bool = False, user_id: int | None = None):
+    """Scheduler task: Threads keyword search and profile discovery."""
+    logger.info(f"🔍 [THREADS] Starting Discovery Stage (user_id={user_id})...")
     try:
-        result = await run_threads_discovery()
+        result = await run_threads_discovery(manual=manual, user_id=user_id)
         logger.info(f"🔍 [THREADS] Discovery Complete: {result}")
+        return result
     except Exception as e:
         logger.exception(f"🔍 [THREADS] Discovery Stage FAILED: {e}")
+        raise
 
 
-async def run_threads_qualification_stage():
-    """
-    Scheduler task: AI-powered Threads profile qualification.
-
-    This task is responsible for qualifying discovered Threads profiles using AI-powered qualification.
-    It logs the start and end of the stage, and catches any top-level exceptions to prevent scheduler crashes.
-
-    Returns:
-        None
-    """
-    logger.info("🎯 [THREADS] Starting Qualification Stage...")
+async def run_threads_qualification_stage(manual: bool = False, user_id: int | None = None):
+    """Scheduler task: AI-powered Threads profile qualification."""
+    logger.info(f"🎯 [THREADS] Starting Qualification Stage (user_id={user_id})...")
     try:
-        result = await run_threads_qualification()
+        result = await run_threads_qualification(manual=manual, user_id=user_id)
         logger.info(f"🎯 [THREADS] Qualification Complete: {result}")
+        return result
     except Exception as e:
         logger.exception(f"🎯 [THREADS] Qualification Stage FAILED: {e}")
+        raise
 
 
-async def run_threads_engagement_stage():
-    """
-    Scheduler task: Generate and publish Threads replies.
-
-    This task is responsible for generating and publishing Threads replies.
-    It logs the start and end of the stage, and catches any top-level exceptions to prevent scheduler crashes.
-
-    Returns:
-        None
-    """
-    logger.info("💬 [THREADS] Starting Engagement Stage...")
+async def run_threads_engagement_stage(manual: bool = False, user_id: int | None = None):
+    """Scheduler task: Generate and publish Threads replies."""
+    logger.info(f"💬 [THREADS] Starting Engagement Stage (user_id={user_id})...")
     try:
-        result = await run_threads_engagement()
+        result = await run_threads_engagement(manual=manual, user_id=user_id)
         logger.info(f"💬 [THREADS] Engagement Complete: {result}")
+        return result
     except Exception as e:
         logger.exception(f"💬 [THREADS] Engagement Stage FAILED: {e}")
+        raise
 
 
-async def run_threads_response_check():
-    """
-    Scheduler task: Monitor sent engagements for lead responses.
-
-    This task is responsible for monitoring sent engagements for lead responses.
-    It logs the start and end of the stage, and catches any top-level exceptions to prevent scheduler crashes.
-
-    Returns:
-        None
-    """
-    logger.info("📬 [THREADS] Checking Engagement Responses...")
+async def run_threads_response_check(manual: bool = False, user_id: int | None = None):
+    """Scheduler task: Monitor sent engagements for lead responses."""
+    logger.info(f"📬 [THREADS] Checking Engagement Responses (user_id={user_id})...")
     try:
-        result = await check_engagement_responses()
+        result = await check_engagement_responses(manual=manual, user_id=user_id)
         logger.info(f"📬 [THREADS] Response Check Complete: {result}")
+        return result
     except Exception as e:
         logger.exception(f"📬 [THREADS] Response Check FAILED: {e}")
+        raise

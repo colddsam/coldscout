@@ -16,8 +16,8 @@ class EmailEvent(Base):
     __tablename__ = "email_events"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"), index=True)
-    outreach_id = Column(UUID(as_uuid=True), ForeignKey("email_outreach.id"))
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), index=True)
+    outreach_id = Column(UUID(as_uuid=True), ForeignKey("email_outreach.id", ondelete="CASCADE"))
     tracking_token = Column(String(255), nullable=True)
 
     event_type = Column(String(50), nullable=False, index=True)

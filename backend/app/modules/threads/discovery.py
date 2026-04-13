@@ -5,14 +5,15 @@ Searches public Threads posts by configured keywords, extracts user profiles,
 and creates ThreadsProfile + ThreadsPost records for qualification.
 
 Key behaviors:
-  - Deduplicates posts by threads_media_id (never processes the same post twice)
-  - Deduplicates profiles by threads_user_id (merges posts under existing profiles)
-  - Respects `is_active` flag on search configs for administrator control
-  - Logs all search executions for audit trail via `last_searched_at`
+  - Scoped per freelancer: each call processes only the given user's active
+    search configs and tags all new profiles with that user_id.
+  - Deduplicates posts by threads_media_id globally (each Threads post is
+    stored once to prevent multi-reply to the same post).
+  - Deduplicates profiles per-user via (user_id, threads_user_id).
+  - Respects `is_active` flag on search configs.
 
 SAFE: Only creates new records — never modifies existing leads or pipeline data.
 """
-import uuid
 from datetime import datetime, timezone
 from loguru import logger
 from sqlalchemy import select
@@ -26,15 +27,14 @@ from app.modules.threads.token_manager import ThreadsTokenManager
 settings = get_settings()
 
 
-async def run_threads_discovery() -> dict:
+async def run_threads_discovery(manual: bool = False, user_id: int | None = None) -> dict:
     """
-    Main entry point for the Threads discovery stage.
+    Main entry point for the Threads discovery stage for one freelancer.
 
-    Workflow:
-      1. Get a valid access token
-      2. Load all active search configs
-      3. For each keyword: search → deduplicate → store profiles + posts
-      4. Return summary stats
+    Args:
+        manual: Accepted for parity with other stages; unused here.
+        user_id: Freelancer whose search configs + token are used. Required
+            for multi-tenant correctness; None falls back to legacy global.
 
     Returns:
         Dict with discovery stats (searches_run, posts_found, profiles_created, etc.)
@@ -44,9 +44,9 @@ async def run_threads_discovery() -> dict:
         return {"status": "disabled"}
 
     token_mgr = ThreadsTokenManager()
-    token = await token_mgr.get_valid_token()
+    token = await token_mgr.get_valid_token(user_id=user_id)
     if not token:
-        logger.warning("Threads discovery skipped — no valid access token.")
+        logger.warning(f"Threads discovery skipped — no valid access token (user_id={user_id}).")
         return {"status": "no_token"}
 
     client = ThreadsAPIClient(access_token=token)
@@ -60,16 +60,17 @@ async def run_threads_discovery() -> dict:
 
     try:
         async with get_session_maker()() as db:
-            # Load active search configs
             configs_stmt = (
                 select(ThreadsSearchConfig)
                 .where(ThreadsSearchConfig.is_active == True)
             )
+            if user_id is not None:
+                configs_stmt = configs_stmt.where(ThreadsSearchConfig.user_id == user_id)
             result = await db.execute(configs_stmt)
             configs = result.scalars().all()
 
             if not configs:
-                logger.info("No active Threads search configs found.")
+                logger.info(f"No active Threads search configs found (user_id={user_id}).")
                 return {"status": "no_configs", **stats}
 
             for config in configs:
@@ -87,7 +88,6 @@ async def run_threads_discovery() -> dict:
                         if not media_id:
                             continue
 
-                        # Deduplication: skip if post already exists
                         existing_post = await db.execute(
                             select(ThreadsPost).where(
                                 ThreadsPost.threads_media_id == str(media_id)
@@ -97,15 +97,13 @@ async def run_threads_discovery() -> dict:
                             stats["skipped_duplicates"] += 1
                             continue
 
-                        # Get or create profile for this post's author
                         username = post_data.get("username", "")
                         profile = await _get_or_create_profile(
-                            db, client, username, media_id
+                            db, client, username, media_id, user_id=user_id
                         )
                         if not profile:
                             continue
 
-                        # Create post record
                         timestamp_str = post_data.get("timestamp")
                         post_ts = None
                         if timestamp_str:
@@ -128,7 +126,6 @@ async def run_threads_discovery() -> dict:
                         db.add(new_post)
                         stats["new_posts"] += 1
 
-                    # Update search timestamp
                     config.last_searched_at = datetime.now(timezone.utc)
 
                 except Exception as e:
@@ -143,61 +140,58 @@ async def run_threads_discovery() -> dict:
     finally:
         await client.close()
 
-    logger.info(f"Threads discovery complete: {stats}")
+    logger.info(f"Threads discovery complete (user_id={user_id}): {stats}")
     return stats
 
 
 async def _get_or_create_profile(db, client: ThreadsAPIClient,
-                                  username: str, media_id: str) -> ThreadsProfile | None:
+                                  username: str, media_id: str,
+                                  user_id: int | None = None) -> ThreadsProfile | None:
     """
-    Get an existing profile by username, or create a new one by fetching
-    the user's profile from the Threads API.
+    Get an existing profile for this freelancer by username, or create one.
 
-    Returns None if the profile cannot be resolved.
+    Profile uniqueness is scoped by (user_id, threads_user_id) so two
+    freelancers can each independently own their view of the same handle.
     """
     if not username:
         return None
 
-    # Check existing
     stmt = select(ThreadsProfile).where(ThreadsProfile.username == username)
+    if user_id is not None:
+        stmt = stmt.where(ThreadsProfile.user_id == user_id)
     result = await db.execute(stmt)
     existing = result.scalars().first()
     if existing:
         return existing
 
-    # Fetch from API - NOTE: Threads API /search only returns basic fields:
-    # id (media_id), text, timestamp, media_type, permalink, username.
-    # It does not return the numeric user_id or full profile data (bio, followers).
-    # Since we can't look up a public profile just by media_id or username
-    # via the official Graph API, we use the username as the unique visual identifier.
     try:
-        threads_user_id = username  # Fallback to username as the ID
-        
-        # Double-check dedup by user ID (which is now username)
+        threads_user_id = username  # Fallback: username is the stable visual ID
+
         stmt2 = select(ThreadsProfile).where(
             ThreadsProfile.threads_user_id == threads_user_id
         )
+        if user_id is not None:
+            stmt2 = stmt2.where(ThreadsProfile.user_id == user_id)
         result2 = await db.execute(stmt2)
         existing2 = result2.scalars().first()
         if existing2:
             return existing2
 
-        # We cannot verify followers_count easily without unauthorized scraping.
-        # So we bypass the filter and let AI Groq evaluate the post quality instead.
-        followers = 1  # Dummy value to bypass if any other checks expect > 0
+        followers = 1  # Search endpoint doesn't expose followers; let AI judge quality.
 
         new_profile = ThreadsProfile(
+            user_id=user_id,
             threads_user_id=threads_user_id,
             username=username,
-            name=username,  # Name not provided in search
-            bio=None,       # Bio not provided in search
+            name=username,
+            bio=None,
             followers_count=followers,
             is_verified=False,
             profile_picture_url=None,
             discovered_via="keyword_search",
         )
         db.add(new_profile)
-        await db.flush()  # Get the ID assigned
+        await db.flush()
 
         return new_profile
 

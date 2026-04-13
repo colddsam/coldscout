@@ -24,6 +24,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { authStorage, setAuthItem } from './authStorage';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -49,10 +50,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 /**
  * Supabase client instance.
  *
- * Configured with:
- * - Automatic session persistence (localStorage)
- * - Automatic token refresh
- * - PKCE auth flow for enhanced security
+ * Uses the tab-aware storage adapter (see ``lib/authStorage``) so that:
+ *   - Two tabs signed in as different users stay isolated.
+ *   - The last-active tab's session is mirrored to localStorage and
+ *     survives a browser close, so the next launch auto-restores it.
  */
 export const supabase = createClient(
   supabaseUrl || '',
@@ -63,6 +64,7 @@ export const supabase = createClient(
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+      storage: authStorage,
     },
   }
 );
@@ -85,9 +87,10 @@ export type UserRole = 'client' | 'freelancer';
  * @returns Promise with auth data or error
  */
 export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole = 'freelancer') => {
-  // Store the role in localStorage for retrieval after OAuth callback
-  // This is necessary because OAuth redirects don't allow passing custom data
-  localStorage.setItem('llp_pending_role', role);
+  // Store the role via the tab-aware adapter so it round-trips through the
+  // OAuth redirect (sessionStorage for per-tab isolation, localStorage
+  // mirror so a full-page navigation doesn't lose it).
+  setAuthItem('llp_pending_role', role);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,

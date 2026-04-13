@@ -11,6 +11,7 @@
  */
 import axios from 'axios';
 import { supabase } from './supabase';
+import { getAuthItem, removeAuthItem } from './authStorage';
 
 /**
  * Core Axios configuration.
@@ -52,7 +53,7 @@ client.interceptors.request.use(async (config) => {
 
   // Fallback to legacy localStorage token
   if (!token) {
-    token = localStorage.getItem('llp_token');
+    token = getAuthItem('llp_token');
   }
 
   if (token) {
@@ -83,8 +84,8 @@ client.interceptors.response.use(
 
     if (isSessionError) {
       // Clear local storage immediately to prevent further unauthorized requests
-      localStorage.removeItem('llp_token');
-      localStorage.removeItem('llp_user');
+      removeAuthItem('llp_token');
+      removeAuthItem('llp_user');
 
       // Sign out from Supabase to clear session
       try {
@@ -200,6 +201,24 @@ export interface JobConfig {
 
 export interface JobsConfig {
   [jobId: string]: JobConfig;
+}
+
+// Freelancer pipeline production status
+export type FreelancerProductionStatus = 'RUN' | 'HOLD';
+
+export interface FreelancerStatusResponse {
+  user_id: number;
+  production_status: FreelancerProductionStatus;
+  global_production_status: FreelancerProductionStatus;
+  freelancers?: Array<{
+    user_id: number;
+    email: string;
+    production_status: FreelancerProductionStatus;
+  }>;
+}
+
+export interface FreelancerStatusUpdate {
+  production_status: FreelancerProductionStatus;
 }
 
 export interface Lead {
@@ -401,6 +420,26 @@ export const updateJobsConfig = (config: Record<string, unknown>) =>
   client
     .patch<{ status: string; config: JobsConfig }>('/api/v1/pipeline/jobs_config', config)
     .then((r) => r.data);
+
+// Freelancer Pipeline Status
+/**
+ * Gets the current freelancer's pipeline production status.
+ * Superusers also receive all freelancer statuses.
+ */
+export const getFreelancerStatus = () =>
+  client.get<FreelancerStatusResponse>('/api/v1/pipeline/freelancer-status').then((r) => r.data);
+
+/**
+ * Updates the current freelancer's pipeline production status (RUN/HOLD).
+ */
+export const updateFreelancerStatus = (payload: FreelancerStatusUpdate) =>
+  client.patch<{ user_id: number; production_status: string }>('/api/v1/pipeline/freelancer-status', payload).then((r) => r.data);
+
+/**
+ * Admin: Updates a specific freelancer's pipeline production status.
+ */
+export const updateFreelancerStatusAdmin = (userId: number, payload: FreelancerStatusUpdate) =>
+  client.patch<{ user_id: number; production_status: string }>(`/api/v1/pipeline/freelancer-status/${userId}`, payload).then((r) => r.data);
 
 // Leads
 /**

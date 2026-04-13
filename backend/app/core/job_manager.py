@@ -2,12 +2,21 @@ import os
 import json
 import asyncio
 from datetime import datetime
+from typing import Optional
 from loguru import logger
 from functools import lru_cache
 
 from app.config import get_settings, get_production_status
 
 settings = get_settings()
+
+# Daily pipeline job IDs that respect freelancer-level production status
+DAILY_PIPELINE_JOBS = {
+    "discovery", "qualification", "personalization", "outreach",
+    "reply_poll", "daily_report", "followup_dispatch",
+    "threads_discovery", "threads_qualification",
+    "threads_engagement", "threads_response_check",
+}
 
 CONFIG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "jobs_config.json")
@@ -216,5 +225,125 @@ class JobManager:
         config = cls.load_config()
         job_config = config.get(job_id, {})
         return job_config.get("status", "RUN").upper() == "RUN"
+
+    @classmethod
+    async def get_freelancer_production_status(cls, user_id: int) -> str:
+        """
+        Retrieves the production status for a specific freelancer from the database.
+
+        Returns:
+            str: 'RUN' if the freelancer's pipeline is active, 'HOLD' if paused.
+        """
+        from app.core.database import get_session_maker
+        from sqlalchemy import select
+        from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+
+        async with get_session_maker()() as db:
+            result = await db.execute(
+                select(FreelancerPipelineConfig.production_status)
+                .where(FreelancerPipelineConfig.user_id == user_id)
+            )
+            status = result.scalar()
+            return (status or "RUN").upper()
+
+    @classmethod
+    async def ensure_freelancer_config(cls, user_id: int) -> None:
+        """
+        Ensures a FreelancerPipelineConfig row exists for the given user.
+        Creates one with default RUN status if missing.
+        """
+        from app.core.database import get_session_maker
+        from sqlalchemy import select
+        from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+
+        async with get_session_maker()() as db:
+            result = await db.execute(
+                select(FreelancerPipelineConfig)
+                .where(FreelancerPipelineConfig.user_id == user_id)
+            )
+            if not result.scalars().first():
+                db.add(FreelancerPipelineConfig(user_id=user_id, production_status="RUN"))
+                await db.commit()
+
+    @classmethod
+    async def get_active_freelancers(cls) -> list[int]:
+        """
+        Returns user IDs of all freelancers whose pipeline production_status is 'RUN'.
+        Used by the scheduler to determine which freelancers to run daily pipeline for.
+
+        Note: Only returns freelancers who have a FreelancerPipelineConfig with RUN status.
+        Freelancers without a config row are treated as RUN (auto-created on first use).
+        """
+        from app.core.database import get_session_maker
+        from sqlalchemy import select
+        from app.models.user import User
+        from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+
+        async with get_session_maker()() as db:
+            # Get all active freelancers
+            result = await db.execute(
+                select(User.id).where(
+                    User.role == "freelancer",
+                    User.is_active == True,
+                )
+            )
+            all_freelancer_ids = [row[0] for row in result.all()]
+
+            if not all_freelancer_ids:
+                return []
+
+            # Get freelancers with explicit HOLD status
+            hold_result = await db.execute(
+                select(FreelancerPipelineConfig.user_id).where(
+                    FreelancerPipelineConfig.production_status == "HOLD",
+                )
+            )
+            held_user_ids = {row[0] for row in hold_result.all()}
+
+            # Return freelancers that are NOT on hold
+            return [uid for uid in all_freelancer_ids if uid not in held_user_ids]
+
+    @classmethod
+    async def is_freelancer_pipeline_active(
+        cls,
+        job_id: str,
+        user_id: Optional[int] = None,
+        is_manual: bool = False,
+    ) -> bool:
+        """
+        Determines if a pipeline job should run for a specific freelancer.
+
+        Rules:
+          1. Global HOLD → blocks everything (daily + manual) for all freelancers
+          2. Freelancer HOLD + daily job → blocks that freelancer's daily pipeline
+          3. Freelancer HOLD + manual trigger → ALLOWED (manual overrides freelancer hold)
+          4. Job-level HOLD in jobs_config.json → blocks that job for everyone
+
+        Args:
+            job_id: The pipeline job identifier (e.g., 'discovery').
+            user_id: The freelancer's user ID. None means system-level check only.
+            is_manual: True if triggered manually by the freelancer.
+
+        Returns:
+            bool: True if the job should run for this freelancer.
+        """
+        # 1. Global production status check — blocks everything including manual
+        if get_production_status() == "HOLD":
+            return False
+
+        # 2. Job-level config check (from jobs_config.json)
+        config = cls.load_config()
+        job_config = config.get(job_id, {})
+        if job_config.get("status", "RUN").upper() == "HOLD":
+            return False
+
+        # 3. Freelancer-level check — only for daily pipeline jobs, not manual triggers
+        if user_id is not None and job_id in DAILY_PIPELINE_JOBS and not is_manual:
+            freelancer_status = await cls.get_freelancer_production_status(user_id)
+            if freelancer_status == "HOLD":
+                return False
+
+        return True
+
 
 job_manager = JobManager()

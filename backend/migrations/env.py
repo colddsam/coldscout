@@ -20,6 +20,10 @@ from app.models.threads import (
     ThreadsSearchConfig, ThreadsAuth,
 )
 from app.models.profile import UserProfile, BusinessProfile, FreelancerProfile, PortfolioItem
+from app.models.prompt_config import PromptConfig
+from app.models.verification import ProfileVerification
+from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+from app.models.subscription import Subscription, PaymentOrder
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

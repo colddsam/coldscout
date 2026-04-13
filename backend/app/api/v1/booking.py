@@ -8,6 +8,8 @@ and redirects the visitor to it. Resolution order:
   3. 404 if neither is configured
 """
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,17 @@ from app.config import get_settings
 
 router = APIRouter(prefix="/book", tags=["booking"])
 settings = get_settings()
+
+
+def _is_safe_booking_url(url: str) -> bool:
+    """Validate that a booking URL uses http/https to prevent javascript: / data: redirects."""
+    if not url or not isinstance(url, str):
+        return False
+    try:
+        parsed = urlparse(url.strip())
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
 
 
 @router.get("/{username}")
@@ -58,6 +71,12 @@ async def booking_redirect(
         raise HTTPException(
             status_code=404,
             detail="No booking link configured for this user."
+        )
+
+    if not _is_safe_booking_url(booking_url):
+        raise HTTPException(
+            status_code=400,
+            detail="Configured booking URL is invalid."
         )
 
     return RedirectResponse(url=booking_url, status_code=302)

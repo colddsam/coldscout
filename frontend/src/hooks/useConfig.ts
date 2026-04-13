@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getHealth, getJobsConfig, updateJobsConfig, holdSystem, resumeSystem } from '../lib/api';
+import { broadcastPipelineStatusChange } from '../lib/realtime';
 import toast from 'react-hot-toast';
 
 /**
@@ -44,6 +45,8 @@ export function useSystemToggle() {
       toast.success(`System ${action === 'hold' ? 'paused' : 'resumed'} successfully`);
       // Refresh health so the status indicator reflects the new state immediately
       qc.invalidateQueries({ queryKey: ['health'] });
+      // Notify every other connected client so their UI updates without a refresh.
+      broadcastPipelineStatusChange({ scope: 'global' });
     },
     onError: (err: Error) => {
       toast.error(`System toggle failed: ${err.message}`);

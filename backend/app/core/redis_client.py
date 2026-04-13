@@ -31,12 +31,29 @@ def get_redis() -> redis.Redis:
     global _redis_client
     if _redis_client is None:
         settings = get_settings()
+        if not settings.REDIS_URL:
+            raise RuntimeError(
+                "REDIS_URL is not configured. Set the REDIS_URL environment variable "
+                "to enable pipeline tracking and distributed features."
+            )
         _redis_client = redis.from_url(
             settings.REDIS_URL,
             encoding="utf-8",
-            decode_responses=True
+            decode_responses=True,
+            socket_timeout=5,
+            socket_connect_timeout=5,
+            retry_on_timeout=True,
         )
     return _redis_client
+
+
+async def ping_redis() -> bool:
+    """Verify Redis connectivity. Returns True if reachable, False otherwise."""
+    try:
+        client = get_redis()
+        return bool(await client.ping())
+    except Exception:
+        return False
 
 async def close_redis():
     """

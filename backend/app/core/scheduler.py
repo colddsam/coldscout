@@ -99,6 +99,7 @@ def setup_scheduler():
     """
     
     from app.tasks.daily_pipeline import (
+        dispatch_stage_for_all_freelancers,
         run_discovery_stage,
         run_qualification_stage,
         run_personalization_stage,
@@ -118,19 +119,52 @@ def setup_scheduler():
 
     config = job_manager.load_config()
 
+    # Multi-freelancer dispatcher wrappers for daily pipeline stages.
+    # Each scheduled invocation iterates over active freelancers and
+    # runs the stage function once per freelancer with their user_id.
+    async def _dispatch_discovery():
+        await dispatch_stage_for_all_freelancers(run_discovery_stage, "discovery")
+
+    async def _dispatch_qualification():
+        await dispatch_stage_for_all_freelancers(run_qualification_stage, "qualification")
+
+    async def _dispatch_personalization():
+        await dispatch_stage_for_all_freelancers(run_personalization_stage, "personalization")
+
+    async def _dispatch_outreach():
+        await dispatch_stage_for_all_freelancers(run_outreach_stage, "outreach")
+
+    async def _dispatch_reply_poll():
+        await dispatch_stage_for_all_freelancers(poll_replies, "reply_poll")
+
+    async def _dispatch_daily_report():
+        await dispatch_stage_for_all_freelancers(generate_daily_report, "daily_report")
+
+    async def _dispatch_threads_discovery():
+        await dispatch_stage_for_all_freelancers(run_threads_discovery_stage, "threads_discovery")
+
+    async def _dispatch_threads_qualification():
+        await dispatch_stage_for_all_freelancers(run_threads_qualification_stage, "threads_qualification")
+
+    async def _dispatch_threads_engagement():
+        await dispatch_stage_for_all_freelancers(run_threads_engagement_stage, "threads_engagement")
+
+    async def _dispatch_threads_response_check():
+        await dispatch_stage_for_all_freelancers(run_threads_response_check, "threads_response_check")
+
     job_map = {
-        "discovery": run_discovery_stage,
-        "qualification": run_qualification_stage,
-        "personalization": run_personalization_stage,
-        "outreach": run_outreach_stage,
-        "reply_poll": poll_replies,
-        "daily_report": generate_daily_report,
+        "discovery": _dispatch_discovery,
+        "qualification": _dispatch_qualification,
+        "personalization": _dispatch_personalization,
+        "outreach": _dispatch_outreach,
+        "reply_poll": _dispatch_reply_poll,
+        "daily_report": _dispatch_daily_report,
         "followup_dispatch": run_followup_dispatch,
         "weekly_optimization": run_weekly_optimization,
-        "threads_discovery": run_threads_discovery_stage,
-        "threads_qualification": run_threads_qualification_stage,
-        "threads_engagement": run_threads_engagement_stage,
-        "threads_response_check": run_threads_response_check,
+        "threads_discovery": _dispatch_threads_discovery,
+        "threads_qualification": _dispatch_threads_qualification,
+        "threads_engagement": _dispatch_threads_engagement,
+        "threads_response_check": _dispatch_threads_response_check,
     }
 
     for j_id, func in job_map.items():

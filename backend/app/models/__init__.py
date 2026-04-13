@@ -40,5 +40,8 @@ from app.models.threads import (
 # ── Profile verification ──────────────────────────────────────────────────────
 from app.models.verification import ProfileVerification
 
+# ── Freelancer pipeline configuration ─────────────────────────────────────────
+from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+
 # ── Billing models (depend on User) ───────────────────────────────────────────
 from app.models.subscription import Subscription, PaymentOrder

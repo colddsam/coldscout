@@ -53,6 +53,7 @@ backend/
 │   │   └── v1/                     ← Versioned API endpoints
 │   │       ├── auth.py             ← User sync & authentication
 │   │       ├── billing.py          ← Razorpay order & subscription management
+│   │       ├── booking.py          ← Booking page redirection (public)
 │   │       ├── campaigns.py        ← Campaign CRUD operations
 │   │       ├── health.py           ← System health check
 │   │       ├── leads.py            ← Lead lifecycle management
@@ -68,7 +69,7 @@ backend/
 │   │   ├── database.py             ← Async SQLAlchemy engine & session factory
 │   │   ├── job_manager.py          ← jobs_config.json reader & state machine
 │   │   ├── locks.py                ← PostgreSQL advisory locks (prevents double-run)
-│   │   ├── redis_client.py         ← Optional Redis client (future Celery support)
+│   │   ├── redis_client.py         ← Redis client (active for Pipeline Log UI)
 │   │   ├── scheduler.py            ← APScheduler setup with 60s config sync heartbeat
 │   │   └── security.py             ← JWT verification (ES256 Supabase + HS256 legacy)
 │   │
@@ -213,6 +214,7 @@ FastAPI Router (/api/v1/...)
     │   ├── POST /webhooks/brevo      ← Brevo events
     │   ├── GET  /unsubscribe/{token} ← One-click unsubscribe
     │   ├── GET  /public/demo/{id}    ← Public demo website (CSP-hardened)
+    │   ├── GET  /book/{username}     ← Public booking redirect
     │   └── GET  /threads/...         ← Threads public endpoints
     │
     └── Private Routes (X-API-Key required)
@@ -421,10 +423,11 @@ graph LR
 ### Stage 2: Scraping / Qualification (`run_qualification_stage`)
 - Fetches all `discovered` leads
 - `Playwright` loads each lead's website in headless browser
-- `scrape_contact_email()` extracts: emails, phones, social profiles
+- `scrape_contact_email()` extracts: emails, phones, and Meta Threads social profiles
 - Passes extracted content to `qualify_lead()` (Groq Llama 3)
 - Lead scored 0–100 against ICP criteria
 - Updates status: `qualified`, `phone_qualified`, or `rejected`
+- Records social profile links for Stage 8 (Threads Outreach)
 
 ### Stage 3: Personalization (`run_personalization_stage`)
 - Fetches all `qualified` leads

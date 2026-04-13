@@ -30,13 +30,17 @@ class ThreadsTokenManager:
 
     REFRESH_BUFFER_DAYS = 7  # Refresh token 7 days before expiry
 
-    async def get_valid_token(self) -> str | None:
+    async def get_valid_token(self, user_id: int | None = None) -> str | None:
         """
-        Returns a valid access token, refreshing if necessary.
-        Returns None if no token is stored (user hasn't completed OAuth).
+        Returns a valid access token for the given freelancer, refreshing if
+        necessary. Returns None if no token is stored (user hasn't completed
+        OAuth). When ``user_id`` is None the most recently updated token of
+        any user is used — preserved only for legacy single-tenant callers.
         """
         async with get_session_maker()() as db:
             stmt = select(ThreadsAuth).order_by(ThreadsAuth.updated_at.desc()).limit(1)
+            if user_id is not None:
+                stmt = stmt.where(ThreadsAuth.user_id == user_id)
             result = await db.execute(stmt)
             auth = result.scalars().first()
 
@@ -70,17 +74,21 @@ class ThreadsTokenManager:
             return auth.access_token
 
     async def store_token(self, threads_user_id: str, access_token: str,
-                          token_type: str, expires_in: int) -> None:
+                          token_type: str, expires_in: int,
+                          user_id: int | None = None) -> None:
         """
         Store or update an access token in the database.
-        Upserts by threads_user_id to maintain a single active token.
+        Upserts by (user_id, threads_user_id) to maintain a single active
+        token per freelancer. When ``user_id`` is None the legacy global
+        slot is used (kept for backwards compatibility with existing rows).
         """
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(seconds=expires_in)
 
         async with get_session_maker()() as db:
             stmt = select(ThreadsAuth).where(
-                ThreadsAuth.threads_user_id == threads_user_id
+                ThreadsAuth.threads_user_id == threads_user_id,
+                ThreadsAuth.user_id == user_id,
             )
             result = await db.execute(stmt)
             existing = result.scalars().first()
@@ -92,6 +100,7 @@ class ThreadsTokenManager:
                 existing.updated_at = now
             else:
                 db.add(ThreadsAuth(
+                    user_id=user_id,
                     threads_user_id=threads_user_id,
                     access_token=access_token,
                     token_type=token_type,
@@ -100,6 +109,7 @@ class ThreadsTokenManager:
 
             await db.commit()
             logger.info(
-                f"Threads token stored for user {threads_user_id} "
+                f"Threads token stored for freelancer user_id={user_id} "
+                f"threads_user_id={threads_user_id} "
                 f"(type={token_type}, expires={expires_at})"
             )

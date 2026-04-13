@@ -26,6 +26,11 @@ router = APIRouter()
 
 
 # CSP header: whitelist only the CDNs our generated HTML legitimately uses
+# NOTE: 'unsafe-inline' is required for Tailwind CDN runtime to inject styles.
+# 'unsafe-eval' is required by the Tailwind CDN JIT compiler. These are acceptable
+# here because the HTML is served in a sandboxed iframe on a different origin with
+# connect-src 'none' preventing data exfiltration, and the HTML itself is sanitized
+# during generation (demo_builder/generator.py strips unauthorized scripts).
 _CSP_HEADER = (
     "default-src 'self'; "
     "script-src 'unsafe-inline' 'unsafe-eval' "
@@ -35,7 +40,8 @@ _CSP_HEADER = (
     "img-src * data: blob:; "
     "connect-src 'none'; "
     "frame-ancestors *; "
-    "base-uri 'self';"
+    "base-uri 'self'; "
+    "form-action 'none';"
 )
 
 

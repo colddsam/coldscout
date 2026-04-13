@@ -2,26 +2,31 @@
 Threads API Endpoints.
 
 Provides REST API routes for the Threads lead generation system:
-  - OAuth callback for token exchange
-  - Search config management (CRUD)
-  - Manual pipeline triggers
-  - Stats and metrics
-  - Lead listing and engagement history
+  - OAuth callback for token exchange (public)
+  - Search config management (CRUD) — per freelancer
+  - Manual pipeline triggers — per freelancer
+  - Stats and metrics — per freelancer
+  - Lead listing and engagement history — per freelancer
 
 All routes under /api/v1/threads/ are protected by API key authentication
-(registered in the private router) except the OAuth callback.
+(registered in the private router) AND scoped to the authenticated freelancer
+via ``get_current_user``. The OAuth callback is the only exception — it uses
+state-token cookies to bind the incoming redirect to the user who initiated
+the flow (see oauth_callback docstring).
 """
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import select, func
 
+from app.api.deps import get_current_user
 from app.config import get_settings
 from app.core.database import get_session_maker
 from app.models.threads import (
     ThreadsProfile, ThreadsPost, ThreadsEngagement, ThreadsSearchConfig,
 )
+from app.models.user import User
 from app.modules.threads.client import ThreadsAPIClient
 from app.modules.threads.token_manager import ThreadsTokenManager
 from app.modules.threads.rate_limiter import ThreadsRateLimiter
@@ -56,36 +61,48 @@ class SearchConfigUpdate(BaseModel):
 # ── OAuth Callback (PUBLIC — no API key) ────────────────────────
 
 @public_router.get("/oauth/callback")
-async def oauth_callback(code: str):
+async def oauth_callback(code: str, state: str | None = None):
     """
     Handles the OAuth redirect from Meta after the user authorizes the app.
     Exchanges the auth code for tokens and stores them.
+
+    NOTE: The originating freelancer's ``user_id`` must be encoded into
+    ``state`` when the OAuth flow is initiated; the token is then persisted
+    against that user. Without a state-bound user_id the token is stored
+    with user_id=NULL (global/legacy), which is only useful in single-tenant
+    deployments.
     """
     try:
-        # Step 1: Exchange code for short-lived token
+        # Decode the user_id from the state token (set when the flow started)
+        initiating_user_id: int | None = None
+        if state:
+            try:
+                initiating_user_id = int(state)
+            except ValueError:
+                initiating_user_id = None
+
         short_lived = await ThreadsAPIClient.exchange_code_for_short_lived_token(code)
         short_token = short_lived.get("access_token")
-        user_id = str(short_lived.get("user_id", ""))
+        threads_uid = str(short_lived.get("user_id", ""))
 
         if not short_token:
             raise HTTPException(status_code=400, detail="Failed to exchange authorization code.")
 
-        # Step 2: Exchange for long-lived token
         long_lived = await ThreadsAPIClient.exchange_for_long_lived_token(short_token)
 
-        # Step 3: Store in database
         token_mgr = ThreadsTokenManager()
         await token_mgr.store_token(
-            threads_user_id=user_id,
+            threads_user_id=threads_uid,
             access_token=long_lived["access_token"],
             token_type="long_lived",
             expires_in=long_lived.get("expires_in", 5184000),
+            user_id=initiating_user_id,
         )
 
         return {
             "status": "success",
             "message": "Threads authorization complete. Token stored securely.",
-            "threads_user_id": user_id,
+            "threads_user_id": threads_uid,
         }
 
     except HTTPException:
@@ -98,11 +115,13 @@ async def oauth_callback(code: str):
 # ── Search Config Management (PRIVATE) ──────────────────────────
 
 @router.get("/search-configs")
-async def list_search_configs():
-    """List all Threads keyword search configurations."""
+async def list_search_configs(current_user: User = Depends(get_current_user)):
+    """List the current freelancer's Threads keyword search configurations."""
     async with get_session_maker()() as db:
         result = await db.execute(
-            select(ThreadsSearchConfig).order_by(ThreadsSearchConfig.created_at.desc())
+            select(ThreadsSearchConfig)
+            .where(ThreadsSearchConfig.user_id == current_user.id)
+            .order_by(ThreadsSearchConfig.created_at.desc())
         )
         configs = result.scalars().all()
         return [
@@ -120,10 +139,14 @@ async def list_search_configs():
 
 
 @router.post("/search-configs")
-async def create_search_config(data: SearchConfigCreate):
-    """Create a new keyword search configuration."""
+async def create_search_config(
+    data: SearchConfigCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Create a new keyword search configuration owned by the current freelancer."""
     async with get_session_maker()() as db:
         config = ThreadsSearchConfig(
+            user_id=current_user.id,
             keyword=data.keyword,
             category=data.category,
             search_type=data.search_type,
@@ -136,11 +159,19 @@ async def create_search_config(data: SearchConfigCreate):
 
 
 @router.put("/search-configs/{config_id}")
-async def update_search_config(config_id: str, data: SearchConfigUpdate):
-    """Update an existing search configuration."""
+async def update_search_config(
+    config_id: str,
+    data: SearchConfigUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Update an existing search configuration owned by the current freelancer."""
     async with get_session_maker()() as db:
         result = await db.execute(
-            select(ThreadsSearchConfig).where(ThreadsSearchConfig.id == config_id)
+            select(ThreadsSearchConfig)
+            .where(
+                ThreadsSearchConfig.id == config_id,
+                ThreadsSearchConfig.user_id == current_user.id,
+            )
         )
         config = result.scalars().first()
         if not config:
@@ -162,11 +193,18 @@ async def update_search_config(config_id: str, data: SearchConfigUpdate):
 
 
 @router.delete("/search-configs/{config_id}")
-async def delete_search_config(config_id: str):
-    """Delete a search configuration."""
+async def delete_search_config(
+    config_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a search configuration owned by the current freelancer."""
     async with get_session_maker()() as db:
         result = await db.execute(
-            select(ThreadsSearchConfig).where(ThreadsSearchConfig.id == config_id)
+            select(ThreadsSearchConfig)
+            .where(
+                ThreadsSearchConfig.id == config_id,
+                ThreadsSearchConfig.user_id == current_user.id,
+            )
         )
         config = result.scalars().first()
         if not config:
@@ -179,30 +217,30 @@ async def delete_search_config(config_id: str):
 # ── Manual Pipeline Triggers (PRIVATE) ──────────────────────────
 
 @router.post("/run/discovery")
-async def trigger_discovery():
-    """Manually trigger the Threads discovery stage."""
-    result = await run_threads_discovery()
+async def trigger_discovery(current_user: User = Depends(get_current_user)):
+    """Manually trigger the Threads discovery stage for the current freelancer."""
+    result = await run_threads_discovery(user_id=current_user.id)
     return result
 
 
 @router.post("/run/qualification")
-async def trigger_qualification():
-    """Manually trigger the Threads qualification stage."""
-    result = await run_threads_qualification()
+async def trigger_qualification(current_user: User = Depends(get_current_user)):
+    """Manually trigger the Threads qualification stage for the current freelancer."""
+    result = await run_threads_qualification(user_id=current_user.id)
     return result
 
 
 @router.post("/run/engagement")
-async def trigger_engagement():
-    """Manually trigger the Threads engagement stage."""
-    result = await run_threads_engagement()
+async def trigger_engagement(current_user: User = Depends(get_current_user)):
+    """Manually trigger the Threads engagement stage for the current freelancer."""
+    result = await run_threads_engagement(user_id=current_user.id)
     return result
 
 
 @router.post("/run/check-responses")
-async def trigger_check_responses():
-    """Manually trigger checking for engagement responses."""
-    result = await check_engagement_responses()
+async def trigger_check_responses(current_user: User = Depends(get_current_user)):
+    """Manually trigger checking for engagement responses for the current freelancer."""
+    result = await check_engagement_responses(user_id=current_user.id)
     return result
 
 
@@ -213,10 +251,15 @@ async def list_profiles(
     status: str | None = Query(None, description="Filter by qualification_status"),
     limit: int = Query(50, le=100),
     offset: int = Query(0),
+    current_user: User = Depends(get_current_user),
 ):
-    """List discovered Threads profiles with optional filtering."""
+    """List this freelancer's discovered Threads profiles with optional filtering."""
     async with get_session_maker()() as db:
-        stmt = select(ThreadsProfile).order_by(ThreadsProfile.created_at.desc())
+        stmt = (
+            select(ThreadsProfile)
+            .where(ThreadsProfile.user_id == current_user.id)
+            .order_by(ThreadsProfile.created_at.desc())
+        )
         if status:
             stmt = stmt.where(ThreadsProfile.qualification_status == status)
         stmt = stmt.limit(limit).offset(offset)
@@ -243,33 +286,34 @@ async def list_profiles(
 
 
 @router.get("/stats")
-async def get_threads_stats():
-    """Get Threads pipeline statistics and rate limiter status."""
+async def get_threads_stats(current_user: User = Depends(get_current_user)):
+    """Get this freelancer's Threads pipeline statistics and rate-limiter status."""
     rate_limiter = ThreadsRateLimiter()
-    daily_stats = await rate_limiter.get_daily_stats()
+    daily_stats = await rate_limiter.get_daily_stats(user_id=current_user.id)
 
     async with get_session_maker()() as db:
-        total_profiles = (await db.execute(
-            select(func.count(ThreadsProfile.id))
-        )).scalar() or 0
+        def _scoped_count(model, *extra):
+            stmt = select(func.count(model.id)).where(model.user_id == current_user.id)
+            for clause in extra:
+                stmt = stmt.where(clause)
+            return stmt
 
+        total_profiles = (await db.execute(_scoped_count(ThreadsProfile))).scalar() or 0
         qualified = (await db.execute(
-            select(func.count(ThreadsProfile.id))
-            .where(ThreadsProfile.qualification_status == "qualified")
+            _scoped_count(ThreadsProfile, ThreadsProfile.qualification_status == "qualified")
         )).scalar() or 0
-
         engaged = (await db.execute(
-            select(func.count(ThreadsProfile.id))
-            .where(ThreadsProfile.qualification_status == "engaged")
+            _scoped_count(ThreadsProfile, ThreadsProfile.qualification_status == "engaged")
         )).scalar() or 0
 
+        # ThreadsPost inherits scope via its owning profile.
         total_posts = (await db.execute(
             select(func.count(ThreadsPost.id))
+            .join(ThreadsProfile, ThreadsPost.threads_profile_id == ThreadsProfile.id)
+            .where(ThreadsProfile.user_id == current_user.id)
         )).scalar() or 0
 
-        total_engagements = (await db.execute(
-            select(func.count(ThreadsEngagement.id))
-        )).scalar() or 0
+        total_engagements = (await db.execute(_scoped_count(ThreadsEngagement))).scalar() or 0
 
     return {
         "threads_enabled": settings.THREADS_ENABLED,
@@ -288,10 +332,15 @@ async def get_threads_stats():
 async def list_engagements(
     status: str | None = Query(None),
     limit: int = Query(50, le=100),
+    current_user: User = Depends(get_current_user),
 ):
-    """List engagement history."""
+    """List this freelancer's engagement history."""
     async with get_session_maker()() as db:
-        stmt = select(ThreadsEngagement).order_by(ThreadsEngagement.created_at.desc())
+        stmt = (
+            select(ThreadsEngagement)
+            .where(ThreadsEngagement.user_id == current_user.id)
+            .order_by(ThreadsEngagement.created_at.desc())
+        )
         if status:
             stmt = stmt.where(ThreadsEngagement.status == status)
         stmt = stmt.limit(limit)

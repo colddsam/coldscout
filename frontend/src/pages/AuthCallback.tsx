@@ -5,6 +5,7 @@ import type { UserRole } from '../hooks/useAuth';
 import Spinner from '../components/ui/Spinner';
 import Card from '../components/ui/Card';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import { getAuthItem, removeAuthItem } from '../lib/authStorage';
 
 /**
  * OAuth callback handler page.
@@ -38,8 +39,8 @@ export default function AuthCallback() {
       try {
         // Retrieve the role stored before the OAuth redirect (may be undefined for
         // returning users — the backend will preserve their existing role in that case)
-        const pendingRole = (localStorage.getItem('llp_pending_role') as UserRole | null) || undefined;
-        if (pendingRole) localStorage.removeItem('llp_pending_role');
+        const pendingRole = (getAuthItem('llp_pending_role') as UserRole | null) || undefined;
+        if (pendingRole) removeAuthItem('llp_pending_role');
 
         // Sync user to backend database
         const backendUser = await syncUserToBackend(pendingRole);

@@ -30,8 +30,9 @@
 
 The **Cold Scout Dashboard** is the command center for the AI lead generation pipeline. Built with **React 19** and **Vite 8**, it provides:
 
-- **Real-time pipeline monitoring** across all 8 automation stages
-- **Lead lifecycle management** with AI qualification scores
+- **Real-time pipeline monitoring** with Redis-backed live log tracking
+- **Lead lifecycle management** with AI qualification and social profile extraction
+- **Booking page redirections** via `/book/{username}` public routes
 - **Campaign creation and management** with targeting controls
 - **Analytics** with interactive funnel charts and conversion metrics
 - **Billing management** with Razorpay plan upgrades
@@ -213,6 +214,7 @@ graph TD
 | `/billing` | ✅ Upgrade CTA | ✅ Manage | ❌ |
 | `/inbox` | ❌ | ✅ | ❌ |
 | `/scheduler` | ❌ | ✅ | ❌ |
+| `/book/:user` | ✅ (Public) | ✅ (Public) | ✅ (Public) |
 
 ---
 

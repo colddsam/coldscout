@@ -352,6 +352,8 @@ Frontend Production Checklist:
   ✅ Custom domain configured and DNS records propagated
   ✅ SSL certificate issued by Vercel (auto)
   ✅ Backend BACKEND_CORS_ORIGINS includes this frontend domain
+  ✅ Pipeline Log UI (Redis-backed) is receiving backend updates
+  ✅ Booking redirect routes (/book/:user) function correctly
   ✅ Test login flow end-to-end after deployment
   ✅ Test OAuth flow (Google/GitHub) after deployment
 ```

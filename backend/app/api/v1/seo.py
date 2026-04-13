@@ -10,6 +10,7 @@ Public endpoints (no auth required):
 """
 
 from datetime import datetime, timezone
+from xml.sax.saxutils import escape as xml_escape
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,10 +46,14 @@ async def sitemap_profiles(db: AsyncSession = Depends(get_db)) -> Response:
     # Build XML
     urls: list[str] = []
     for username, updated_at in profiles:
+        if not username:
+            continue
+        # XML-escape the username to prevent XML injection via special characters
+        safe_username = xml_escape(str(username))
         lastmod = updated_at.strftime("%Y-%m-%d") if updated_at else datetime.now(timezone.utc).strftime("%Y-%m-%d")
         urls.append(
             f"  <url>\n"
-            f"    <loc>{BASE_URL}/u/{username}</loc>\n"
+            f"    <loc>{BASE_URL}/u/{safe_username}</loc>\n"
             f"    <lastmod>{lastmod}</lastmod>\n"
             f"    <changefreq>weekly</changefreq>\n"
             f"    <priority>0.7</priority>\n"

@@ -131,23 +131,31 @@ def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
                 return None
 
             public_key = pyjwt.algorithms.ECAlgorithm.from_jwk(json.dumps(matching_key))
+            # ``leeway`` tolerates small clock skew between Supabase's issuer
+            # and the local server. Without it, freshly issued tokens can fail
+            # with "token is not yet valid (iat)" during login/sync.
             payload = pyjwt.decode(
                 token,
                 public_key,
                 algorithms=["ES256"],
-                options={"verify_aud": False}
+                options={"verify_aud": False},
+                leeway=60,
             )
             return payload
         else:
             # Legacy HS256/RS256 — verify with the project JWT secret
             if not settings.SUPABASE_JWT_SECRET:
-                logger.debug("No SUPABASE_JWT_SECRET configured; skipping HS256/RS256 Supabase verification.")
+                logger.warning(
+                    "No SUPABASE_JWT_SECRET configured — HS256/RS256 Supabase tokens "
+                    "cannot be verified. Set SUPABASE_JWT_SECRET for full auth coverage."
+                )
                 return None
             payload = pyjwt.decode(
                 token,
                 settings.SUPABASE_JWT_SECRET,
                 algorithms=["HS256", "RS256"],
-                options={"verify_aud": False}
+                options={"verify_aud": False},
+                leeway=60,
             )
             return payload
     except pyjwt.ExpiredSignatureError:
@@ -183,7 +191,7 @@ def verify_legacy_token(token: str) -> Optional[Dict[str, Any]]:
     """
     try:
         payload = jwt.decode(
-            token, settings.APP_SECRET_KEY, algorithms=[ALGORITHM]
+            token, settings.APP_SECRET_KEY, algorithms=[ALGORITHM], leeway=60
         )
         return payload
     except Exception:

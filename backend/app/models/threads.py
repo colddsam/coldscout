@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Boolean, Column, DateTime, Float,
-    ForeignKey, Integer, String, Text,
+    ForeignKey, Integer, String, Text, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -33,11 +33,21 @@ class ThreadsProfile(Base):
     Qualification lifecycle:
       pending → qualified (score >= 50) → engaged (reply sent) → converted (email obtained)
       pending → rejected (score < 50 or filtered out)
+
+    Uniqueness: the same Threads user can be discovered by multiple freelancers
+    without conflict — uniqueness is enforced on (user_id, threads_user_id).
+    Legacy rows with user_id IS NULL are grandfathered via a partial index.
     """
     __tablename__ = "threads_profiles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "threads_user_id", name="uq_threads_profiles_user_threads_id"),
+    )
 
     id                   = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    threads_user_id      = Column(String(100), unique=True, nullable=False, index=True,
+    # Owning freelancer. Nullable for legacy rows that predate multi-tenancy.
+    user_id              = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                                  nullable=True, index=True)
+    threads_user_id      = Column(String(100), nullable=False, index=True,
                                   comment="Numeric user ID from the Threads API.")
     username             = Column(String(255), nullable=True, index=True,
                                   comment="@handle on Threads.")
@@ -115,6 +125,9 @@ class ThreadsEngagement(Base):
     __tablename__ = "threads_engagements"
 
     id                      = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Owning freelancer (denormalized from profile for cheaper per-user filtering).
+    user_id                 = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                                     nullable=True, index=True)
     threads_profile_id      = Column(UUID(as_uuid=True),
                                      ForeignKey("threads_profiles.id", ondelete="CASCADE"),
                                      nullable=False, index=True)
@@ -153,6 +166,8 @@ class ThreadsSearchConfig(Base):
     __tablename__ = "threads_search_configs"
 
     id                      = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id                 = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                                     nullable=True, index=True)
     keyword                 = Column(String(255), nullable=False, index=True,
                                      comment="Search term, e.g. 'need web developer'.")
     category                = Column(String(100), nullable=True,
@@ -174,9 +189,15 @@ class ThreadsAuth(Base):
     before they expire, ensuring uninterrupted API access.
     """
     __tablename__ = "threads_auth"
+    __table_args__ = (
+        UniqueConstraint("user_id", "threads_user_id", name="uq_threads_auth_user_threads_id"),
+    )
 
     id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    threads_user_id = Column(String(100), unique=True, nullable=False, index=True)
+    # Owning freelancer — each freelancer connects their own Threads account.
+    user_id         = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"),
+                             nullable=True, index=True)
+    threads_user_id = Column(String(100), nullable=False, index=True)
     access_token    = Column(Text, nullable=False)
     token_type      = Column(String(20), default="long_lived",
                              comment="short_lived | long_lived")

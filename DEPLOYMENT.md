@@ -199,11 +199,28 @@ Optional — generates interactive landing page demos for leads without a websit
 | `DEMO_MAX_PER_DAY` | Max demos per day (default: 10, stay within free tier) |
 | `FRONTEND_DOMAIN` | Public frontend URL used to construct demo links in emails |
 
-> **Free Tier Limits**: 15 requests/minute, 1,500 requests/day, 1M tokens/day. The default `DEMO_MAX_PER_DAY=10` keeps usage safely within these limits.
+> **Free Tier Limits**: 15 requests/minute, 1,500 requests/day, 1,500 requests/day, 1M tokens/day. The default `DEMO_MAX_PER_DAY=10` keeps usage safely within these limits.
 
 ---
 
-### ⏰ 1.9 Service Keep-Alive (Cron Monitor)
+### 🧵 1.9 Meta Threads API (Social Outreach)
+
+Optional — enables social profile extraction and autonomous outreach on Meta Threads.
+
+1. Visit [Meta for Developers](https://developers.facebook.com/)
+2. Create an App with the **Threads Use Case**
+3. Configure **Threads API** products
+4. Copy the following credentials:
+
+| Variable | Description |
+|----------|-------------|
+| `THREADS_APP_ID` | Your Meta App ID |
+| `THREADS_APP_SECRET` | App secret key |
+| `THREADS_REDIRECT_URI` | Auth callback (e.g., `https://coldscout.com/auth/threads`) |
+
+---
+
+### ⏰ 1.10 Service Keep-Alive (Cron Monitor)
 
 Ensures Render backend doesn't sleep on free tiers.
 
@@ -254,11 +271,10 @@ Complete reference for all **46 configuration parameters**.
 
 ### Database
 
-| Variable | Example | Required |
-|----------|---------|----------|
-| `DATABASE_URL` | `postgresql+asyncpg://postgres:pass@db.xxx.supabase.co:5432/postgres` | ✅ |
-| `SUPABASE_URL` | `https://xxx.supabase.co` | ✅ |
-| `SUPABASE_ANON_KEY` | `eyJ0eXAiOiJKV1Q...` | ✅ |
+| **Database** | `DATABASE_URL` | `postgresql+asyncpg://...` (Required) | ✅ |
+| | `REDIS_URL` | Redis URI (Required for Pipeline Log UI) | ✅ |
+| | `SUPABASE_URL` | `https://xxx.supabase.co` | ✅ |
+| | `SUPABASE_ANON_KEY` | `eyJ0eXAiOiJKV1Q...` | ✅ |
 
 ### AI Processing
 
@@ -318,6 +334,14 @@ Complete reference for all **46 configuration parameters**.
 | `DISCOVERY_DEPTH` | `sub_area` | Optional |
 | `DISCOVERY_MAX_PAGES` | `3` | Optional |
 
+### Social Integrations
+
+| Variable | Example | Required |
+|----------|---------|----------|
+| `THREADS_APP_ID` | `...` | Optional |
+| `THREADS_APP_SECRET` | `...` | Optional |
+| `THREADS_REDIRECT_URI` | `https://coldscout.com/auth/threads` | Optional |
+
 ### Billing
 
 | Variable | Example | Required |
@@ -371,6 +395,13 @@ python scripts/seed_targets.py
 python scripts/check_db.py
 ```
 
+> **Migration Notes**: Revision `l6m7n8o9p0q1_cascade_email_events` (latest) adds
+> `ON DELETE CASCADE` to the `email_events.lead_id`, `email_events.outreach_id`,
+> and `email_outreach.campaign_id` foreign keys. On large databases this
+> migration may take several minutes; the application startup Alembic timeout
+> is configured to 600s to accommodate this. If you run migrations manually,
+> allow similar headroom.
+
 ---
 
 ### 3.2 Backend Tier — Render (Docker)
@@ -422,6 +453,8 @@ Production Security Checklist:
   ✅ API_KEY is a cryptographically random 64-char hex string
   ✅ BACKEND_CORS_ORIGINS set to exact frontend domain (no wildcards)
   ✅ BREVO_WEBHOOK_SECRET configured for webhook validation
+  ✅ RAZORPAY_WEBHOOK_SECRET configured for payment webhook validation
+  ✅ SUPABASE_JWT_SECRET configured (warn logged if missing)
   ✅ Supabase Row Level Security (RLS) policies reviewed
   ✅ Google Places API key restricted to Places API only
   ✅ Razorpay using live keys (not test keys) in production
@@ -429,7 +462,38 @@ Production Security Checklist:
   ✅ No secrets committed to version control
   ✅ .env files listed in .gitignore
   ✅ Render environment variables set directly (not via Dockerfile ENV)
+  ✅ REDIS_URL configured (Required for Pipeline Log UI monitoring)
+  ✅ Pipeline Log UI verified functional in Dashboard
+  ✅ Frontend CSP hardened (no 'unsafe-eval'); Razorpay domains whitelisted
+  ✅ All tracking/unsubscribe endpoints use dynamic base64 padding (consistent HMAC)
+  ✅ ON DELETE CASCADE applied to email_events / email_outreach foreign keys
 ```
+
+### Post-deploy verification
+
+After deploying, verify the health endpoint reports every subsystem healthy:
+
+```bash
+curl https://your-api.onrender.com/api/v1/health
+```
+
+Expected response shape:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "environment": "production",
+  "database_healthy": true,
+  "redis_healthy": true,
+  "scheduler_running": true,
+  "production_status": true
+}
+```
+
+- `database_healthy: false` → check `DATABASE_URL` and Supabase connection pool.
+- `redis_healthy: false` → check `REDIS_URL`; pipeline tracking will be disabled until Redis is reachable.
+- `scheduler_running: false` → `setup_scheduler()` raised during startup; inspect logs.
 
 ---
 
@@ -489,9 +553,88 @@ No configuration required — workflows run automatically after connecting GitHu
 
 ---
 
+## 👥 Step 4: Multi-Freelancer Production Management
+
+### 4.1 Production Status Hierarchy
+Cold Scout uses a dual-layer production control system:
+1. **Global HOLD**: Controlled via `PRODUCTION_STATUS` environment variable. Blocks ALL pipeline actions for ALL freelancers.
+2. **Freelancer HOLD**: Controlled via the Dashboard or API. Blocks only that specific freelancer's daily automated runs. Manual triggers remain enabled.
+
+### 4.2 Database Maintenance (Multi-Tenant Transition)
+If you are upgrading from a single-tenant version, follow these steps to manage legacy data:
+
+**1. Apply Multi-Freelancer Migrations:**
+```bash
+cd backend
+python scripts/run_alembic.py
+```
+
+**2. Assign Legacy Data:**
+By default, old data has `user_id = NULL`. To assign it to your first freelancer account:
+```bash
+python scripts/assign_legacy_data.py --email admin@example.com
+```
+
+### 4.3 User Lifecycle Management
+
+## User Lifecycle Management
+
+Use the `manage_user.py` script to handle promotions, demotions, and account deletions.
+
+### Common Administrative Tasks
+
+#### 1. Promote User to Pro & Freelancer
+```bash
+python scripts/manage_user.py --email user@example.com --plan pro --role freelancer
+```
+
+#### 2. Demote User to Free & Client
+```bash
+python scripts/manage_user.py --email user@example.com --plan free --role client --no-admin
+```
+
+#### 3. Deactivate Account (Temporary Hold)
+```bash
+python scripts/manage_user.py --email user@example.com --no-active
+```
+
+#### 4. Permanently Delete User and All Data
+> [!CAUTION]
+> This operation is IRREVERSIBLE. It will delete the user and all linked Leads, Campaigns, Reports, and Profiles.
+```bash
+python scripts/manage_user.py --email user@example.com --delete
+```
+
+### Script Reference Summary
+
+| Flag | Description |
+| --- | --- |
+| `--email / --id` | **Required.** Identify core target user. |
+| `--plan [free\|pro\|enterprise]` | Set subscription tier. |
+| `--role [client\|freelancer]` | Set platform role. |
+| `--admin / --no-admin` | Grant/Revoke superuser status. |
+| `--active / --no-active` | Enable/Disable login capability. |
+| `--delete` | Permanently wipe user and associated data. |
+| `--force` | Bypass safety confirmation (use with caution in scripts). |
+| `--dry-run` | Preview changes without modifying the database. |
+
+---
+> [!TIP]
+> Promoting a user to `freelancer` automatically initializes their Pipeline Configuration if it doesn't already exist.
+
+#### B. Audit Current Status
+Run the role verification script to see a full table of users and their production states.
+```bash
+python scripts/verify_roles.py
+```
+
+
+---
+
 <div align="center">
 
 *For backend-specific deployment details see [backend/DEPLOYMENT.md](./backend/DEPLOYMENT.md)*
 *For frontend-specific deployment details see [frontend/DEPLOYMENT.md](./frontend/DEPLOYMENT.md)*
 
 </div>
+

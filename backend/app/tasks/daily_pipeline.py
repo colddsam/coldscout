@@ -1,11 +1,20 @@
 """
 Daily lead generation pipeline execution module.
 Orchestrates discovery, qualification, personalization, outreach, and reporting workflows.
+
+Multi-Freelancer Architecture:
+  Each pipeline stage accepts an optional ``user_id`` parameter. When present, the stage
+  operates exclusively on data belonging to that freelancer. The scheduler dispatches
+  each stage once per active freelancer via ``dispatch_stage_for_all_freelancers()``.
+
+  Manual triggers always run for the requesting freelancer only, and bypass
+  freelancer-level HOLD (but respect global HOLD).
 """
 import asyncio
 import base64
 import os
 from datetime import date, datetime, timedelta, timezone
+from typing import Optional
 from loguru import logger
 from app.core.job_manager import job_manager
 from app.core.locks import advisory_lock
@@ -17,7 +26,7 @@ from app.models.lead import Lead, SearchHistory
 from app.models.campaign import Campaign, EmailOutreach
 from app.models.email_event import EmailEvent
 from app.models.daily_report import DailyReport
-from app.config import get_settings
+from app.config import get_settings, get_production_status
 
 settings = get_settings()
 
@@ -38,28 +47,67 @@ from app.modules.personalization.booking_utils import get_resolved_booking_url
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Multi-Freelancer Dispatcher
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
+    """
+    Dispatches a pipeline stage for every active freelancer.
+
+    Called by the scheduler for daily pipeline runs. Iterates over all
+    freelancers whose production_status is RUN and executes the stage
+    function with their user_id.
+
+    Args:
+        stage_func: The async stage function to call (e.g., run_discovery_stage).
+        stage_name: The job ID for status checking (e.g., 'discovery').
+    """
+    # Global HOLD blocks everything
+    if get_production_status() == "HOLD":
+        logger.warning(f"🚨 Global PRODUCTION_STATUS is HOLD. Skipping {stage_name} for all freelancers.")
+        return
+
+    active_freelancer_ids = await job_manager.get_active_freelancers()
+
+    if not active_freelancer_ids:
+        logger.info(f"No active freelancers found for {stage_name}. Skipping.")
+        return
+
+    logger.info(f"Dispatching {stage_name} for {len(active_freelancer_ids)} freelancer(s).")
+
+    for user_id in active_freelancer_ids:
+        try:
+            is_active = await job_manager.is_freelancer_pipeline_active(
+                stage_name, user_id=user_id, is_manual=False
+            )
+            if not is_active:
+                logger.info(f"⏸️ {stage_name} skipped for freelancer {user_id} (HOLD).")
+                continue
+
+            logger.info(f"▶️ Running {stage_name} for freelancer {user_id}.")
+            await stage_func(manual=False, user_id=user_id)
+        except Exception as e:
+            logger.exception(f"Error running {stage_name} for freelancer {user_id}: {e}")
+            # Continue with other freelancers even if one fails
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Stage 1 — Discovery
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def run_discovery_stage(manual: bool = False):
+async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = None):
     """
     Executes the discovery phase of the lead generation pipeline.
     Discovers prospective leads via Google Places API and inserts verified new leads.
 
-    International support:
-      - Generates targets with full location hierarchy (country → region → city → sub_area)
-      - Uses regionCode and locationBias for precise geographic scoping
-      - Pagination fetches up to 60 results per location-category pair
-      - Extracts structured geo data from addressComponents
-
-    Deduplication rules:
-      - place_id match  → skip entirely (never overwrite discovered_at)
-      - email match     → skip entirely (prevents duplicate outreach to same client)
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. All discovered leads are associated with this user.
     """
-    logger.info("Starting Dynamic Discovery")
+    logger.info(f"Starting Dynamic Discovery (user_id={user_id})")
 
-    if not job_manager.is_job_active("discovery", ignore_global_hold=manual):
-        logger.warning("🚨 [discovery] is HOLD. Skipping discovery stage.")
+    if not await job_manager.is_freelancer_pipeline_active("discovery", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [discovery] is HOLD for user {user_id}. Skipping discovery stage.")
         return
 
     discovered_count = 0
@@ -72,15 +120,19 @@ async def run_discovery_stage(manual: bool = False):
     from app.modules.discovery.google_places import get_radius_for_depth, extract_geo_from_place
 
     # 1. Initialize or update Daily Report in a brief, locked session
-    async with advisory_lock("pipeline_init"):
+    async with advisory_lock(f"pipeline_init_{user_id}"):
         async with session_maker() as db:
-            report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+            report_stmt = select(DailyReport).where(
+                DailyReport.report_date == today,
+                DailyReport.user_id == user_id,
+            )
             report_res  = await db.execute(report_stmt)
             db_report   = report_res.scalars().first()
 
             if not db_report:
                 db_report = DailyReport(
                     report_date=today,
+                    user_id=user_id,
                     pipeline_status="running",
                     pipeline_started_at=datetime.now(timezone.utc),
                 )
@@ -88,7 +140,7 @@ async def run_discovery_stage(manual: bool = False):
             else:
                 db_report.pipeline_status    = "running"
                 db_report.pipeline_started_at = datetime.now(timezone.utc)
-            
+
             await db.commit()
 
     # 2. Fetch exclusion data and generate targets in a brief, locked session
@@ -96,9 +148,10 @@ async def run_discovery_stage(manual: bool = False):
         async with advisory_lock("pipeline_discovery_targets"):
             async with session_maker() as db:
                 sixty_days_ago = datetime.now(timezone.utc) - timedelta(days=60)
-                hist_res = await db.execute(
-                    select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
-                )
+                hist_query = select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
+                if user_id is not None:
+                    hist_query = hist_query.where(SearchHistory.user_id == user_id)
+                hist_res = await db.execute(hist_query)
                 recent_searches = hist_res.scalars().all()
                 exclude_locations = [
                     {
@@ -155,6 +208,7 @@ async def run_discovery_stage(manual: bool = False):
                 # Record search history immediately
                 async with session_maker() as db:
                     db.add(SearchHistory(
+                        user_id=user_id,
                         country=country,
                         country_code=country_code,
                         region=region,
@@ -178,11 +232,12 @@ async def run_discovery_stage(manual: bool = False):
 
                 place_id = place["id"]
                 
-                # Check existence in a quick read session
+                # Check existence in a quick read session (scoped to this freelancer)
                 async with session_maker() as db:
-                    existing_res = await db.execute(
-                        select(Lead.place_id).where(Lead.place_id == place_id)
-                    )
+                    exist_query = select(Lead.place_id).where(Lead.place_id == place_id)
+                    if user_id is not None:
+                        exist_query = exist_query.where(Lead.user_id == user_id)
+                    existing_res = await db.execute(exist_query)
                     if existing_res.scalars().first() or place_id in seen_place_ids:
                         continue
                 
@@ -197,10 +252,11 @@ async def run_discovery_stage(manual: bool = False):
                 # Final Save Session: Minimal duration
                 async with session_maker() as db:
                     if email:
-                        # Final email deduplication check
-                        email_check = await db.execute(
-                            select(Lead).where(Lead.email == email)
-                        )
+                        # Final email deduplication check (scoped to this freelancer)
+                        email_dedup_query = select(Lead).where(Lead.email == email)
+                        if user_id is not None:
+                            email_dedup_query = email_dedup_query.where(Lead.user_id == user_id)
+                        email_check = await db.execute(email_dedup_query)
                         if email_check.scalars().first():
                             logger.info(f"Skipping {place.get('displayName', {}).get('text')}: email {email} already in use.")
                             continue
@@ -208,6 +264,7 @@ async def run_discovery_stage(manual: bool = False):
                     geo = extract_geo_from_place(place, target)
                     lead = Lead(
                         place_id        = place["id"],
+                        user_id         = user_id,
                         business_name   = place.get("displayName", {}).get("text", "Unknown"),
                         category        = category,
                         address         = place.get("formattedAddress"),
@@ -238,9 +295,12 @@ async def run_discovery_stage(manual: bool = False):
                 break
 
         # 4. Mark report as completed in a final briefly locked session
-        async with advisory_lock("pipeline_finalize"):
+        async with advisory_lock(f"pipeline_finalize_{user_id}"):
             async with session_maker() as db:
-                report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+                report_stmt = select(DailyReport).where(
+                    DailyReport.report_date == today,
+                    DailyReport.user_id == user_id,
+                )
                 res = await db.execute(report_stmt)
                 db_report = res.scalars().first()
                 if db_report:
@@ -256,7 +316,10 @@ async def run_discovery_stage(manual: bool = False):
     except Exception as e:
         logger.exception("Error in discovery stage")
         async with session_maker() as db:
-            report_stmt = select(DailyReport).where(DailyReport.report_date == today)
+            report_stmt = select(DailyReport).where(
+                DailyReport.report_date == today,
+                DailyReport.user_id == user_id,
+            )
             res = await db.execute(report_stmt)
             db_report = res.scalars().first()
             if db_report:
@@ -270,23 +333,27 @@ async def run_discovery_stage(manual: bool = False):
 # Stage 2 — Qualification
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def run_qualification_stage(manual: bool = False):
+async def run_qualification_stage(manual: bool = False, user_id: Optional[int] = None):
     """
     Executes the qualification phase of the lead generation pipeline.
     Analyzes digital footprints of new leads to compute qualification scores.
+
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. Only qualifies leads belonging to this user.
 
     Status outcomes:
       qualified        → score >= 50, has email   → proceeds to email outreach
       phone_qualified  → score >= 50, phone only  → manual call / WhatsApp alert
       rejected         → score < 50 or no contact method
     """
-    logger.info("Starting Qualification")
+    logger.info(f"Starting Qualification (user_id={user_id})")
 
-    if not job_manager.is_job_active("qualification", ignore_global_hold=manual):
-        logger.warning("🚨 [qualification] is HOLD. Skipping qualification stage.")
+    if not await job_manager.is_freelancer_pipeline_active("qualification", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [qualification] is HOLD for user {user_id}. Skipping qualification stage.")
         return
 
-    async with advisory_lock("pipeline_qualification"):
+    async with advisory_lock(f"pipeline_qualification_{user_id}"):
         qualified_count      = 0
         phone_qualified_count = 0
         phone_qualified_leads: list[Lead] = []
@@ -294,16 +361,19 @@ async def run_qualification_stage(manual: bool = False):
         async with get_session_maker()() as db:
             # Query "discovered" and "qualification_error" leads in batches
             # qualification_error leads get retried automatically on next run
-            result = await db.execute(
+            lead_query = (
                 select(Lead)
                 .where(Lead.status.in_(["discovered", "qualification_error"]))
                 .order_by(Lead.id.asc())
                 .limit(settings.QUALIFICATION_BATCH_LIMIT)
             )
+            if user_id is not None:
+                lead_query = lead_query.where(Lead.user_id == user_id)
+            result = await db.execute(lead_query)
             leads = result.scalars().all()
 
             if not leads:
-                logger.info("No discovered leads found for qualification.")
+                logger.info(f"No discovered leads found for qualification (user_id={user_id}).")
                 return
 
             logger.info(f"Processing batch of {len(leads)} leads for qualification.")
@@ -414,51 +484,64 @@ def _generate_tracking_token(lead_id, campaign_id) -> str:
 # Stage 3 — Personalization  (email-qualified leads only)
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def run_personalization_stage(manual: bool = False):
+async def run_personalization_stage(manual: bool = False, user_id: Optional[int] = None):
     """
     Executes the personalization phase of the lead generation pipeline.
     Constructs tailored proposal content and PDFs, then queues emails.
 
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. Only personalizes leads belonging to this user.
+
     Only processes leads with status = "qualified" (has email).
     Phone-qualified leads are handled manually via the alerts sent in Stage 2.
     """
-    logger.info("Starting Personalization")
+    logger.info(f"Starting Personalization (user_id={user_id})")
 
-    if not job_manager.is_job_active("personalization", ignore_global_hold=manual):
-        logger.warning("🚨 [personalization] is HOLD. Skipping personalization stage.")
+    if not await job_manager.is_freelancer_pipeline_active("personalization", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [personalization] is HOLD for user {user_id}. Skipping personalization stage.")
         return
 
-    async with advisory_lock("pipeline_personalization"):
+    async with advisory_lock(f"pipeline_personalization_{user_id}"):
         pers_count  = 0
         groq_client = GroqClient()
 
         async with get_session_maker()() as db:
             # Resolve the booking URL once per batch (system-wide or admin-specific)
             resolved_booking_url = await get_resolved_booking_url(db)
-            
-            # Ensure today's campaign exists
+
+            # Ensure today's campaign exists for this freelancer
             today = date.today()
-            camp_res = await db.execute(
-                select(Campaign).where(Campaign.campaign_date == today).limit(1)
-            )
+            camp_query = select(Campaign).where(Campaign.campaign_date == today)
+            if user_id is not None:
+                camp_query = camp_query.where(Campaign.user_id == user_id)
+            camp_query = camp_query.limit(1)
+            camp_res = await db.execute(camp_query)
             campaign = camp_res.scalars().first()
             if not campaign:
-                campaign = Campaign(name=f"Daily Outreach {today}", campaign_date=today)
+                campaign = Campaign(
+                    name=f"Daily Outreach {today}",
+                    campaign_date=today,
+                    user_id=user_id,
+                )
                 db.add(campaign)
                 await db.flush()
 
             # Only email-qualified leads go through automated personalization
             # Processed in batches to stay within AI rate limits and memory constraints
-            result = await db.execute(
+            lead_query = (
                 select(Lead)
                 .where(Lead.status == "qualified")
                 .order_by(Lead.id.asc())
                 .limit(settings.PERSONALIZATION_BATCH_LIMIT)
             )
+            if user_id is not None:
+                lead_query = lead_query.where(Lead.user_id == user_id)
+            result = await db.execute(lead_query)
             leads = result.scalars().all()
 
             if not leads:
-                logger.debug("No qualified leads found for personalization.")
+                logger.debug(f"No qualified leads found for personalization (user_id={user_id}).")
                 return
 
             logger.info(f"Processing batch of {len(leads)} leads for personalization.")
@@ -598,33 +681,42 @@ async def run_personalization_stage(manual: bool = False):
 # Stage 4 — Outreach dispatch
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def run_outreach_stage(manual: bool = False):
+async def run_outreach_stage(manual: bool = False, user_id: Optional[int] = None):
     """
     Executes the outreach phase of the lead generation pipeline.
     Dispatches queued emails sequentially with a 2-second gap between sends.
     Commits after each successful email to prevent batch rollback loss.
-    """
-    logger.info("Starting Outreach Dispatch")
 
-    if not job_manager.is_job_active("outreach", ignore_global_hold=manual):
-        logger.warning("🚨 [outreach] is HOLD. Skipping outreach stage.")
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. Only dispatches emails for this user's campaigns.
+    """
+    logger.info(f"Starting Outreach Dispatch (user_id={user_id})")
+
+    if not await job_manager.is_freelancer_pipeline_active("outreach", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [outreach] is HOLD for user {user_id}. Skipping outreach stage.")
         return
 
-    async with advisory_lock("pipeline_outreach"):
+    async with advisory_lock(f"pipeline_outreach_{user_id}"):
         sent_count = 0
 
         async with get_session_maker()() as db:
             # Dispatch queued emails in batches to protect domain reputation and prevent timeouts
-            result = await db.execute(
+            outreach_query = (
                 select(EmailOutreach)
                 .where(EmailOutreach.status == "queued")
                 .order_by(EmailOutreach.id.asc())
                 .limit(settings.OUTREACH_BATCH_LIMIT)
             )
+            if user_id is not None:
+                outreach_query = outreach_query.join(
+                    Campaign, EmailOutreach.campaign_id == Campaign.id
+                ).where(Campaign.user_id == user_id)
+            result = await db.execute(outreach_query)
             queued_emails = result.scalars().all()
 
             if not queued_emails:
-                logger.debug("No queued emails found for outreach dispatch.")
+                logger.debug(f"No queued emails found for outreach dispatch (user_id={user_id}).")
                 return
 
             logger.info(f"Processing batch of {len(queued_emails)} emails for outreach.")
@@ -715,18 +807,23 @@ async def run_outreach_stage(manual: bool = False):
 # Stage 5 — Reply polling  (runs every 30 min via APScheduler)
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def poll_replies(manual: bool = False):
+async def poll_replies(manual: bool = False, user_id: Optional[int] = None):
     """
     Monitors the reply inbox via IMAP and updates lead status on replies.
     Also classifies the reply intent and drafts an AI response for hot leads.
-    """
-    logger.info("Polling for replies")
 
-    if not job_manager.is_job_active("reply_poll", ignore_global_hold=manual):
-        logger.warning("🚨 [reply_poll] is HOLD. Skipping reply polling.")
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. Only processes replies for this user's leads.
+                 Note: IMAP polling fetches all replies; user_id filters lead matching.
+    """
+    logger.info(f"Polling for replies (user_id={user_id})")
+
+    if not await job_manager.is_freelancer_pipeline_active("reply_poll", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [reply_poll] is HOLD for user {user_id}. Skipping reply polling.")
         return
 
-    async with advisory_lock("pipeline_reply_poll"):
+    async with advisory_lock(f"pipeline_reply_poll_{user_id}"):
         replies = await fetch_recent_replies(since_minutes=30)
 
         async with get_session_maker()() as db:
@@ -734,12 +831,15 @@ async def poll_replies(manual: bool = False):
                 if not sender_email:
                     continue
 
-                stmt = (
+                lead_query = (
                     select(Lead)
                     .where(Lead.email == sender_email)
                     .order_by(Lead.created_at.desc())
                     .limit(1)
                 )
+                if user_id is not None:
+                    lead_query = lead_query.where(Lead.user_id == user_id)
+                stmt = lead_query
                 res  = await db.execute(stmt)
                 lead = res.scalars().first()
 
@@ -820,49 +920,71 @@ async def poll_replies(manual: bool = False):
 # Stage 6 — Daily report  (runs at 23:30 via APScheduler)
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def generate_daily_report(manual: bool = False):
+async def generate_daily_report(manual: bool = False, user_id: Optional[int] = None):
     """
     Generates the daily analytical report and dispatches it to admins.
+
+    Args:
+        manual: True if triggered manually (bypasses freelancer-level HOLD).
+        user_id: The freelancer's user ID. Generates report scoped to this user's data.
 
     Counts both 'qualified' and 'phone_qualified' leads in the qualified total
     so the report accurately reflects all leads that passed the scoring threshold.
     """
-    logger.info("Generating Daily Report")
+    logger.info(f"Generating Daily Report (user_id={user_id})")
 
-    if not job_manager.is_job_active("daily_report", ignore_global_hold=manual):
-        logger.warning("🚨 [daily_report] is HOLD. Skipping daily report generation.")
+    if not await job_manager.is_freelancer_pipeline_active("daily_report", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [daily_report] is HOLD for user {user_id}. Skipping daily report generation.")
         return
 
-    async with advisory_lock("pipeline_daily_report"):
+    async with advisory_lock(f"pipeline_daily_report_{user_id}"):
         today = date.today()
 
         try:
             async with get_session_maker()() as db:
+                # Build user filter for all queries
+                def _user_filter(query):
+                    if user_id is not None:
+                        return query.where(Lead.user_id == user_id)
+                    return query
+
                 # Aggregated metrics for report_data
                 leads_discovered = await db.scalar(
-                    select(func.count(Lead.id)).where(func.date(Lead.discovered_at) == today)
-                )
-                leads_qualified = await db.scalar(
-                    select(func.count(Lead.id)).where(
-                        (func.date(Lead.qualified_at) == today) &
-                        Lead.status.in_(["qualified", "phone_qualified"])
+                    _user_filter(
+                        select(func.count(Lead.id)).where(func.date(Lead.discovered_at) == today)
                     )
                 )
-                emails_sent = await db.scalar(
+                leads_qualified = await db.scalar(
+                    _user_filter(
+                        select(func.count(Lead.id)).where(
+                            (func.date(Lead.qualified_at) == today) &
+                            Lead.status.in_(["qualified", "phone_qualified"])
+                        )
+                    )
+                )
+
+                # Email sent count — filter via campaign.user_id for multi-tenant
+                email_sent_query = (
                     select(func.count(EmailOutreach.id)).where(
                         (func.date(EmailOutreach.sent_at) == today) &
                         (EmailOutreach.status == "sent")
                     )
                 )
+                if user_id is not None:
+                    email_sent_query = email_sent_query.join(
+                        Campaign, EmailOutreach.campaign_id == Campaign.id
+                    ).where(Campaign.user_id == user_id)
+                emails_sent = await db.scalar(email_sent_query)
 
                 # Fetch leads involved in today's activities for detail list
-                leads_res = await db.execute(
-                    select(Lead).where(
-                        (func.date(Lead.discovered_at) == today)
-                        | (func.date(Lead.email_sent_at) == today)
-                        | (func.date(Lead.first_replied_at) == today)
-                    )
+                leads_activity_query = select(Lead).where(
+                    (func.date(Lead.discovered_at) == today)
+                    | (func.date(Lead.email_sent_at) == today)
+                    | (func.date(Lead.first_replied_at) == today)
                 )
+                if user_id is not None:
+                    leads_activity_query = leads_activity_query.where(Lead.user_id == user_id)
+                leads_res = await db.execute(leads_activity_query)
                 report_leads = leads_res.scalars().all()
 
                 report_data = {

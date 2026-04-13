@@ -2,26 +2,29 @@
 set -e
 
 # ── DATABASE READINESS ──────────────────────────────────────────
-# Extract host and port from DATABASE_URL if they aren't explicitly provided
-# Example: postgresql+asyncpg://user:pass@host:port/dbname
+# Extract host and port from DATABASE_URL if they aren't explicitly provided.
+# We use Python's urllib.parse for robust parsing (handles SQLAlchemy
+# "+driver" dialects like postgresql+asyncpg:// correctly).
 if [ -z "$DATABASE_HOST" ] && [ -n "$DATABASE_URL" ]; then
-    # Remove protocol and credentials part
-    DB_URL_WITHOUT_PROTO_CREDS=$(echo "$DATABASE_URL" | sed -E 's/^[a-z0-9+]+:\/\/(.*@)?//')
-    
-    # Extract host (part before first colon or slash)
-    DATABASE_HOST=$(echo "$DB_URL_WITHOUT_PROTO_CREDS" | sed -E 's/[:/].*//')
-    
-    # Extract port (part between first colon and first slash, if present)
-    if [[ "$DB_URL_WITHOUT_PROTO_CREDS" == *":"* ]]; then
-        PORT_PART=$(echo "$DB_URL_WITHOUT_PROTO_CREDS" | sed -E 's/^[^:]+:([0-9]+).*$/\1/')
-        if [[ "$PORT_PART" =~ ^[0-9]+$ ]]; then
-            DATABASE_PORT="$PORT_PART"
-        else
-            DATABASE_PORT=5432 # Default PostgreSQL port
-        fi
-    else
-        DATABASE_PORT=5432 # Default PostgreSQL port
-    fi
+    PARSED=$(python -c "
+import os, sys
+from urllib.parse import urlparse
+try:
+    url = os.environ['DATABASE_URL']
+    # Strip SQLAlchemy driver suffix (e.g., postgresql+asyncpg -> postgresql)
+    if '+' in url.split('://', 1)[0]:
+        scheme, rest = url.split('://', 1)
+        url = scheme.split('+')[0] + '://' + rest
+    u = urlparse(url)
+    host = u.hostname or ''
+    port = u.port or 5432
+    print(f'{host}|{port}')
+except Exception as e:
+    sys.stderr.write(f'DATABASE_URL parse error: {e}\n')
+    print('|5432')
+" 2>/dev/null || echo "|5432")
+    DATABASE_HOST="${PARSED%%|*}"
+    DATABASE_PORT="${PARSED##*|}"
 fi
 
 # Default to db:5432 if still unset

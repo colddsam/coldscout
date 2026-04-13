@@ -23,14 +23,15 @@ from datetime import date
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.lead import Lead
+from app.models.user import User
 from app.schemas.lead import (
-    LeadResponse, 
-    LeadUpdate, 
-    LeadDetailResponse, 
+    LeadResponse,
+    LeadUpdate,
+    LeadDetailResponse,
     LeadListResponse
 )
 
-router = APIRouter(prefix="/leads", dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/leads")
 
 @router.get("", response_model=LeadListResponse)
 async def list_leads(
@@ -44,30 +45,20 @@ async def list_leads(
     date_to: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Retrieves a paginated, optionally filtered list of discovered leads.
+    Retrieves a paginated, optionally filtered list of leads belonging to the current user.
 
     Supports filtering by lifecycle status, country, region, city, business category,
     and discovery date range. Results are ordered by creation date (newest first).
-
-    Args:
-        status: Filter by lead lifecycle status (e.g. 'qualified', 'email_sent').
-        country: Case-insensitive partial match on the lead's country name.
-        country_code: Exact match on ISO 3166-1 alpha-2 code (e.g. 'US', 'IN').
-        region: Case-insensitive partial match on the lead's region/state.
-        city: Case-insensitive partial match on the lead's city.
-        category: Case-insensitive partial match on the business category.
-        date_from: ISO date string — only return leads created on or after this date.
-        date_to: ISO date string — only return leads created on or before this date.
-        page: 1-indexed page number for pagination (default: 1).
-        limit: Maximum leads per page, capped at 100 (default: 50).
-
-    Returns:
-        LeadListResponse: Paginated response containing leads array, total count, and page metadata.
+    Every caller — including superusers — only sees leads owned by their own
+    user_id. Cross-user visibility is not allowed on this endpoint.
     """
     stmt = select(Lead)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     if status:
         stmt = stmt.where(Lead.status == status)
     if country_code:
@@ -121,27 +112,18 @@ async def export_leads_csv(
     category: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Exports the filtered lead set as a downloadable CSV attachment.
-
-    Applies the same filter criteria as the list endpoint. The response streams
-    an RFC-4180-compliant CSV file with columns including international location
-    fields: Country, Country Code, Region, Sub-Area, and Postal Code.
-
-    Row Limit:
-        A hard cap of 10,000 rows is enforced to protect the database from
-        unbounded full-table scans triggered by a single HTTP request. When
-        the result set is truncated, an ``X-Export-Truncated: true`` response
-        header is included so the client can surface a warning to the user.
-
-    Returns:
-        StreamingResponse: A `text/csv` attachment named `leads_YYYY-MM-DD.csv`.
+    Strictly scoped to the current user's leads.
     """
     CSV_EXPORT_LIMIT = 10_000
 
     stmt = select(Lead)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     if status:
         stmt = stmt.where(Lead.status == status)
     if country_code:
@@ -208,22 +190,14 @@ async def export_leads_csv(
     )
 
 @router.get("/{lead_id}", response_model=LeadDetailResponse)
-async def get_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
+async def get_lead(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """
-    Retrieves the full profile for a single lead, including eagerly loaded social network associations.
-
-    Args:
-        lead_id: UUID string identifying the target lead.
-
-    Returns:
-        LeadDetailResponse: Complete lead entity with enrichment data, lifecycle timestamps,
-        follow-up metadata, reply intelligence, and social network records.
-
-    Raises:
-        HTTPException 404: If no lead matches the provided identifier.
+    Retrieves the full profile for a single lead, scoped to the current user.
     """
     from sqlalchemy.orm import selectinload
     stmt = select(Lead).options(selectinload(Lead.social_networks)).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     lead = result.scalars().first()
     if not lead:
@@ -231,24 +205,14 @@ async def get_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     return lead
 
 @router.patch("/{lead_id}", response_model=LeadResponse)
-async def update_lead(lead_id: str, update_data: LeadUpdate, db: AsyncSession = Depends(get_db)):
+async def update_lead(lead_id: str, update_data: LeadUpdate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """
     Partially updates a lead's mutable attributes (status and/or notes).
-
-    This endpoint is used by administrators to manually override lifecycle statuses
-    or annotate leads with contextual remarks.
-
-    Args:
-        lead_id: UUID string identifying the target lead.
-        update_data: Partial update payload containing optional `status` and `notes` fields.
-
-    Returns:
-        LeadResponse: The refreshed lead entity reflecting the applied mutations.
-
-    Raises:
-        HTTPException 404: If no lead matches the provided identifier.
+    Scoped to the current user's leads.
     """
     stmt = select(Lead).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     lead = result.scalars().first()
     if not lead:
@@ -264,14 +228,16 @@ async def update_lead(lead_id: str, update_data: LeadUpdate, db: AsyncSession = 
     return lead
 
 @router.get("/{lead_id}/demo-status")
-async def get_demo_status(lead_id: str, db: AsyncSession = Depends(get_db)):
-    """Returns the demo generation status and metadata for a lead."""
+async def get_demo_status(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Returns the demo generation status and metadata for a lead (scoped to current user)."""
     stmt = select(
         Lead.demo_site_status,
         Lead.demo_generated_at,
         Lead.demo_view_count,
         Lead.has_website,
     ).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     row = result.first()
     if not row:
@@ -287,11 +253,13 @@ async def get_demo_status(lead_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{lead_id}/demo-preview")
-async def preview_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
+async def preview_demo(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Returns the demo HTML for admin preview (not the public-facing endpoint)."""
     from fastapi.responses import HTMLResponse
 
     stmt = select(Lead.generated_demo_html, Lead.demo_site_status).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     row = result.first()
     if not row:
@@ -305,9 +273,11 @@ async def preview_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{lead_id}/demo-regenerate")
-async def regenerate_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
+async def regenerate_demo(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Triggers re-generation of the demo for a lead (resets status to pending)."""
     stmt = select(Lead).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     lead = result.scalars().first()
     if not lead:
@@ -339,20 +309,14 @@ async def regenerate_demo(lead_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/{lead_id}", status_code=204)
-async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_lead(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """
     Permanently deletes a lead and all associated records from the system.
-    
-    This includes social networks, outreach history, and event tracking.
-    Use with caution as this action cannot be undone.
-
-    Args:
-        lead_id: UUID string identifying the target lead.
-
-    Raises:
-        HTTPException 404: If no lead matches the provided identifier.
+    Scoped to the current user's leads.
     """
     stmt = select(Lead).where(Lead.id == lead_id)
+    if not current_user.is_superuser:
+        stmt = stmt.where(Lead.user_id == current_user.id)
     result = await db.execute(stmt)
     lead = result.scalars().first()
     if not lead:

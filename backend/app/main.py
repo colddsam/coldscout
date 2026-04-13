@@ -42,20 +42,45 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Lead Generation Automation API...")
     
     # Ensure database schema is present before accepting requests
-    await verify_tables_exist()
-    
-    # Setup background task scheduling (Discovery, Qualification, Outreach)
-    setup_scheduler()
+    try:
+        await verify_tables_exist()
+    except Exception as e:
+        logger.error(f"Database verification failed during startup: {e}")
+        raise
 
-    # NOTE: The system is designed to be extensible. While we currently use 
-    # APScheduler for simplicity, the codebase retains structure compatible 
+    # Setup background task scheduling (Discovery, Qualification, Outreach)
+    try:
+        setup_scheduler()
+    except Exception as e:
+        logger.error(f"Scheduler setup failed during startup: {e}. "
+                     f"API will run without background task scheduling.")
+
+    # Optional: check Redis connectivity (pipeline tracking degrades gracefully
+    # if Redis is unavailable, but we log a warning so operators are aware).
+    try:
+        from app.core.redis_client import ping_redis
+        if not await ping_redis():
+            logger.warning("Redis is not reachable. Pipeline tracking will be disabled.")
+        else:
+            logger.info("Redis connectivity verified.")
+    except Exception as e:
+        logger.warning(f"Redis connectivity check failed: {e}")
+
+    # NOTE: The system is designed to be extensible. While we currently use
+    # APScheduler for simplicity, the codebase retains structure compatible
     # with Celery/Redis for future horizontal scaling requirements.
 
     yield
 
     # ── Shutdown ─────────────────────────────────────────────
-    # Gracefully stop the scheduler to prevent orphaned tasks
-    scheduler.shutdown(wait=False)
+    # Gracefully stop the scheduler — wait for in-progress jobs to finish
+    # so database transactions can commit cleanly. Falls back to forceful
+    # shutdown if scheduler is in an unexpected state.
+    try:
+        if scheduler.running:
+            scheduler.shutdown(wait=True)
+    except Exception as e:
+        logger.warning(f"Scheduler shutdown encountered an issue: {e}")
     logger.info("Application shutdown complete. Scheduler stopped.")
 
 # Initialize FastAPI application with optimized metadata for OpenAPI/Swagger documentation

@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Boolean, Column, DateTime, Float,
-    ForeignKey, Integer, JSON, String, Text,
+    ForeignKey, Integer, JSON, String, Text, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -30,10 +30,13 @@ class SearchHistory(Base):
     International support: tracks full location hierarchy
     (country → region → city → sub_area) to prevent collisions
     between same-name cities in different countries.
+
+    Multi-tenant: each freelancer has independent search history.
     """
     __tablename__ = "search_history"
 
     id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id      = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     country      = Column(String(100), nullable=True, index=True)
     country_code = Column(String(5), nullable=True, index=True)
     region       = Column(String(150), nullable=True, index=True)
@@ -64,10 +67,14 @@ class Lead(Base):
     (any active stage can become bounced or unsubscribed)
     """
     __tablename__ = "leads"
+    __table_args__ = (
+        UniqueConstraint("place_id", "user_id", name="uq_leads_place_id_user_id"),
+    )
 
     # Identity Fields
     id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    place_id       = Column(String(255), unique=True, index=True, nullable=False)
+    user_id        = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    place_id       = Column(String(255), index=True, nullable=False)
     business_name  = Column(String(255), nullable=False)
     category       = Column(String(100), nullable=True)
     address        = Column(String, nullable=True)

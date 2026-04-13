@@ -129,6 +129,7 @@ IMAGE_BASE_URL=https://your-backend.onrender.com
 
 # Database
 DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@db.SUPABASE_REF.supabase.co:5432/postgres
+REDIS_URL=redis://default:password@your-redis-host:6379
 SUPABASE_URL=https://SUPABASE_REF.supabase.co
 SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1Q...
 
@@ -178,6 +179,11 @@ GEMINI_API_KEY=your_gemini_api_key
 DEMO_GENERATION_ENABLED=true
 DEMO_MAX_PER_DAY=10
 FRONTEND_DOMAIN=https://your-frontend.vercel.app
+
+# Social Integration (Meta Threads)
+THREADS_APP_ID=...
+THREADS_APP_SECRET=...
+THREADS_REDIRECT_URI=https://coldscout.com/auth/threads
 
 # Billing
 RAZORPAY_KEY_ID=rzp_live_...
@@ -334,16 +340,16 @@ The backend verifies user JWTs in two modes:
 ## 📋 Pre-Deployment Checklist
 
 ```
-Backend Production Checklist:
-
   ✅ APP_ENV=production set
   ✅ DATABASE_URL uses postgresql+asyncpg:// protocol
+  ✅ REDIS_URL configured for Pipeline Log UI
   ✅ BACKEND_CORS_ORIGINS set to exact frontend domain(s)
   ✅ API_KEY is cryptographically random (use generate_secrets.py)
   ✅ GROQ_API_KEY provisioned and tested
   ✅ GOOGLE_PLACES_API_KEY restricted to Places API
   ✅ Brevo SMTP credentials verified
   ✅ IMAP App Password configured (not account password)
+  ✅ THREADS_APP_ID and secret configured (if using social outreach)
   ✅ Telegram bot created and CHAT_ID confirmed
   ✅ RAZORPAY using live keys (not test keys)
   ✅ Database tables created via create_tables.py

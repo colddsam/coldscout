@@ -442,6 +442,8 @@ erDiagram
 - Scheduler override — manually trigger any pipeline stage
 - Analytics with funnel charts, bar charts, and conversion metrics
 - Inbox — auto-classified replies by intent (positive / negative / OOO)
+- **Pipeline Log UI** — Real-time execution logs for every job stage (requires Redis)
+- **Booking Redirects** — Native `/book/{username}` clean links for prospect scheduling
 
 </details>
 
@@ -641,6 +643,7 @@ npm run dev
 | | `BACKEND_CORS_ORIGINS` | Comma-delimited allowed origins |
 | | `APP_URL` | Application root URL |
 | **Database** | `DATABASE_URL` | `postgresql+asyncpg://...` URI |
+| | `REDIS_URL` | Redis connection for Pipeline Log UI (Required for monitoring) |
 | | `SUPABASE_URL` | Supabase project URL |
 | | `SUPABASE_ANON_KEY` | Supabase public key |
 | **AI** | `GROQ_API_KEY` | Groq Cloud API key |

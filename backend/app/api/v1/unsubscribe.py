@@ -29,19 +29,23 @@ async def unsubscribe_lead(tracking_token: str, request: Request, db: AsyncSessi
     try:
         if "." not in tracking_token:
             raise ValueError("Invalid token format")
-            
+
         b64_payload, b64_sig = tracking_token.split(".", 1)
-        
-        payload_bytes = base64.urlsafe_b64decode(b64_payload + "===")
+
+        def _add_padding(s: str) -> str:
+            mod = len(s) % 4
+            return s + "=" * (4 - mod) if mod else s
+
+        payload_bytes = base64.urlsafe_b64decode(_add_padding(b64_payload))
         payload_str = payload_bytes.decode("utf-8")
-        
+
         expected_sig = hmac.new(
             settings.SECURITY_SALT.encode(),
             payload_str.encode(),
             hashlib.sha256
         ).digest()
-        
-        actual_sig = base64.urlsafe_b64decode(b64_sig + "===")
+
+        actual_sig = base64.urlsafe_b64decode(_add_padding(b64_sig))
         
         if not hmac.compare_digest(actual_sig, expected_sig):
             logger.warning(f"Invalid signature attempt for token: {tracking_token}")

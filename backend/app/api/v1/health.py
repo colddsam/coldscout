@@ -44,34 +44,46 @@ async def health_check(
         dict: A status report of the system's core components.
     """
     from app.models.daily_report import DailyReport
-    from sqlalchemy import select
+    from sqlalchemy import select, text
     from app.core.database import get_session_maker
 
-    # Initialize last_status variable to unknown
+    # Initialize variables
     last_status = "unknown"
+    db_healthy = False
+    redis_healthy: bool | None = None  # None => not configured
 
     try:
-        # Check database health by attempting a simple select on DailyReport
+        # Check database health by running a lightweight connectivity query
+        # plus fetching the latest report's pipeline status.
         async with get_session_maker()() as db:
-            # Create a select statement to retrieve the latest DailyReport
+            await db.execute(text("SELECT 1"))
+            db_healthy = True
             stmt = select(DailyReport).order_by(DailyReport.report_date.desc()).limit(1)
-            # Execute the select statement and retrieve the result
             res = await db.execute(stmt)
-            # Retrieve the first (latest) DailyReport from the result
             latest = res.scalars().first()
-            # If a DailyReport is found, update last_status
             if latest:
                 last_status = latest.pipeline_status
     except Exception as e:
-        # Log any errors that occur during the health check
         logger.error(f"Health check database error: {e}")
 
-    # Return a status report of the system's core components
+    # Check Redis if configured (pipeline tracking dependency)
+    try:
+        if getattr(settings, "REDIS_URL", ""):
+            from app.core.redis_client import ping_redis
+            redis_healthy = await ping_redis()
+    except Exception as e:
+        logger.warning(f"Health check Redis error: {e}")
+        redis_healthy = False
+
+    overall_status = "healthy" if db_healthy else "degraded"
+
     return {
-        "status": "healthy",
-        "version": "1.0.0",  # Hardcoded or pulled from elsewhere
+        "status": overall_status,
+        "version": getattr(settings, "APP_VERSION", "1.0.0"),
         "environment": settings.APP_ENV,
         "last_pipeline_status": last_status,
         "scheduler_running": scheduler.running,
-        "production_status": get_production_status() == "RUN"
+        "production_status": get_production_status() == "RUN",
+        "database_healthy": db_healthy,
+        "redis_healthy": redis_healthy,
     }

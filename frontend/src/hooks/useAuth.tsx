@@ -13,6 +13,7 @@ import {
 } from '../lib/supabase';
 import type { OAuthProvider, UserRole } from '../lib/supabase';
 import { client } from '../lib/api';
+import { getAuthItem, setAuthItem, removeAuthItem } from '../lib/authStorage';
 
 /**
  * User interface for the application.
@@ -114,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserRole(backendUser.role || 'freelancer');
 
       // Store in localStorage for quick recovery
-      localStorage.setItem('llp_user', JSON.stringify(backendUser));
+      setAuthItem('llp_user', JSON.stringify(backendUser));
 
       return backendUser;
     } catch {
@@ -139,20 +140,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserRole(getUserRole(existingSession.user));
 
           // Try to restore user from localStorage first for quick UI
-          const savedUserData = localStorage.getItem('llp_user');
+          const savedUserData = getAuthItem('llp_user');
           if (savedUserData && savedUserData !== 'undefined') {
             try {
               const savedUser = JSON.parse(savedUserData);
-              setUser(savedUser);
-              setUserRole(savedUser.role || 'freelancer');
+              if (savedUser && typeof savedUser === 'object' && savedUser.id && savedUser.email) {
+                setUser(savedUser);
+                setUserRole(savedUser.role || 'freelancer');
+              } else {
+                console.warn('Invalid user data in localStorage, discarding');
+                removeAuthItem('llp_user');
+              }
             } catch {
-              // Malformed data
+              removeAuthItem('llp_user');
             }
           }
         } else {
           // Check for legacy token
-          const savedToken = localStorage.getItem('llp_token');
-          const savedUserData = localStorage.getItem('llp_user');
+          const savedToken = getAuthItem('llp_token');
+          const savedUserData = getAuthItem('llp_user');
 
           if (savedToken && savedUserData) {
             try {
@@ -162,14 +168,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUserRole(savedUser.role || 'freelancer');
             } catch {
               // Legacy restore failed
-              localStorage.removeItem('llp_token');
-              localStorage.removeItem('llp_user');
+              removeAuthItem('llp_token');
+              removeAuthItem('llp_user');
             }
           }
         }
       } catch {
-        localStorage.removeItem('llp_token');
-        localStorage.removeItem('llp_user');
+        removeAuthItem('llp_token');
+        removeAuthItem('llp_user');
       } finally {
         setIsLoading(false);
       }
@@ -194,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Restore backend user from localStorage if the uid matches.
           // This preserves the authoritative role from the last backend sync,
           // preventing incorrect role assignment from Supabase metadata alone.
-          const savedUserData = localStorage.getItem('llp_user');
+          const savedUserData = getAuthItem('llp_user');
           if (savedUserData && savedUserData !== 'undefined') {
             try {
               const savedUser = JSON.parse(savedUserData);
@@ -203,7 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUserRole(savedUser.role || getUserRole(newSession.user));
               } else {
                 // Stale data from a different user — discard it
-                localStorage.removeItem('llp_user');
+                removeAuthItem('llp_user');
                 setUserRole(getUserRole(newSession.user));
               }
             } catch {
@@ -218,8 +224,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setToken(null);
           setUserRole('freelancer');
-          localStorage.removeItem('llp_token');
-          localStorage.removeItem('llp_user');
+          removeAuthItem('llp_token');
+          removeAuthItem('llp_user');
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
           setToken(newSession.access_token);
@@ -262,10 +268,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (lastSyncedTokenRef.current === session.access_token) return;
 
     lastSyncedTokenRef.current = session.access_token;
-    const pendingRole = (localStorage.getItem('llp_pending_role') || undefined) as UserRole | undefined;
+    const pendingRole = (getAuthItem('llp_pending_role') || undefined) as UserRole | undefined;
     syncUserToBackend(pendingRole).then((backendUser) => {
       if (backendUser && pendingRole) {
-        localStorage.removeItem('llp_pending_role');
+        removeAuthItem('llp_pending_role');
       }
     });
   }, [session, supabaseUser, isLoading, syncUserToBackend, location.pathname]);
@@ -279,8 +285,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     setUserRole(newUser.role || 'freelancer');
     setIsSessionExpired(false);
-    localStorage.setItem('llp_token', newToken);
-    localStorage.setItem('llp_user', JSON.stringify(newUser));
+    setAuthItem('llp_token', newToken);
+    setAuthItem('llp_user', JSON.stringify(newUser));
   }, []);
 
   /**
@@ -297,8 +303,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
     setUserRole('freelancer');
     setIsSessionExpired(false);
-    localStorage.removeItem('llp_token');
-    localStorage.removeItem('llp_user');
+    removeAuthItem('llp_token');
+    removeAuthItem('llp_user');
 
     navigate('/login');
   }, [navigate]);
@@ -311,7 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     role: UserRole = 'freelancer'
   ): Promise<{ error: Error | null }> => {
     // Store the selected role for use after callback
-    localStorage.setItem('llp_pending_role', role);
+    setAuthItem('llp_pending_role', role);
 
     const { error } = await supabaseSignInWithOAuth(provider, role);
     return { error: error as Error | null };
@@ -350,7 +356,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fullName?: string
   ): Promise<{ error: Error | null }> => {
     // Store the selected role for use after email confirmation
-    localStorage.setItem('llp_pending_role', role);
+    setAuthItem('llp_pending_role', role);
 
     const { error } = await supabaseSignUp(email, password, role, fullName);
     return { error: error as Error | null };

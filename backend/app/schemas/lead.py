@@ -59,7 +59,6 @@ class LeadResponse(LeadBase):
     
     followup_count: Optional[int] = None
     follow_up_stage: Optional[int] = None
-    sequence_stage: Optional[int] = None
     next_followup_at: Optional[datetime] = None
     followup_sequence_active: Optional[bool] = None
     reply_classification: Optional[str] = None

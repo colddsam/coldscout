@@ -11,6 +11,7 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { useSEO } from '../../hooks/useSEO';
 import { useAuth } from '../../hooks/useAuth';
+import { useRealtimePipelineStatus } from '../../hooks/useRealtimePipelineStatus';
 import UpgradeModal from '../dashboard/UpgradeModal';
 import DashboardSkeleton from '../dashboard/DashboardSkeleton';
 
@@ -23,6 +24,11 @@ export default function Shell() {
 
   const showUpgradeModal = !!(user && user.role === 'freelancer' && !hasPaidPlan && !modalDismissed);
   const showSkeleton = user?.role === 'freelancer' && !hasPaidPlan;
+
+  // Push-updates: refetch health + freelancer-status the instant any client
+  // toggles production state, so the topbar pill and pipeline controls flip
+  // without the user needing to refresh.
+  useRealtimePipelineStatus();
 
   useSEO({
     title: 'Dashboard | Cold Scout',

@@ -112,12 +112,12 @@ async def verify_tables_exist():
                         check=True,
                         capture_output=True,
                         text=True,
-                        timeout=120,
+                        timeout=600,
                     )
                     logger.info("Successfully provisioned database schema using Alembic!")
                     logger.debug(f"Alembic output: {result.stdout}")
                 except subprocess.TimeoutExpired:
-                    error_msg = "Alembic migration timed out after 120s — possible schema lock contention."
+                    error_msg = "Alembic migration timed out after 600s — possible schema lock contention."
                     logger.error(error_msg)
                     sys.exit(error_msg)
                 except subprocess.CalledProcessError as sub_e:

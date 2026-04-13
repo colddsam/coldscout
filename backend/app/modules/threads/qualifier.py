@@ -26,11 +26,12 @@ from app.models.threads import ThreadsProfile, ThreadsPost
 settings = get_settings()
 
 
-async def run_threads_qualification() -> dict:
+async def run_threads_qualification(manual: bool = False, user_id: int | None = None) -> dict:
     """
     Main entry point for the Threads qualification stage.
 
-    Processes all profiles with qualification_status='pending' and scores them.
+    Processes the given freelancer's pending ThreadsProfile rows. When
+    user_id is None, falls back to a global scan (legacy behavior).
     """
     if not settings.THREADS_ENABLED:
         return {"status": "disabled"}
@@ -41,8 +42,10 @@ async def run_threads_qualification() -> dict:
         stmt = (
             select(ThreadsProfile)
             .where(ThreadsProfile.qualification_status == "pending")
-            .limit(50)  # Batch size — avoid LLM overload
         )
+        if user_id is not None:
+            stmt = stmt.where(ThreadsProfile.user_id == user_id)
+        stmt = stmt.limit(50)  # Batch size — avoid LLM overload
         result = await db.execute(stmt)
         pending_profiles = result.scalars().all()
 

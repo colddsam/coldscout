@@ -6,7 +6,7 @@ to specific campaigns and tracks the detailed delivery state of every
 individual email sent by the system.
 """
 import uuid
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Date, ARRAY, ForeignKey, Text, JSON
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Date, ARRAY, ForeignKey, Text, JSON, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,10 +16,13 @@ class Campaign(Base):
     """
     Core model representing an outreach campaign.
     Aggregates statistical metrics and binds email dispatches.
+
+    Multi-tenant: each freelancer has independent campaigns.
     """
     __tablename__ = "campaigns"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(255), nullable=False)
     campaign_date = Column(Date, nullable=False)
     status = Column(String(50), default="pending")
@@ -46,7 +49,7 @@ class EmailOutreach(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), index=True)
-    campaign_id = Column(UUID(as_uuid=True), ForeignKey("campaigns.id"))
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="CASCADE"), index=True)
 
     to_email = Column(String(255), nullable=False)
     subject = Column(Text, nullable=False)
