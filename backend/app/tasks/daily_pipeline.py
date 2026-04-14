@@ -725,58 +725,42 @@ async def run_outreach_stage(manual: bool = False, user_id: Optional[int] = None
                 attachments = email_task.attachment_names if email_task.has_attachment else []
                 
                 try:
-                    success = await send_email(
+                    await send_email(
                         to_email     = email_task.to_email,
                         subject      = email_task.subject,
                         html_content = email_task.body_html,
                         attachment_paths = attachments,
                     )
 
-                    # Retry up to 2 more times on transient failures
-                    for attempt in range(2, 4):
-                        if success:
-                            break
-                        logger.warning(f"Retry {attempt}/3 for email to {email_task.to_email}")
-                        await asyncio.sleep(3 * attempt)
-                        success = await send_email(
-                            to_email     = email_task.to_email,
-                            subject      = email_task.subject,
-                            html_content = email_task.body_html,
-                            attachment_paths = attachments,
-                        )
+                    email_task.status  = "sent"
+                    email_task.sent_at = datetime.now(timezone.utc)
+                    sent_count += 1
 
-                    if success:
-                        email_task.status  = "sent"
-                        email_task.sent_at = datetime.now(timezone.utc)
-                        sent_count += 1
+                    # Update lead status
+                    l_res = await db.execute(
+                        select(Lead).where(Lead.id == email_task.lead_id)
+                    )
+                    lead = l_res.scalars().first()
+                    if lead:
+                        lead.status       = "email_sent"
+                        lead.email_sent_at = datetime.now(timezone.utc)
 
-                        # Update lead status
-                        l_res = await db.execute(
-                            select(Lead).where(Lead.id == email_task.lead_id)
-                        )
-                        lead = l_res.scalars().first()
-                        if lead:
-                            lead.status       = "email_sent"
-                            lead.email_sent_at = datetime.now(timezone.utc)
+                        from app.modules.outreach.followup_engine import schedule_followup
+                        await schedule_followup(lead, db)
 
-                            from app.modules.outreach.followup_engine import schedule_followup
-                            await schedule_followup(lead, db)
+                    # Update campaign counters
+                    c_res = await db.execute(
+                        select(Campaign).where(Campaign.id == email_task.campaign_id)
+                    )
+                    campaign = c_res.scalars().first()
+                    if campaign:
+                        campaign.emails_sent += 1
+                        if campaign.status == "pending":
+                            campaign.status     = "active"
+                            campaign.started_at = datetime.now(timezone.utc)
 
-                        # Update campaign counters
-                        c_res = await db.execute(
-                            select(Campaign).where(Campaign.id == email_task.campaign_id)
-                        )
-                        campaign = c_res.scalars().first()
-                        if campaign:
-                            campaign.emails_sent += 1
-                            if campaign.status == "pending":
-                                campaign.status     = "active"
-                                campaign.started_at = datetime.now(timezone.utc)
-
-                        # Commit immediately per email — prevents batch rollback loss
-                        await db.commit()
-                    else:
-                        email_task.status = "failed"
+                    # Commit immediately per email — prevents batch rollback loss
+                    await db.commit()
 
                 except Exception as e:
                     logger.error(f"Error during email dispatch or DB update for task {email_task.id}: {e}")

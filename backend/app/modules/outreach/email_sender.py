@@ -153,9 +153,13 @@ async def send_email(
             username=settings.BREVO_SMTP_USER,
             password=settings.BREVO_SMTP_PASSWORD,
             use_tls=settings.BREVO_SMTP_PORT == 465,
-            start_tls=settings.BREVO_SMTP_PORT == 587,
+            start_tls=settings.BREVO_SMTP_PORT in (587, 2525),
+            timeout=90,
         )
         return True
     except Exception as e:
-        logger.error("Failed to send email to %s after retries: %s", to_email, e)
+        logger.error(
+            "Failed to send email to %s using %s:%s after retries: %s",
+            to_email, settings.BREVO_SMTP_HOST, settings.BREVO_SMTP_PORT, e
+        )
         raise e  # Tenacity needs the exception to decide whether to retry
