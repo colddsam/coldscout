@@ -27,6 +27,7 @@ from loguru import logger
 from app.config import get_settings
 from app.core.scheduler import scheduler, setup_scheduler
 from app.core.database import verify_tables_exist
+from app.core.redis_client import close_redis
 from app.api.router import api_router
 
 @asynccontextmanager
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
 
     # Setup background task scheduling (Discovery, Qualification, Outreach)
     try:
-        setup_scheduler()
+        await setup_scheduler()
     except Exception as e:
         logger.error(f"Scheduler setup failed during startup: {e}. "
                      f"API will run without background task scheduling.")
@@ -79,6 +80,7 @@ async def lifespan(app: FastAPI):
     try:
         if scheduler.running:
             scheduler.shutdown(wait=True)
+        await close_redis()
     except Exception as e:
         logger.warning(f"Scheduler shutdown encountered an issue: {e}")
     logger.info("Application shutdown complete. Scheduler stopped.")
@@ -109,3 +111,16 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint for platform health/liveness checks.
+    Ensures that default cluster health probes (which often target '/')
+    do not fail with 404, preventing unnecessary process restarts.
+    """
+    return {
+        "status": "ok",
+        "service": "Lead Generation Automation API",
+        "version": "1.0.0"
+    }

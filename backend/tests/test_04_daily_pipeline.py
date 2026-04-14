@@ -18,7 +18,11 @@ def mock_job_manager():
     async def dummy_lock(*args, **kwargs):
         yield
 
+    async def _always_active(*args, **kwargs):
+        return True
+
     with patch("app.tasks.daily_pipeline.job_manager.is_job_active", return_value=True), \
+         patch("app.tasks.daily_pipeline.job_manager.is_freelancer_pipeline_active", new=_always_active), \
          patch("app.tasks.daily_pipeline.advisory_lock", new=dummy_lock):
         yield
 

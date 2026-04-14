@@ -86,6 +86,11 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
 
             logger.info(f"▶️ Running {stage_name} for freelancer {user_id}.")
             await stage_func(manual=False, user_id=user_id)
+        except asyncio.CancelledError:
+            # Shutdown initiated while a job was in flight. This is expected
+            # during redeployments or restarts and should be silent.
+            logger.info(f"🛑 {stage_name} cancelled for freelancer {user_id} during shutdown.")
+            raise
         except Exception as e:
             logger.exception(f"Error running {stage_name} for freelancer {user_id}: {e}")
             # Continue with other freelancers even if one fails

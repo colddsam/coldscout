@@ -1,13 +1,12 @@
 """
 Dynamic Task Scheduling Core.
 
-This module initializes the APScheduler background worker and synchronizes 
-its state with the dynamic JSON-based configuration (`jobs_config.json`).
-
-Design Choice:
-We use a 60-second 'Sync Heartbeat' (`sync_scheduler_config`). This allows 
-administrators to change a task's hour or status in the dashboard and have 
-it take effect at runtime without a process reboot.
+APScheduler wrapper that reflects the authoritative job configuration now
+stored in the ``global_job_configs`` Postgres table (managed by
+:class:`app.core.job_manager.JobManager`). The 60-second heartbeat
+(``sync_scheduler_config``) reconciles the DB snapshot into live
+APScheduler triggers so operators can retime or pause jobs from the
+dashboard without a process restart.
 """
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,21 +21,24 @@ settings = get_settings()
 
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
-def _apply_job_config(job_id: str, func, cfg: dict, misfire_grace_time_default: int = 600):
-    """
-    Low-level helper to translate JSON configuration schemas into 
-    concrete APScheduler Trigger objects (Cron or Interval).
-    """
-    trigger = None
+
+def _build_trigger(cfg: dict):
     if cfg.get("type") == "cron":
         kwargs = {}
-        if "minute" in cfg: kwargs["minute"] = cfg["minute"]
-        if "hour" in cfg: kwargs["hour"] = cfg["hour"]
-        if "day_of_week" in cfg: kwargs["day_of_week"] = cfg["day_of_week"]
-        trigger = CronTrigger(**kwargs)
-    elif cfg.get("type") == "interval":
-        trigger = IntervalTrigger(minutes=cfg.get("minutes", 30))
-        
+        if cfg.get("minute") is not None:
+            kwargs["minute"] = cfg["minute"]
+        if cfg.get("hour") is not None:
+            kwargs["hour"] = cfg["hour"]
+        if cfg.get("day_of_week"):
+            kwargs["day_of_week"] = cfg["day_of_week"]
+        return CronTrigger(**kwargs)
+    if cfg.get("type") == "interval":
+        return IntervalTrigger(minutes=cfg.get("minutes", 30))
+    return None
+
+
+def _apply_job_config(job_id: str, func, cfg: dict, misfire_grace_time_default: int = 600):
+    trigger = _build_trigger(cfg)
     if not trigger:
         logger.error(f"Invalid trigger configuration for {job_id}")
         return
@@ -46,31 +48,24 @@ def _apply_job_config(job_id: str, func, cfg: dict, misfire_grace_time_default: 
         trigger,
         id=job_id,
         replace_existing=True,
-        misfire_grace_time=misfire_grace_time_default
+        misfire_grace_time=misfire_grace_time_default,
     )
 
     if not job_manager.is_job_active(job_id):
         scheduler.pause_job(job_id)
 
 
-def sync_scheduler_config():
-    """
-    Administrative Heartbeat.
-    
-    Reads the current JSON configuration on disk and reconciles it with 
-    the live scheduler. This handles:
-    1. Pausing/Resuming jobs based on the 'status' field.
-    2. Modifying triggers (e.g., changing run time from 6 AM to 7 AM).
-    """
-    config = job_manager.load_config()
-    
+async def sync_scheduler_config():
+    """Heartbeat: refresh DB cache, then reconcile live APScheduler state."""
+    config = await job_manager.refresh_global_cache()
+
     for job_id, cfg in config.items():
         job = scheduler.get_job(job_id)
         if not job:
             continue
-            
+
         is_active = job_manager.is_job_active(job_id)
-        
+
         if is_active and job.next_run_time is None:
             scheduler.resume_job(job_id)
             logger.info(f"▶️ Resumed Job: {job_id}")
@@ -78,26 +73,16 @@ def sync_scheduler_config():
             scheduler.pause_job(job_id)
             logger.info(f"⏸️ Paused Job: {job_id}")
 
-        new_trigger = None
-        if cfg.get("type") == "cron":
-            kwargs = {}
-            if "minute" in cfg: kwargs["minute"] = cfg["minute"]
-            if "hour" in cfg: kwargs["hour"] = cfg["hour"]
-            if "day_of_week" in cfg: kwargs["day_of_week"] = cfg["day_of_week"]
-            new_trigger = CronTrigger(**kwargs)
-        elif cfg.get("type") == "interval":
-            new_trigger = IntervalTrigger(minutes=cfg.get("minutes", 30))
-
+        new_trigger = _build_trigger(cfg)
         if new_trigger and str(new_trigger) != str(job.trigger):
             scheduler.reschedule_job(job_id, trigger=new_trigger)
             logger.info(f"🔄 Rescheduled {job_id} -> {new_trigger}")
 
 
-def setup_scheduler():
+async def setup_scheduler():
+    """Bootstrap the scheduler. Must run inside the asyncio event loop so the
+    DB-backed job config cache can be primed before jobs are registered.
     """
-    Registers all pipeline stages as dynamic cron jobs mapped to the JSON configuration.
-    """
-    
     from app.tasks.daily_pipeline import (
         dispatch_stage_for_all_freelancers,
         run_discovery_stage,
@@ -117,11 +102,9 @@ def setup_scheduler():
     )
     from app.tasks.billing_tasks import check_subscription_expiry
 
-    config = job_manager.load_config()
+    # Prime the DB cache before touching APScheduler.
+    config = await job_manager.refresh_global_cache()
 
-    # Multi-freelancer dispatcher wrappers for daily pipeline stages.
-    # Each scheduled invocation iterates over active freelancers and
-    # runs the stage function once per freelancer with their user_id.
     async def _dispatch_discovery():
         await dispatch_stage_for_all_freelancers(run_discovery_stage, "discovery")
 
@@ -139,6 +122,9 @@ def setup_scheduler():
 
     async def _dispatch_daily_report():
         await dispatch_stage_for_all_freelancers(generate_daily_report, "daily_report")
+
+    async def _dispatch_followup():
+        await dispatch_stage_for_all_freelancers(run_followup_dispatch, "followup_dispatch")
 
     async def _dispatch_threads_discovery():
         await dispatch_stage_for_all_freelancers(run_threads_discovery_stage, "threads_discovery")
@@ -159,7 +145,7 @@ def setup_scheduler():
         "outreach": _dispatch_outreach,
         "reply_poll": _dispatch_reply_poll,
         "daily_report": _dispatch_daily_report,
-        "followup_dispatch": run_followup_dispatch,
+        "followup_dispatch": _dispatch_followup,
         "weekly_optimization": run_weekly_optimization,
         "threads_discovery": _dispatch_threads_discovery,
         "threads_qualification": _dispatch_threads_qualification,
@@ -170,16 +156,18 @@ def setup_scheduler():
     for j_id, func in job_map.items():
         cfg = config.get(j_id)
         if cfg:
-            _apply_job_config(j_id, func, cfg, misfire_grace_time_default=3600 if j_id == "weekly_optimization" else 600)
+            _apply_job_config(
+                j_id, func, cfg,
+                misfire_grace_time_default=3600 if j_id == "weekly_optimization" else 600,
+            )
 
     scheduler.add_job(
         sync_scheduler_config,
         IntervalTrigger(seconds=60),
         id="scheduler_sync",
-        replace_existing=True
+        replace_existing=True,
     )
 
-    # Subscription expiry check — always active, runs daily at 2 AM IST
     scheduler.add_job(
         check_subscription_expiry,
         CronTrigger(hour=2, minute=0, timezone="Asia/Kolkata"),
@@ -190,13 +178,12 @@ def setup_scheduler():
     logger.info("   🟢 subscription_expiry_check: cron 02:00 IST (always active)")
 
     scheduler.start()
-    
-    is_master_hold = get_production_status() == "HOLD"
-    if is_master_hold:
+
+    if get_production_status() == "HOLD":
         logger.warning("🚨 PRODUCTION_STATUS is HOLD. All tasks are initialized in a PAUSED state.")
     else:
-        logger.info("✅ APScheduler started with dynamic JSON configurations.")
-        
+        logger.info("✅ APScheduler started with DB-backed job configuration.")
+
     for j_id in job_map.keys():
         cfg = config.get(j_id, {})
         status = "🟢" if job_manager.is_job_active(j_id) else "🔴"

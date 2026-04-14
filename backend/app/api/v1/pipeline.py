@@ -355,57 +355,226 @@ from app.core.job_manager import job_manager
 
 @router.get("/pipeline/jobs_config")
 async def get_jobs_config():
-    """
-    Retrieves the live, dynamic scheduling configuration from the underlying JobManager.
+    """Returns the authoritative DB-backed global job configuration."""
+    return await job_manager.refresh_global_cache()
 
-    This configuration dictates the precise timing and operational status (RUN/HOLD) 
-    of all autonomous pipeline components. Force-reloads the state to guarantee accuracy.
 
-    Returns:
-        dict: The parsed schemas representing the current operational cron variables.
-    """
-    return job_manager.load_config(force_reload=True)
+@router.patch("/pipeline/jobs_config")
+async def update_jobs_config(
+    config_updates: dict = Body(...),
+    current_user: User = Depends(get_current_active_superuser),
+):
+    """Superuser merge-patch against ``global_job_configs``.
 
-@router.patch("/pipeline/jobs_config", dependencies=[Depends(get_current_active_superuser)])
-async def update_jobs_config(config_updates: dict = Body(...)):
+    Guardrail: the superuser cannot retune or re-enable jobs while the
+    global ``PRODUCTION_STATUS`` is HOLD. Resume production first, then
+    edit — this mirrors the UX contract requested by operators.
     """
-    Mutates the persistent scheduling configuration via a strict merge-patch strategy.
-    
-    Validates provided arguments against bound parameters (e.g., minute: 0-59, status: RUN/HOLD).
-    Changes are persisted to standard output and are swept asynchronously by the live scheduler 
-    check every 60 seconds without requiring a server reboot.
-    
-    Args:
-        config_updates (dict): A partial mapping of job identifiers to attribute changes.
-            Example: {"discovery": {"status": "HOLD", "hour": 5}}
+    from app.config import get_production_status
 
-    Returns:
-        dict: A confirmation detailing the successfully merged configuration payload.
-    """
+    if get_production_status() == "HOLD":
+        raise HTTPException(
+            status_code=409,
+            detail="PRODUCTION_STATUS is HOLD. Resume the pipeline before editing the global job configuration.",
+        )
+
     current_config = job_manager.load_config()
-    
+
+    sanitized: dict[str, dict] = {}
     for job_id, updates in config_updates.items():
         if job_id not in current_config or not isinstance(updates, dict):
             continue
-            
+
+        cleaned: dict = {}
         for field, val in updates.items():
-            if field == "status" and str(val).upper() not in ["RUN", "HOLD"]:
-                raise HTTPException(status_code=422, detail=f"Invalid status '{val}' for {job_id}. Must be RUN or HOLD.")
-            if field == "hour" and (not isinstance(val, int) or not (0 <= val <= 23)):
-                raise HTTPException(status_code=422, detail=f"Invalid hour '{val}' for {job_id}. Must be 0-23.")
-            if field in ["minute", "minutes"] and (not isinstance(val, int) or not (0 <= val <= 59)):
-                raise HTTPException(status_code=422, detail=f"Invalid minute '{val}' for {job_id}. Must be 0-59.")
-            if field == "day_of_week" and str(val).lower() not in ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]:
-                raise HTTPException(status_code=422, detail=f"Invalid day_of_week '{val}' for {job_id}.")
-                
-            current_config[job_id][field] = val
-            
-    job_manager.save_config(current_config)
+            if field == "status":
+                if str(val).upper() not in ("RUN", "HOLD"):
+                    raise HTTPException(status_code=422, detail=f"Invalid status '{val}' for {job_id}. Must be RUN or HOLD.")
+                cleaned["status"] = str(val).upper()
+            elif field == "hour":
+                if not isinstance(val, int) or not (0 <= val <= 23):
+                    raise HTTPException(status_code=422, detail=f"Invalid hour '{val}' for {job_id}. Must be 0-23.")
+                cleaned["hour"] = val
+            elif field in ("minute", "minutes"):
+                if not isinstance(val, int) or not (0 <= val <= 59):
+                    raise HTTPException(status_code=422, detail=f"Invalid {field} '{val}' for {job_id}. Must be 0-59.")
+                cleaned[field] = val
+            elif field == "day_of_week":
+                if str(val).lower() not in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
+                    raise HTTPException(status_code=422, detail=f"Invalid day_of_week '{val}' for {job_id}.")
+                cleaned["day_of_week"] = str(val).lower()
+            elif field == "type":
+                if val not in ("cron", "interval"):
+                    raise HTTPException(status_code=422, detail=f"Invalid type '{val}' for {job_id}.")
+                cleaned["type"] = val
+
+        if cleaned:
+            sanitized[job_id] = cleaned
+
+    new_config = await job_manager.save_global_config(sanitized, updated_by=current_user.id)
 
     return {
         "status": "success",
-        "message": "Configuration updated successfully. APScheduler will automatically sync within 60 seconds.",
-        "config": current_config
+        "message": "Configuration updated successfully. APScheduler will sync within 60 seconds.",
+        "config": new_config,
+    }
+
+
+# ── Per-freelancer job overrides ─────────────────────────────────────────────
+
+from app.models.freelancer_job_config import FreelancerJobConfig
+from app.core.job_manager import SYSTEM_ONLY_JOBS
+
+
+class FreelancerJobConfigUpdate(BaseModel):
+    status: str  # 'RUN' or 'HOLD'
+
+
+def _merge_effective(
+    global_config: dict[str, dict],
+    overrides: dict[str, str],
+    global_production_status: str,
+) -> list[dict]:
+    """Compute the per-job effective view for a freelancer."""
+    out: list[dict] = []
+    for job_id, cfg in global_config.items():
+        global_status = str(cfg.get("status", "RUN")).upper()
+        override = overrides.get(job_id, "RUN").upper()
+
+        if global_production_status == "HOLD":
+            effective = "HOLD"
+        elif global_status == "HOLD":
+            effective = "HOLD"
+        elif job_id in SYSTEM_ONLY_JOBS:
+            effective = global_status
+        else:
+            effective = "HOLD" if override == "HOLD" else "RUN"
+
+        out.append({
+            "job_id": job_id,
+            "type": cfg.get("type"),
+            "hour": cfg.get("hour"),
+            "minute": cfg.get("minute"),
+            "minutes": cfg.get("minutes"),
+            "day_of_week": cfg.get("day_of_week"),
+            "global_status": global_status,
+            "freelancer_status": override,
+            "effective_status": effective,
+            "system_only": job_id in SYSTEM_ONLY_JOBS,
+        })
+    return out
+
+
+@router.get("/pipeline/my-job-config")
+async def get_my_job_config(current_user: User = Depends(get_current_user)):
+    """Freelancer-facing merged view of every job with effective status."""
+    from app.config import get_production_status as _prod
+
+    global_config = await job_manager.refresh_global_cache()
+    overrides = await job_manager.get_freelancer_job_overrides(current_user.id, use_cache=False)
+    prod = _prod()
+
+    return {
+        "user_id": current_user.id,
+        "global_production_status": prod,
+        "jobs": _merge_effective(global_config, overrides, prod),
+    }
+
+
+@router.patch("/pipeline/my-job-config")
+async def update_my_job_config(
+    updates: dict = Body(..., description="Map of {job_id: 'RUN'|'HOLD'}"),
+    current_user: User = Depends(get_current_user),
+):
+    """Freelancer sets their own per-job overrides.
+
+    Rejects attempts to override a job that is globally HOLD (nothing to
+    override — the job is off for everyone) or while production is HOLD.
+    """
+    from app.config import get_production_status as _prod
+
+    if _prod() == "HOLD":
+        raise HTTPException(
+            status_code=409,
+            detail="PRODUCTION_STATUS is HOLD. Wait for the administrator to resume the pipeline.",
+        )
+
+    if current_user.role != "freelancer" and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Only freelancers can manage personal job overrides.")
+
+    global_config = job_manager.load_config()
+
+    for job_id, status in updates.items():
+        if job_id not in global_config:
+            raise HTTPException(status_code=422, detail=f"Unknown job '{job_id}'")
+        if job_id in SYSTEM_ONLY_JOBS:
+            raise HTTPException(status_code=422, detail=f"Job '{job_id}' cannot be overridden per freelancer.")
+        if str(global_config[job_id].get("status", "RUN")).upper() == "HOLD":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Job '{job_id}' is globally HOLD. Ask the administrator to enable it first.",
+            )
+        if str(status).upper() not in ("RUN", "HOLD"):
+            raise HTTPException(status_code=422, detail=f"Invalid status '{status}' for {job_id}. Must be RUN or HOLD.")
+
+    for job_id, status in updates.items():
+        await job_manager.set_freelancer_job_override(current_user.id, job_id, status)
+
+    overrides = await job_manager.get_freelancer_job_overrides(current_user.id, use_cache=False)
+    return {
+        "user_id": current_user.id,
+        "global_production_status": _prod(),
+        "jobs": _merge_effective(global_config, overrides, _prod()),
+    }
+
+
+@router.get(
+    "/pipeline/freelancer-job-config/{target_user_id}",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+async def admin_get_freelancer_job_config(target_user_id: int):
+    """Superuser view of a specific freelancer's overrides."""
+    from app.config import get_production_status as _prod
+
+    global_config = await job_manager.refresh_global_cache()
+    overrides = await job_manager.get_freelancer_job_overrides(target_user_id, use_cache=False)
+
+    return {
+        "user_id": target_user_id,
+        "global_production_status": _prod(),
+        "jobs": _merge_effective(global_config, overrides, _prod()),
+    }
+
+
+@router.patch(
+    "/pipeline/freelancer-job-config/{target_user_id}",
+    dependencies=[Depends(get_current_active_superuser)],
+)
+async def admin_update_freelancer_job_config(
+    target_user_id: int,
+    updates: dict = Body(..., description="Map of {job_id: 'RUN'|'HOLD'}"),
+):
+    """Superuser sets overrides on behalf of a freelancer."""
+    from app.config import get_production_status as _prod
+
+    global_config = job_manager.load_config()
+
+    for job_id, status in updates.items():
+        if job_id not in global_config:
+            raise HTTPException(status_code=422, detail=f"Unknown job '{job_id}'")
+        if job_id in SYSTEM_ONLY_JOBS:
+            raise HTTPException(status_code=422, detail=f"Job '{job_id}' cannot be overridden per freelancer.")
+        if str(status).upper() not in ("RUN", "HOLD"):
+            raise HTTPException(status_code=422, detail=f"Invalid status '{status}' for {job_id}. Must be RUN or HOLD.")
+
+    for job_id, status in updates.items():
+        await job_manager.set_freelancer_job_override(target_user_id, job_id, status)
+
+    overrides = await job_manager.get_freelancer_job_overrides(target_user_id, use_cache=False)
+    return {
+        "user_id": target_user_id,
+        "global_production_status": _prod(),
+        "jobs": _merge_effective(global_config, overrides, _prod()),
     }
 
 

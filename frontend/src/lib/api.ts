@@ -421,6 +421,61 @@ export const updateJobsConfig = (config: Record<string, unknown>) =>
     .patch<{ status: string; config: JobsConfig }>('/api/v1/pipeline/jobs_config', config)
     .then((r) => r.data);
 
+// Freelancer Per-Job Config
+export type JobEffectiveStatus = 'RUN' | 'HOLD';
+
+export interface FreelancerJobConfigRow {
+  job_id: string;
+  type: string | null;
+  hour: number | null;
+  minute: number | null;
+  minutes: number | null;
+  day_of_week: string | null;
+  global_status: JobEffectiveStatus;
+  freelancer_status: JobEffectiveStatus;
+  effective_status: JobEffectiveStatus;
+  system_only: boolean;
+}
+
+export interface FreelancerJobConfigResponse {
+  user_id: number;
+  global_production_status: JobEffectiveStatus;
+  jobs: FreelancerJobConfigRow[];
+}
+
+/**
+ * Get the current freelancer's effective job configuration (global merged with personal overrides).
+ */
+export const getMyJobConfig = () =>
+  client.get<FreelancerJobConfigResponse>('/api/v1/pipeline/my-job-config').then((r) => r.data);
+
+/**
+ * Update the current freelancer's personal per-job overrides.
+ */
+export const updateMyJobConfig = (updates: Record<string, JobEffectiveStatus>) =>
+  client
+    .patch<FreelancerJobConfigResponse>('/api/v1/pipeline/my-job-config', updates)
+    .then((r) => r.data);
+
+/**
+ * Admin: fetch a specific freelancer's job configuration view.
+ */
+export const getFreelancerJobConfigAdmin = (userId: number) =>
+  client
+    .get<FreelancerJobConfigResponse>(`/api/v1/pipeline/freelancer-job-config/${userId}`)
+    .then((r) => r.data);
+
+/**
+ * Admin: set a specific freelancer's per-job overrides.
+ */
+export const updateFreelancerJobConfigAdmin = (
+  userId: number,
+  updates: Record<string, JobEffectiveStatus>,
+) =>
+  client
+    .patch<FreelancerJobConfigResponse>(`/api/v1/pipeline/freelancer-job-config/${userId}`, updates)
+    .then((r) => r.data);
+
 // Freelancer Pipeline Status
 /**
  * Gets the current freelancer's pipeline production status.

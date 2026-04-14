@@ -1,5 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getHealth, getJobsConfig, updateJobsConfig, holdSystem, resumeSystem } from '../lib/api';
+import {
+  getHealth,
+  getJobsConfig,
+  updateJobsConfig,
+  holdSystem,
+  resumeSystem,
+  getMyJobConfig,
+  updateMyJobConfig,
+  getFreelancerJobConfigAdmin,
+  updateFreelancerJobConfigAdmin,
+  type JobEffectiveStatus,
+} from '../lib/api';
 import { broadcastPipelineStatusChange } from '../lib/realtime';
 import toast from 'react-hot-toast';
 
@@ -86,9 +97,67 @@ export function useUpdateConfig() {
     onSuccess: () => {
       toast.success('Config saved');
       qc.invalidateQueries({ queryKey: ['jobs-config'] });
+      qc.invalidateQueries({ queryKey: ['my-job-config'] });
     },
     onError: (err: Error) => {
       toast.error(`Config save failed: ${err.message}`);
+    },
+  });
+}
+
+/**
+ * Fetches the per-freelancer effective job configuration
+ * (global merged with personal overrides).
+ */
+export function useMyJobConfig() {
+  return useQuery({
+    queryKey: ['my-job-config'],
+    queryFn: getMyJobConfig,
+  });
+}
+
+/**
+ * Updates the current freelancer's per-job overrides (RUN/HOLD per job).
+ */
+export function useUpdateMyJobConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: Record<string, JobEffectiveStatus>) => updateMyJobConfig(updates),
+    onSuccess: () => {
+      toast.success('Personal job preferences saved');
+      qc.invalidateQueries({ queryKey: ['my-job-config'] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Save failed: ${err.message}`);
+    },
+  });
+}
+
+/**
+ * Admin: fetch a specific freelancer's effective job configuration.
+ */
+export function useFreelancerJobConfigAdmin(userId: number | null) {
+  return useQuery({
+    queryKey: ['freelancer-job-config', userId],
+    queryFn: () => getFreelancerJobConfigAdmin(userId as number),
+    enabled: userId !== null,
+  });
+}
+
+/**
+ * Admin: mutate a specific freelancer's overrides.
+ */
+export function useUpdateFreelancerJobConfigAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, updates }: { userId: number; updates: Record<string, JobEffectiveStatus> }) =>
+      updateFreelancerJobConfigAdmin(userId, updates),
+    onSuccess: (_data, vars) => {
+      toast.success(`Freelancer ${vars.userId} preferences saved`);
+      qc.invalidateQueries({ queryKey: ['freelancer-job-config', vars.userId] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Save failed: ${err.message}`);
     },
   });
 }

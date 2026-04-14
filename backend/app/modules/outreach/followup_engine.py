@@ -50,36 +50,44 @@ async def cancel_followup_sequence(lead_id: UUID, db: AsyncSession):
         lead.followup_sequence_active = False
         await db.commit()
 
-async def run_followup_dispatch(manual: bool = False):
+async def run_followup_dispatch(manual: bool = False, user_id: int | None = None):
     """
-    Cron-triggered dispatcher. Scans for due follow-ups, queries the LLM for 
-    contextual sequence progression strings, dispatches the SMTP transport, and 
-    updates sequence metadata.
+    Cron-triggered dispatcher. Scans for due follow-ups for a specific
+    freelancer, queries the LLM for contextual sequence progression strings,
+    dispatches the SMTP transport, and updates sequence metadata.
+
+    Multi-tenant: ``user_id`` scopes every read/write to that freelancer's
+    leads and campaigns so one tenant's follow-ups never affect another.
     """
     from app.core.database import get_session_maker
     from app.tasks.daily_pipeline import _generate_tracking_token
     from app.core.job_manager import job_manager
     from app.modules.notifications.telegram_bot import send_telegram_alert
-    
-    logger.info("Starting Follow-Up Engine")
-    
-    if not job_manager.is_job_active("followup_dispatch", ignore_global_hold=manual):
-        logger.warning("🚨 [followup_dispatch] is HOLD. Skipping follow-up.")
+
+    logger.info(f"Starting Follow-Up Engine (user_id={user_id})")
+
+    if not await job_manager.is_freelancer_pipeline_active(
+        "followup_dispatch", user_id=user_id, is_manual=manual
+    ):
+        logger.warning(f"🚨 [followup_dispatch] blocked for user {user_id}. Skipping follow-up.")
         return
-        
+
     groq_client = GroqClient()
     sent_count = 0
     now = datetime.now(timezone.utc)
-    
+
     async with get_session_maker()() as db:
         from datetime import date
         today = date.today()
-        camp_stmt = select(Campaign).where(Campaign.campaign_date == today).limit(1)
+        camp_stmt = select(Campaign).where(Campaign.campaign_date == today)
+        if user_id is not None:
+            camp_stmt = camp_stmt.where(Campaign.user_id == user_id)
+        camp_stmt = camp_stmt.limit(1)
         camp_res = await db.execute(camp_stmt)
         campaign = camp_res.scalars().first()
-        
+
         if not campaign:
-            campaign = Campaign(name=f"Daily Outreach {today}", campaign_date=today)
+            campaign = Campaign(name=f"Daily Outreach {today}", campaign_date=today, user_id=user_id)
             db.add(campaign)
             await db.flush()
 
@@ -92,6 +100,8 @@ async def run_followup_dispatch(manual: bool = False):
             Lead.next_followup_at <= now,
             Lead.followup_count < 3
         )
+        if user_id is not None:
+            stmt = stmt.where(Lead.user_id == user_id)
         res = await db.execute(stmt)
         leads = res.scalars().all()
         
