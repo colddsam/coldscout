@@ -21,10 +21,10 @@ interface ProtectedRouteProps {
 }
 
 const LoadingScreen = () => (
-  <div className="min-h-screen flex items-center justify-center bg-white">
+  <div className="min-h-screen flex items-center justify-center bg-black">
     <div className="text-center">
       <Spinner size="lg" />
-      <p className="mt-4 text-sm text-gray-500">Loading...</p>
+      <p className="mt-4 text-sm text-[#A0A0A0]">Loading...</p>
     </div>
   </div>
 );

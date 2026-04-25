@@ -117,7 +117,7 @@ export default function Login() {
   if (isAuthenticated) {
     if (!user) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-black">
           <Spinner size="lg" />
         </div>
       );
@@ -126,12 +126,12 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white px-4 sm:px-0 relative overflow-hidden">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-grid opacity-40" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-black px-4 sm:px-0 relative overflow-hidden">
+      {/* Subtle noise background */}
+      <div className="absolute inset-0 noise-overlay opacity-[0.15]" />
 
       {/* Decorative gradient orb */}
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-200/50 rounded-full blur-3xl opacity-60" />
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl" />
 
       <motion.div variants={scaleIn} initial="hidden" animate="visible" className="w-full max-w-md z-10 relative">
       <Card className="w-full max-w-md" padding={false}>
@@ -140,21 +140,21 @@ export default function Login() {
           <div className="flex justify-center mb-6">
             <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <img src="/favicon.svg" alt="Cold Scout" className="h-9 w-9 object-contain" />
-              <span className="text-2xl font-bold tracking-tight text-black">Cold Scout</span>
+              <span className="text-2xl font-bold tracking-tight text-white">Cold Scout</span>
             </Link>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mb-6">Sign in to access your dashboard</p>
+          <p className="text-center text-sm text-[#A0A0A0] mb-6">Sign in to access your dashboard</p>
 
           {/* Role Tabs */}
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-6">
+          <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-lg mb-6">
             <button
               type="button"
               onClick={() => setSelectedRole('freelancer')}
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'freelancer'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-[#A0A0A0] hover:text-white'
               }`}
             >
               Freelancer
@@ -165,7 +165,7 @@ export default function Login() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'client'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-[#A0A0A0] hover:text-white'
               }`}
             >
               Client
@@ -174,8 +174,8 @@ export default function Login() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+              <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
@@ -187,10 +187,10 @@ export default function Login() {
                 type="button"
                 onClick={() => handleSocialLogin(provider.id)}
                 disabled={socialLoading !== null}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-white/10 rounded-md text-sm font-medium text-[#C0C0C0] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {socialLoading === provider.id ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                 ) : (
                   provider.icon
                 )}
@@ -203,10 +203,10 @@ export default function Login() {
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-400">or continue with email</span>
+              <span className="px-4 bg-[#111111] text-[#666666]">or continue with email</span>
             </div>
           </div>
 
@@ -214,28 +214,28 @@ export default function Login() {
           <motion.div variants={fadeInUp} initial="hidden" animate="visible">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Password</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -252,10 +252,10 @@ export default function Login() {
           </motion.div>
         </div>
 
-        <div className="border-t border-gray-100 bg-gray-50/50 p-4 text-center rounded-b-lg">
-          <p className="text-sm text-gray-500">
+        <div className="border-t border-white/5 bg-white/[0.02] p-4 text-center rounded-b-lg">
+          <p className="text-sm text-[#A0A0A0]">
             Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-black hover:underline">
+            <Link to="/signup" className="font-medium text-white hover:underline">
               Sign up
             </Link>
           </p>

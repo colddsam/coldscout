@@ -1,27 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Instrument+Serif:ital@1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════ Design Tokens ═══════════════ */
+
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #fafafa;
-  --bg-tertiary: #f5f5f5;
-  --border: #eaeaea;
-  --border-hover: #d4d4d4;
-  --border-strong: #000000;
-  --text-primary: #000000;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --accent: #000000;
-  --accent-hover: #333333;
-  --success: #666666;
-  --warning: #999999;
-  --danger: #000000;
+  --bg-primary: #000000;
+  --bg-secondary: #111111;
+  --bg-tertiary: #1C1C1C;
+  --surface-1: #111111;
+  --surface-2: #1C1C1C;
+  --surface-3: #2A2A2A;
+  --border: rgba(255,255,255,0.05);
+  --border-hover: rgba(255,255,255,0.15);
+  --border-strong: #ffffff;
+  --text-primary: #F0F0F0;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --accent: #ffffff;
+  --accent-hover: #e0e0e0;
+  --success: #33CC66;
+  --warning: #FFAA33;
+  --danger: #FF4444;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  font-family: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 
 html {
   scrollbar-gutter: stable;
@@ -47,7 +55,7 @@ html, body, #root {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Almarai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -55,31 +63,39 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* ===== Scrollbar — minimal ===== */
+/* ═══════════════ Scrollbar — Dark Minimal ═══════════════ */
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-/* ===== Selection ===== */
+/* ═══════════════ Selection ═══════════════ */
 
-::selection { background: rgba(0,0,0,0.1); color: #000; }
+::selection { background: rgba(255,255,255,0.15); color: #fff; }
 
-/* ===== Focus Ring ===== */
+/* ═══════════════ Focus Ring ═══════════════ */
 
 :focus-visible {
-  outline: 2px solid #000;
+  outline: 2px solid rgba(255,255,255,0.5);
   outline-offset: 2px;
 }
 
-/* ===== Background Textures ===== */
+/* ═══════════════ Noise Overlay ═══════════════ */
+
+.noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════ Background Textures ═══════════════ */
 
 .bg-grid {
   background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
   mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
 }
@@ -87,12 +103,12 @@ body {
 .bg-grid-dense {
   background-size: 24px 24px;
   background-image:
-    linear-gradient(to right, rgba(0,0,0,0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.025) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
 }
 
 .bg-dots {
-  background-image: radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -108,64 +124,64 @@ body {
   z-index: 0;
 }
 
-/* ===== Glass Panel ===== */
+/* ═══════════════ Glass Panel (Dark) ═══════════════ */
 
 .glass-panel {
-  background: rgba(255,255,255,0.8);
+  background: rgba(0,0,0,0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .glass-panel-strong {
-  background: rgba(255,255,255,0.92);
+  background: rgba(0,0,0,0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
-/* ===== Text Effects ===== */
+/* ═══════════════ Text Effects ═══════════════ */
 
 .text-gradient {
-  background: linear-gradient(180deg, #000000 0%, #555555 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, #999999 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-subtle {
-  background: linear-gradient(135deg, #000000 0%, #888888 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #777777 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ===== Card Effects ===== */
+/* ═══════════════ Card Effects ═══════════════ */
 
 .card-glow {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.05);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 .card-glow:hover {
-  border-color: var(--border-hover);
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 8px 30px rgba(0,0,0,0.08);
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 8px 30px rgba(0,0,0,0.3);
   transform: translateY(-1px);
 }
 
 .card-interactive {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.05);
   transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 .card-interactive:hover {
-  border-color: #000;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.12), 0 12px 40px rgba(0,0,0,0.1);
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 12px 40px rgba(0,0,0,0.3);
   transform: translateY(-2px);
 }
 
-/* ===== Shimmer Loading ===== */
+/* ═══════════════ Shimmer Loading ═══════════════ */
 
 .shimmer-bg {
-  background: linear-gradient(90deg, #f5f5f5 25%, #eaeaea 50%, #f5f5f5 75%);
+  background: linear-gradient(90deg, #111111 25%, #1C1C1C 50%, #111111 75%);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
@@ -175,15 +191,15 @@ body {
   100% { background-position: 200% 0; }
 }
 
-/* ===== Border Utilities ===== */
+/* ═══════════════ Border Utilities ═══════════════ */
 
-.minimal-border { border: 1px solid var(--border); }
-.minimal-border-b { border-bottom: 1px solid var(--border); }
-.minimal-border-t { border-top: 1px solid var(--border); }
-.minimal-border-r { border-right: 1px solid var(--border); }
-.minimal-border-l { border-left: 1px solid var(--border); }
+.minimal-border { border: 1px solid rgba(255,255,255,0.05); }
+.minimal-border-b { border-bottom: 1px solid rgba(255,255,255,0.05); }
+.minimal-border-t { border-top: 1px solid rgba(255,255,255,0.05); }
+.minimal-border-r { border-right: 1px solid rgba(255,255,255,0.05); }
+.minimal-border-l { border-left: 1px solid rgba(255,255,255,0.05); }
 
-/* ===== Hover Underline Effect ===== */
+/* ═══════════════ Hover Underline ═══════════════ */
 
 .hover-underline {
   position: relative;
@@ -195,20 +211,20 @@ body {
   left: 0;
   width: 0;
   height: 1px;
-  background: #000;
+  background: #fff;
   transition: width 0.3s ease;
 }
 .hover-underline:hover::after {
   width: 100%;
 }
 
-/* ===== Magnetic Hover (used with JS) ===== */
+/* ═══════════════ Magnetic Hover ═══════════════ */
 
 .magnetic-hover {
   transition: transform 0.2s ease;
 }
 
-/* ===== Ripple Effect Base ===== */
+/* ═══════════════ Ripple Effect ═══════════════ */
 
 .ripple-container {
   position: relative;
@@ -218,7 +234,7 @@ body {
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.08);
   transform: scale(0);
   animation: ripple-effect 0.6s linear;
   pointer-events: none;
@@ -231,7 +247,7 @@ body {
   }
 }
 
-/* ===== Stagger Delays ===== */
+/* ═══════════════ Stagger Delays ═══════════════ */
 
 .stagger-1 { transition-delay: 50ms; animation-delay: 50ms; }
 .stagger-2 { transition-delay: 100ms; animation-delay: 100ms; }
@@ -248,7 +264,7 @@ body {
 .delay-400 { transition-delay: 400ms; animation-delay: 400ms; }
 .delay-500 { transition-delay: 500ms; animation-delay: 500ms; }
 
-/* ===== Scroll Reveal ===== */
+/* ═══════════════ Scroll Reveal ═══════════════ */
 
 .animate-on-scroll {
   opacity: 0;
@@ -260,7 +276,7 @@ body {
   transform: translateY(0);
 }
 
-/* ===== Active Nav Indicator ===== */
+/* ═══════════════ Active Nav Indicator ═══════════════ */
 
 .nav-indicator {
   position: relative;
@@ -273,7 +289,7 @@ body {
   transform: translateY(-50%);
   width: 3px;
   height: 0;
-  background: #000;
+  background: #fff;
   border-radius: 2px;
   transition: height 0.2s ease;
 }
@@ -281,7 +297,7 @@ body {
   height: 60%;
 }
 
-/* ===== Tooltip Arrow ===== */
+/* ═══════════════ Tooltip Arrow ═══════════════ */
 
 .tooltip-arrow {
   position: relative;
@@ -295,16 +311,16 @@ body {
   width: 8px;
   height: 8px;
   background: inherit;
-  border-left: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-/* ===== Tab Indicator ===== */
+/* ═══════════════ Tab Indicator ═══════════════ */
 
 .tab-indicator {
   position: absolute;
   bottom: 0;
   height: 2px;
-  background: #000;
+  background: #fff;
   transition: left 0.3s ease, width 0.3s ease;
 }

@@ -124,7 +124,7 @@ export default function SignUp() {
   if (isAuthenticated) {
     if (!user) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="min-h-screen flex items-center justify-center bg-black">
           <Spinner size="lg" />
         </div>
       );
@@ -135,24 +135,24 @@ export default function SignUp() {
   // Success state - email confirmation required
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-white px-4 sm:px-0 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-40" />
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-200/50 rounded-full blur-3xl opacity-60" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-black px-4 sm:px-0 relative overflow-hidden">
+        <div className="absolute inset-0 noise-overlay opacity-[0.15]" />
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl" />
 
         <motion.div variants={scaleIn} initial="hidden" animate="visible" className="w-full max-w-md z-10 relative">
         <Card className="w-full max-w-md" padding={false}>
           <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-green-400" />
             </div>
-            <h2 className="text-xl font-bold text-black mb-2">Check your email</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
+            <p className="text-sm text-[#A0A0A0] mb-6">
               We've sent a confirmation link to <strong>{email}</strong>. Click the link to
               activate your account.
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center w-full py-2.5 px-4 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center w-full py-2.5 px-4 bg-white text-black rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
             >
               Back to Login
             </Link>
@@ -164,12 +164,12 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white px-4 sm:px-0 relative overflow-hidden">
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-grid opacity-40" />
+    <div className="min-h-screen flex items-center justify-center p-4 bg-black px-4 sm:px-0 relative overflow-hidden">
+      {/* Subtle noise background */}
+      <div className="absolute inset-0 noise-overlay opacity-[0.15]" />
 
       {/* Decorative gradient orb */}
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-200/50 rounded-full blur-3xl opacity-60" />
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-white/[0.02] to-transparent rounded-full blur-3xl" />
 
       <motion.div variants={scaleIn} initial="hidden" animate="visible" className="w-full max-w-md z-10 relative">
       <Card className="w-full max-w-md" padding={false}>
@@ -178,21 +178,21 @@ export default function SignUp() {
           <div className="flex justify-center mb-6">
             <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <img src="/favicon.svg" alt="Cold Scout" className="h-9 w-9 object-contain" />
-              <span className="text-2xl font-bold tracking-tight text-black">Cold Scout</span>
+              <span className="text-2xl font-bold tracking-tight text-white">Cold Scout</span>
             </Link>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mb-6">Create your account to get started</p>
+          <p className="text-center text-sm text-[#A0A0A0] mb-6">Create your account to get started</p>
 
           {/* Role Tabs */}
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg mb-6">
+          <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-lg mb-6">
             <button
               type="button"
               onClick={() => setSelectedRole('freelancer')}
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'freelancer'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-[#A0A0A0] hover:text-white'
               }`}
             >
               Freelancer
@@ -203,7 +203,7 @@ export default function SignUp() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'client'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-[#A0A0A0] hover:text-white'
               }`}
             >
               Client
@@ -212,8 +212,8 @@ export default function SignUp() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+              <p className="text-sm text-red-400">{error}</p>
             </div>
           )}
 
@@ -225,10 +225,10 @@ export default function SignUp() {
                 type="button"
                 onClick={() => handleSocialSignUp(provider.id)}
                 disabled={socialLoading !== null}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-200 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-white/10 rounded-md text-sm font-medium text-[#C0C0C0] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {socialLoading === provider.id ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                 ) : (
                   provider.icon
                 )}
@@ -241,10 +241,10 @@ export default function SignUp() {
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-400">or sign up with email</span>
+              <span className="px-4 bg-[#111111] text-[#666666]">or sign up with email</span>
             </div>
           </div>
 
@@ -252,54 +252,54 @@ export default function SignUp() {
           <motion.div variants={fadeInUp} initial="hidden" animate="visible">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Full Name</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="John Doe"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Password</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+              <label className="text-sm font-medium text-[#A0A0A0]">Confirm Password</label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -315,22 +315,22 @@ export default function SignUp() {
           </form>
           </motion.div>
 
-          <p className="mt-4 text-xs text-center text-gray-400">
+          <p className="mt-4 text-xs text-center text-[#666666]">
             By signing up, you agree to our{' '}
-            <Link to="/terms" className="text-gray-600 hover:underline">
+            <Link to="/terms" className="text-[#A0A0A0] hover:underline">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-gray-600 hover:underline">
+            <Link to="/privacy" className="text-[#A0A0A0] hover:underline">
               Privacy Policy
             </Link>
           </p>
         </div>
 
-        <div className="border-t border-gray-100 bg-gray-50/50 p-4 text-center rounded-b-lg">
-          <p className="text-sm text-gray-500">
+        <div className="border-t border-white/5 bg-white/[0.02] p-4 text-center rounded-b-lg">
+          <p className="text-sm text-[#A0A0A0]">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-black hover:underline">
+            <Link to="/login" className="font-medium text-white hover:underline">
               Sign in
             </Link>
           </p>

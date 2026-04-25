@@ -56,7 +56,7 @@ const AVAILABILITY_MAP: Record<string, { label: string; dot: string; cls: string
 function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.div
-      className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${className}`}
+      className={`bg-black rounded-xl border border-white/10 shadow-sm overflow-hidden ${className}`}
       variants={fadeInUp}
       initial="hidden"
       whileInView="visible"
@@ -396,10 +396,10 @@ export default function PublicProfilePage() {
         </>
       )}
 
-      <main className="min-h-screen bg-gray-50 pt-16 pb-12">
+      <main className="min-h-screen bg-[#111] pt-16 pb-12">
         {isLoading && (
           <div className="flex items-center justify-center h-96" role="status" aria-label="Loading profile">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
           </div>
         )}
 
@@ -412,18 +412,18 @@ export default function PublicProfilePage() {
             role="alert"
           >
             <motion.div variants={scaleIn}>
-              <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <Lock className="w-12 h-12 text-white/20 mx-auto mb-4" />
             </motion.div>
-            <motion.h2 variants={staggerItem} className="text-xl font-bold text-black mb-2">
+            <motion.h2 variants={staggerItem} className="text-xl font-bold text-white mb-2">
               {(error as Error)?.message?.includes('private') ? 'Private Profile' : 'Profile Not Found'}
             </motion.h2>
-            <motion.p variants={staggerItem} className="text-sm text-secondary mb-6">
+            <motion.p variants={staggerItem} className="text-sm text-white/60 mb-6">
               {(error as Error)?.message?.includes('private')
                 ? 'This profile is set to private by the user.'
                 : 'The profile you are looking for does not exist.'}
             </motion.p>
             <motion.div variants={staggerItem}>
-              <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-black hover:underline">
+              <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-white hover:underline">
                 <ArrowLeft className="w-4 h-4" /> Back to Home
               </Link>
             </motion.div>
@@ -537,7 +537,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
               animate="visible"
             >
               <div className="relative w-32 h-32 sm:w-40 sm:h-40">
-                <div className="w-full h-full rounded-full border-4 border-white bg-white shadow-md overflow-hidden">
+                <div className="w-full h-full rounded-full border-4 border-white bg-black shadow-md overflow-hidden">
                   {photoUrl ? (
                     <img
                       src={photoUrl}
@@ -547,7 +547,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                       loading="eager"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
+                    <div className="w-full h-full flex items-center justify-center bg-white/5 text-white/20">
                       <User className="w-16 h-16" />
                     </div>
                   )}
@@ -555,7 +555,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
 
                 {/* Availability badge — anchored to avatar bottom-center like LinkedIn */}
                 {hasFreelancer && profile.freelancer?.availability && (
-                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-semibold border shadow-sm ${AVAILABILITY_MAP[profile.freelancer.availability]?.cls || 'bg-gray-100 text-gray-600'}`}>
+                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-semibold border shadow-sm ${AVAILABILITY_MAP[profile.freelancer.availability]?.cls || 'bg-white/5 text-white/70'}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${profile.freelancer.availability === 'available' ? 'animate-pulse' : ''} ${AVAILABILITY_MAP[profile.freelancer.availability]?.dot || 'bg-gray-400'}`} />
                     {AVAILABILITY_MAP[profile.freelancer.availability]?.label || profile.freelancer.availability}
                   </div>
@@ -567,7 +567,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
             <motion.div variants={staggerContainer} initial="hidden" animate="visible">
               <motion.div variants={staggerItem}>
                 <h1
-                  className="text-2xl sm:text-3xl font-bold text-black tracking-tight flex items-center gap-2"
+                  className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2"
                   data-speakable="name"
                   itemProp="name"
                 >
@@ -580,18 +580,18 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                 </h1>
                 {headline && (
                   <p
-                    className="text-base text-gray-700 mt-0.5"
+                    className="text-base text-white/80 mt-0.5"
                     data-speakable="headline"
                     itemProp="jobTitle"
                   >
                     {headline}
                   </p>
                 )}
-                <p className="text-sm text-secondary mt-0.5">@{profile.username}</p>
+                <p className="text-sm text-white/60 mt-0.5">@{profile.username}</p>
               </motion.div>
 
               {/* Location + Joined + Role + Verification badge row */}
-              <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-secondary">
+              <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-white/60">
                 {profile.location && (
                   <span className="flex items-center gap-1" itemProp="address" itemScope itemType="https://schema.org/PostalAddress">
                     <MapPin className="w-3.5 h-3.5" /><span itemProp="addressLocality">{profile.location}</span>
@@ -604,7 +604,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                   </span>
                 )}
                 {profile.role && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-700">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 text-xs font-medium text-white/80">
                     {profile.role === 'freelancer' ? <Briefcase className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                     {profile.role === 'freelancer' ? 'Freelancer' : 'Business'}
                   </span>
@@ -631,7 +631,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                           i === 0
                             ? 'bg-black text-white hover:bg-gray-800'
-                            : 'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                            : 'border border-white/20 text-white/80 hover:bg-[#111] hover:border-gray-400'
                         }`}
                         {...(link.field === 'email' ? { itemProp: 'email' } : {})}
                         {...(link.field === 'phone' ? { itemProp: 'telephone' } : {})}
@@ -656,9 +656,9 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
       {profile.bio && (
         <SectionCard>
           <section className="p-6" aria-labelledby="about-heading">
-            <h2 id="about-heading" className="text-lg font-bold text-black mb-3">About</h2>
+            <h2 id="about-heading" className="text-lg font-bold text-white mb-3">About</h2>
             <p
-              className="text-sm text-gray-700 leading-relaxed whitespace-pre-line"
+              className="text-sm text-white/80 leading-relaxed whitespace-pre-line"
               data-speakable="bio"
               itemProp="description"
             >
@@ -705,7 +705,7 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
       {(stats.length > 0 || data.education || data.languages?.length) && (
         <SectionCard>
           <section className="p-6" aria-labelledby="professional-heading">
-            <h2 id="professional-heading" className="text-lg font-bold text-black mb-4">Professional Details</h2>
+            <h2 id="professional-heading" className="text-lg font-bold text-white mb-4">Professional Details</h2>
 
             {/* Quick stats row */}
             {stats.length > 0 && (
@@ -722,14 +722,14 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
                     <motion.div
                       key={stat.label}
                       variants={staggerItem}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-[#111] border border-white/5"
                     >
                       <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center flex-shrink-0">
                         <Icon className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-xs text-secondary">{stat.label}</p>
-                        <p className="text-sm font-semibold text-black">{stat.value}</p>
+                        <p className="text-xs text-white/60">{stat.label}</p>
+                        <p className="text-sm font-semibold text-white">{stat.value}</p>
                       </div>
                     </motion.div>
                   );
@@ -739,24 +739,24 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
 
             {/* Education */}
             {data.education && (
-              <div className="flex items-start gap-3 py-3 border-t border-gray-100">
-                <GraduationCap className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/5">
+                <GraduationCap className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xs text-secondary font-medium uppercase tracking-wider">Education</h3>
-                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{data.education}</p>
+                  <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Education</h3>
+                  <p className="text-sm text-white/80 mt-1 whitespace-pre-line">{data.education}</p>
                 </div>
               </div>
             )}
 
             {/* Languages */}
             {data.languages && data.languages.length > 0 && (
-              <div className="flex items-start gap-3 py-3 border-t border-gray-100">
-                <Languages className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/5">
+                <Languages className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xs text-secondary font-medium uppercase tracking-wider">Languages</h3>
+                  <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Languages</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {data.languages.map((l) => (
-                      <span key={l} className="px-2.5 py-1 rounded-full bg-gray-100 text-xs font-medium text-gray-700">{l}</span>
+                      <span key={l} className="px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium text-white/80">{l}</span>
                     ))}
                   </div>
                 </div>
@@ -765,13 +765,13 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
 
             {/* Certifications */}
             {data.certifications && data.certifications.length > 0 && (
-              <div className="flex items-start gap-3 py-3 border-t border-gray-100">
-                <Award className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/5">
+                <Award className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h3 className="text-xs text-secondary font-medium uppercase tracking-wider">Certifications</h3>
+                  <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Certifications</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {data.certifications.map((c) => (
-                      <span key={c} className="px-2.5 py-1 rounded-full bg-gray-100 text-xs font-medium text-black">{c}</span>
+                      <span key={c} className="px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium text-white">{c}</span>
                     ))}
                   </div>
                 </div>
@@ -785,7 +785,7 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
       {data.skills && data.skills.length > 0 && (
         <SectionCard>
           <section className="p-6" aria-labelledby="skills-heading">
-            <h2 id="skills-heading" className="text-lg font-bold text-black mb-4">Skills</h2>
+            <h2 id="skills-heading" className="text-lg font-bold text-white mb-4">Skills</h2>
             <motion.ul
               className="flex flex-wrap gap-2 list-none p-0 m-0"
               variants={staggerContainer}
@@ -800,7 +800,7 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
                   key={s}
                   variants={staggerItem}
                   whileHover={{ scale: 1.05, backgroundColor: '#000', color: '#fff' }}
-                  className="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-medium text-black cursor-default transition-colors border border-transparent hover:border-black"
+                  className="px-3 py-1.5 rounded-full bg-white/5 text-sm font-medium text-white cursor-default transition-colors border border-transparent hover:border-white/30"
                   itemProp="knowsAbout"
                 >
                   {s}
@@ -815,7 +815,7 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
       {socialLinks.length > 0 && (
         <SectionCard>
           <section className="p-6" aria-labelledby="links-heading">
-            <h2 id="links-heading" className="text-lg font-bold text-black mb-4">Links</h2>
+            <h2 id="links-heading" className="text-lg font-bold text-white mb-4">Links</h2>
             <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 gap-2"
               variants={staggerContainer}
@@ -831,16 +831,16 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
                   rel="noopener noreferrer"
                   variants={staggerItem}
                   whileHover={{ x: 2 }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-colors group"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-white/5 hover:border-white/20 hover:bg-[#111] transition-colors group"
                   itemProp="sameAs"
                 >
-                  <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
+                  <ExternalLink className="w-4 h-4 text-white/40 group-hover:text-white transition-colors" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-black flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-white flex items-center gap-1.5">
                       {l.label}
                       {verifiedFields.has(l.field) && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
                     </p>
-                    <p className="text-xs text-secondary truncate">{l.url}</p>
+                    <p className="text-xs text-white/60 truncate">{l.url}</p>
                   </div>
                 </motion.a>
               ))}
@@ -879,20 +879,20 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
       <section className="p-6" aria-labelledby="business-heading">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 id="business-heading" className="text-lg font-bold text-black">
+            <h2 id="business-heading" className="text-lg font-bold text-white">
               {data.company_name || 'Business Details'}
             </h2>
             {data.brand_name && data.brand_name !== data.company_name && (
-              <p className="text-sm text-secondary mt-0.5">{data.brand_name}</p>
+              <p className="text-sm text-white/60 mt-0.5">{data.brand_name}</p>
             )}
           </div>
           {data.company_logo_url && (
-            <img src={data.company_logo_url} alt={`${data.company_name || 'Company'} logo`} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+            <img src={data.company_logo_url} alt={`${data.company_name || 'Company'} logo`} className="w-12 h-12 rounded-lg object-cover border border-white/10" />
           )}
         </div>
 
         {data.company_description && (
-          <p className="text-sm text-gray-700 leading-relaxed mb-5 whitespace-pre-line">{data.company_description}</p>
+          <p className="text-sm text-white/80 leading-relaxed mb-5 whitespace-pre-line">{data.company_description}</p>
         )}
 
         {/* Info grid */}
@@ -910,11 +910,11 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
                 <motion.div
                   key={item.label}
                   variants={staggerItem}
-                  className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-center"
+                  className="p-3 rounded-lg bg-[#111] border border-white/5 text-center"
                 >
-                  <Icon className="w-4 h-4 text-gray-400 mx-auto mb-1.5" />
-                  <p className="text-xs text-secondary">{item.label}</p>
-                  <p className="text-sm font-semibold text-black mt-0.5">{item.value}</p>
+                  <Icon className="w-4 h-4 text-white/40 mx-auto mb-1.5" />
+                  <p className="text-xs text-white/60">{item.label}</p>
+                  <p className="text-sm font-semibold text-white mt-0.5">{item.value}</p>
                 </motion.div>
               );
             })}
@@ -923,7 +923,7 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
 
         {/* Social */}
         {socialLinks.length > 0 && (
-          <nav className="flex flex-wrap gap-2 pt-4 border-t border-gray-100" aria-label="Business social links">
+          <nav className="flex flex-wrap gap-2 pt-4 border-t border-white/5" aria-label="Business social links">
             {socialLinks.map((l) => (
               <motion.a
                 key={l.label}
@@ -932,7 +932,7 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-medium text-secondary hover:text-black hover:border-black transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium text-white/60 hover:text-white hover:border-white/30 transition-colors"
                 itemProp="sameAs"
               >
                 <ExternalLink className="w-3 h-3" /> {l.label}
@@ -952,7 +952,7 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
   return (
     <SectionCard>
       <section className="p-6" aria-labelledby="portfolio-heading">
-        <h2 id="portfolio-heading" className="text-lg font-bold text-black mb-4">Portfolio</h2>
+        <h2 id="portfolio-heading" className="text-lg font-bold text-white mb-4">Portfolio</h2>
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 gap-4"
           variants={staggerContainer}
@@ -965,7 +965,7 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
               key={item.id}
               variants={staggerItem}
               whileHover={{ y: -3 }}
-              className="rounded-lg border border-gray-200 overflow-hidden group hover:shadow-md transition-shadow"
+              className="rounded-lg border border-white/10 overflow-hidden group hover:shadow-md transition-shadow"
               itemScope
               itemType="https://schema.org/CreativeWork"
             >
@@ -983,12 +983,12 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-black" itemProp="name">{item.title}</h3>
-                    {item.client_name && <p className="text-xs text-secondary mt-0.5">for <span itemProp="sourceOrganization">{item.client_name}</span></p>}
+                    <h3 className="text-sm font-semibold text-white" itemProp="name">{item.title}</h3>
+                    {item.client_name && <p className="text-xs text-white/60 mt-0.5">for <span itemProp="sourceOrganization">{item.client_name}</span></p>}
                   </div>
                   {item.project_url && (
                     <a href={item.project_url} target="_blank" rel="noopener noreferrer"
-                      className="flex-shrink-0 p-1.5 rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-colors"
+                      className="flex-shrink-0 p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10/5 transition-colors"
                       itemProp="url"
                       aria-label={`View ${item.title} project`}
                     >
@@ -996,11 +996,11 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
                     </a>
                   )}
                 </div>
-                {item.description && <p className="text-xs text-gray-600 mt-2 line-clamp-2" itemProp="description">{item.description}</p>}
+                {item.description && <p className="text-xs text-white/70 mt-2 line-clamp-2" itemProp="description">{item.description}</p>}
                 {item.tags && item.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-3">
                     {item.tags.map((t) => (
-                      <span key={t} className="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-medium text-gray-600" itemProp="keywords">{t}</span>
+                      <span key={t} className="px-2 py-0.5 rounded-full bg-white/5 text-[10px] font-medium text-white/70" itemProp="keywords">{t}</span>
                     ))}
                   </div>
                 )}

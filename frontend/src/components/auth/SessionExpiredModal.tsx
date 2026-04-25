@@ -30,22 +30,22 @@ const SessionExpiredModal: React.FC = () => {
       maxWidth="max-w-md"
     >
       <div className="flex flex-col items-center text-center space-y-4 py-2">
-        <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
-          <LogOut className="w-6 h-6 text-red-500" />
+        <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
+          <LogOut className="w-6 h-6 text-red-400" />
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[#A0A0A0]">
             For your security, your session has expired due to inactivity or invalid credentials.
           </p>
-          <p className="text-sm font-medium text-black">
+          <p className="text-sm font-medium text-white">
             Please log in again to continue managing your lead generation pipeline.
           </p>
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full mt-4 py-2.5 px-4 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+          className="w-full mt-4 py-2.5 px-4 bg-white text-black rounded-md text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-[#111111]"
         >
           Proceed to Login
         </button>

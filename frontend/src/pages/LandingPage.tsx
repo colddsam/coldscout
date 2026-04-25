@@ -1,8 +1,8 @@
 /**
  * Public Landing Page.
  *
- * Modern SaaS marketing page with micro-interactions, scroll-triggered
- * reveals, animated counters, and consistent black & white design.
+ * Cinematic dark-mode SaaS marketing page with scroll-triggered
+ * reveals, animated counters, and monochromatic design.
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -18,16 +18,13 @@ import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 import ScrollReveal from '../components/ui/ScrollReveal';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
-import TextReveal from '../components/ui/TextReveal';
+import WordsPullUp from '../components/animations/WordsPullUp';
+import StaggeredCard from '../components/animations/StaggeredCard';
+import FadeUpBlock from '../components/animations/FadeUpBlock';
+import AnimatedLetter from '../components/animations/AnimatedLetter';
+import AnimatedBackground from '../components/ui/AnimatedBackground';
+import Orbital3D from '../components/ui/Orbital3D';
 import { staggerContainer, staggerItem } from '../lib/motion';
-
-/* ── SVG Decorations ── */
-
-function GridBackground() {
-  return (
-    <div className="absolute inset-0 bg-grid opacity-60 pointer-events-none" aria-hidden="true" />
-  );
-}
 
 /* ── Hero Section ── */
 
@@ -35,51 +32,53 @@ function HeroSection() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-      <GridBackground />
+    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-black">
+      {/* Layered animated background: grid drift + orbs + floating SVG shapes + constellation */}
+      <AnimatedBackground variant="hero" />
 
-      {/* Decorative gradient orbs */}
-      <div className="absolute top-1/4 -right-32 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-200/50 rounded-full blur-3xl opacity-50" aria-hidden="true" />
-      <div className="absolute bottom-1/4 -left-32 w-80 h-80 bg-gradient-to-tr from-gray-100 to-gray-300/30 rounded-full blur-3xl opacity-40" aria-hidden="true" />
+      {/* Subtle noise overlay (kept on top for grain texture) */}
+      <div className="absolute inset-0 noise-overlay opacity-[0.2] pointer-events-none" aria-hidden="true" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+      {/* Pseudo-3D orbital halo behind heading */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-60 pointer-events-none" aria-hidden>
+        <Orbital3D size={520} />
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 border border-gray-200 rounded-full px-4 py-1.5 mb-8 bg-white shadow-subtle"
+          className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-10 bg-white/[0.03]"
         >
           <span className="relative flex items-center justify-center">
-            <span className="inline-block w-2 h-2 rounded-full bg-black" />
-            <span className="absolute inline-block w-2 h-2 rounded-full bg-black animate-ping" />
+            <span className="inline-block w-2 h-2 rounded-full bg-white" />
+            <span className="absolute inline-block w-2 h-2 rounded-full bg-white animate-ping" />
           </span>
-          <span className="text-xs font-medium text-secondary">AI-Powered Lead Generation</span>
+          <span className="text-xs font-medium text-[#A0A0A0]">AI-Powered Lead Generation</span>
         </motion.div>
 
-        <TextReveal
-          text="Discover leads."
-          as="h1"
-          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-black leading-[0.95] mb-2"
-          delay={0.2}
-        />
-        <motion.h1
-          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter leading-[0.95] mb-2"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-        >
-          <span className="text-gradient">Qualify instantly.</span>
-        </motion.h1>
-        <TextReveal
-          text="Close faster."
-          as="h1"
-          className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tighter text-black leading-[0.95] mb-6"
-          delay={0.7}
-        />
+        {/* Giant heading */}
+        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-2">
+          <WordsPullUp text="Discover leads." className="text-white" />
+        </h1>
+        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-2">
+          <motion.span
+            className="text-gradient"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+          >
+            Qualify instantly.
+          </motion.span>
+        </h1>
+        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-8">
+          <WordsPullUp text="Close faster." className="text-white" delay={0.7} />
+        </h1>
 
         <motion.p
-          className="text-lg md:text-xl text-secondary max-w-2xl mx-auto mb-10"
+          className="text-base md:text-lg text-[#A0A0A0] max-w-2xl mx-auto mb-10"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.5 }}
@@ -96,19 +95,20 @@ function HeroSection() {
         >
           <Link to={isAuthenticated ? '/overview' : '/login'}>
             <motion.span
-              className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg text-sm font-medium group"
-              whileHover={{ scale: 1.02, boxShadow: '0 0 0 1px rgba(0,0,0,0.12), 0 8px 30px rgba(0,0,0,0.12)' }}
+              className="inline-flex items-center gap-3 bg-white text-black px-6 py-3 rounded-full text-sm font-medium group"
+              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(255,255,255,0.1)' }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             >
               {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
+                <ArrowRight className="w-3.5 h-3.5 text-white group-hover:translate-x-0.5 transition-transform" />
+              </span>
             </motion.span>
           </Link>
           <a href="#features">
             <motion.span
-              className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-lg text-sm font-medium border border-gray-200"
-              whileHover={{ borderColor: '#000', boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.08)' }}
+              className="inline-flex items-center gap-2 border border-white/15 text-white/70 px-6 py-3 rounded-full text-sm font-medium hover:text-white hover:border-white/30 transition-colors"
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             >
@@ -119,7 +119,7 @@ function HeroSection() {
 
         {/* Stats row */}
         <motion.div
-          className="flex items-center justify-center gap-8 md:gap-16 mt-16"
+          className="flex items-center justify-center gap-8 md:gap-16 mt-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3, duration: 0.5 }}
@@ -133,10 +133,10 @@ function HeroSection() {
               <AnimatedCounter
                 value={stat.value}
                 suffix={stat.suffix}
-                className="text-2xl md:text-3xl font-bold tracking-tighter text-black font-mono"
+                className="text-2xl md:text-3xl font-bold tracking-tighter text-white font-mono"
                 duration={1.5}
               />
-              <p className="text-[10px] uppercase tracking-[0.15em] text-subtle mt-1 font-semibold">{stat.label}</p>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-[#666666] mt-1 font-semibold">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -158,11 +158,12 @@ function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-24 md:py-32 bg-white relative">
-      <div className="max-w-6xl mx-auto px-6">
+    <section id="features" className="py-24 md:py-32 bg-black relative overflow-hidden">
+      <AnimatedBackground variant="subtle" showShapes={true} showConstellation={false} />
+      <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Features</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Features</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Everything you need to scale outreach
           </h2>
         </ScrollReveal>
@@ -174,22 +175,22 @@ function FeaturesSection() {
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
         >
-          {features.map((feature) => (
-            <motion.div
-              key={feature.title}
-              variants={staggerItem}
-              className="group p-6 rounded-xl border border-gray-200 hover:border-black transition-all duration-300 hover:shadow-vercel-hover"
-              whileHover={{ y: -4 }}
-            >
+          {features.map((feature, i) => (
+            <StaggeredCard key={feature.title} index={i} className="h-full">
               <motion.div
-                className="w-10 h-10 rounded-xl bg-accents-1 border border-gray-200 flex items-center justify-center mb-4 group-hover:bg-black group-hover:border-black transition-colors duration-300"
-                whileHover={{ rotate: 5 }}
+                className="group p-6 rounded-2xl border border-white/5 bg-[#111111] hover:border-white/15 transition-all duration-300 h-full"
+                whileHover={{ y: -4 }}
               >
-                <feature.icon className="w-5 h-5 text-secondary group-hover:text-white transition-colors duration-300" />
+                <motion.div
+                  className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-white group-hover:border-white transition-colors duration-300"
+                  whileHover={{ rotate: 5 }}
+                >
+                  <feature.icon className="w-5 h-5 text-[#A0A0A0] group-hover:text-black transition-colors duration-300" />
+                </motion.div>
+                <h3 className="text-base font-semibold text-white mb-2">{feature.title}</h3>
+                <p className="text-sm text-[#A0A0A0] leading-relaxed">{feature.description}</p>
               </motion.div>
-              <h3 className="text-base font-semibold text-black mb-2">{feature.title}</h3>
-              <p className="text-sm text-secondary leading-relaxed">{feature.description}</p>
-            </motion.div>
+            </StaggeredCard>
           ))}
         </motion.div>
       </div>
@@ -208,11 +209,12 @@ function WorkflowSection() {
   ];
 
   return (
-    <section id="workflow" className="py-24 md:py-32 bg-accents-1 relative">
-      <div className="max-w-6xl mx-auto px-6">
+    <section id="workflow" className="py-24 md:py-32 bg-[#0A0A0A] relative overflow-hidden">
+      <AnimatedBackground variant="subtle" showShapes={false} />
+      <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">How it works</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">How it works</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Four steps to qualified leads
           </h2>
         </ScrollReveal>
@@ -228,21 +230,39 @@ function WorkflowSection() {
             <motion.div key={step.num} className="relative" variants={staggerItem}>
               {i < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-8 left-full w-6 z-10">
-                  <ChevronRight className="w-5 h-5 text-gray-300" />
+                  <ChevronRight className="w-5 h-5 text-white/15" />
                 </div>
               )}
               <motion.div
-                className="bg-white rounded-xl border border-gray-200 p-6 h-full"
-                whileHover={{ y: -4, boxShadow: '0 0 0 1px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.08)' }}
+                className="bg-[#111111] rounded-2xl border border-white/5 p-6 h-full hover:border-white/15 transition-all duration-300"
+                whileHover={{ y: -4, boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 4px 20px rgba(0,0,0,0.4)' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               >
-                <span className="text-3xl font-bold text-accents-2 tracking-tighter font-mono">{step.num}</span>
-                <h3 className="text-base font-semibold text-black mt-3 mb-2">{step.title}</h3>
-                <p className="text-sm text-secondary leading-relaxed">{step.desc}</p>
+                <span className="text-3xl font-bold text-white/10 tracking-tighter font-mono">{step.num}</span>
+                <h3 className="text-base font-semibold text-white mt-3 mb-2">{step.title}</h3>
+                <p className="text-sm text-[#A0A0A0] leading-relaxed">{step.desc}</p>
               </motion.div>
             </motion.div>
           ))}
         </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Metrics Section ── */
+
+function MetricsSection() {
+  return (
+    <section className="py-24 md:py-32 bg-black relative">
+      <div className="max-w-4xl mx-auto px-6 text-center">
+        <FadeUpBlock>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-6">Results</p>
+        </FadeUpBlock>
+        <AnimatedLetter
+          text="Cold Scout helps teams discover 10x more qualified leads, cut prospecting time by 80%, and increase reply rates by 3x — all with zero manual data entry."
+          className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-white/80 leading-snug"
+        />
       </div>
     </section>
   );
@@ -288,14 +308,15 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-24 md:py-32 bg-white relative">
-      <div className="max-w-6xl mx-auto px-6">
+    <section id="pricing" className="py-24 md:py-32 bg-[#0A0A0A] relative overflow-hidden">
+      <AnimatedBackground variant="subtle" showShapes={true} />
+      <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Pricing</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Pricing</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Simple, transparent pricing
           </h2>
-          <p className="text-secondary mt-3 max-w-md mx-auto">Open source forever. Pay only for our hosted infrastructure.</p>
+          <p className="text-[#A0A0A0] mt-3 max-w-md mx-auto">Open source forever. Pay only for our hosted infrastructure.</p>
         </ScrollReveal>
 
         <motion.div
@@ -305,58 +326,63 @@ function PricingSection() {
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
         >
-          {plans.map((plan) => (
-            <motion.div
-              key={plan.name}
-              variants={staggerItem}
-              whileHover={{ y: -4 }}
-              className={`rounded-xl border p-8 transition-all duration-300 ${
-                plan.featured
-                  ? 'border-black shadow-elevated bg-black text-white'
-                  : 'border-gray-200 bg-white hover:shadow-vercel hover:border-black/20'
-              }`}
-            >
-              <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold mb-4 ${plan.featured ? 'text-white' : 'text-subtle'}`}>{plan.name}</p>
-              <div className="mb-4">
-                <span className="text-4xl font-bold tracking-tighter">{plan.price}</span>
-                {plan.period && <span className={`text-sm ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.period}</span>}
-              </div>
-              <p className={`text-sm mb-6 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.desc}</p>
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm">
-                    <span className={`w-1 h-1 rounded-full ${plan.featured ? 'bg-white' : 'bg-black'}`} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {plan.external ? (
-                <a
-                  href={plan.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block text-center py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    plan.featured
-                      ? 'bg-white text-black hover:bg-gray-100'
-                      : 'bg-black text-white hover:bg-gray-800'
-                  }`}
-                >
-                  {plan.cta}
-                </a>
-              ) : (
-                <Link
-                  to={plan.href}
-                  className="block text-center py-2.5 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 transition-colors"
-                >
-                  {plan.cta}
-                </Link>
-              )}
-            </motion.div>
+          {plans.map((plan, i) => (
+            <StaggeredCard key={plan.name} index={i}>
+              <motion.div
+                whileHover={{ y: -4 }}
+                className={`rounded-2xl border p-8 transition-all duration-300 h-full ${
+                  plan.featured
+                    ? 'border-white/25 bg-[#111111] shadow-[0_0_30px_rgba(255,255,255,0.03)]'
+                    : 'border-white/5 bg-[#111111] hover:border-white/15'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${plan.featured ? 'text-white' : 'text-[#666666]'}`}>{plan.name}</p>
+                  {plan.featured && (
+                    <span className="text-[9px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-medium">Popular</span>
+                  )}
+                </div>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold tracking-tighter text-white">{plan.price}</span>
+                  {plan.period && <span className="text-sm text-[#666666]">{plan.period}</span>}
+                </div>
+                <p className="text-sm mb-6 text-[#A0A0A0]">{plan.desc}</p>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-[#C0C0C0]">
+                      <span className="w-1 h-1 rounded-full bg-white/40" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {plan.external ? (
+                  <a
+                    href={plan.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block text-center py-2.5 rounded-full text-sm font-medium transition-colors ${
+                      plan.featured
+                        ? 'bg-white text-black hover:bg-gray-200'
+                        : 'border border-white/15 text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {plan.cta}
+                  </a>
+                ) : (
+                  <Link
+                    to={plan.href}
+                    className="block text-center py-2.5 rounded-full text-sm font-medium bg-white text-black hover:bg-gray-200 transition-colors"
+                  >
+                    {plan.cta}
+                  </Link>
+                )}
+              </motion.div>
+            </StaggeredCard>
           ))}
         </motion.div>
 
         <ScrollReveal delay={0.3} className="text-center mt-8">
-          <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-black transition-colors group">
+          <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm text-[#A0A0A0] hover:text-white transition-colors group">
             See full comparison & regional pricing
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
@@ -381,11 +407,11 @@ function FaqSection() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="py-24 md:py-32 bg-accents-1 relative">
+    <section id="faq" className="py-24 md:py-32 bg-black relative">
       <div className="max-w-3xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">FAQ</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Frequently asked questions
           </h2>
         </ScrollReveal>
@@ -401,19 +427,19 @@ function FaqSection() {
             <motion.div
               key={i}
               variants={staggerItem}
-              className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-vercel transition-all duration-200 bg-white"
+              className="border border-white/5 rounded-2xl overflow-hidden hover:border-white/15 transition-all duration-200 bg-[#111111]"
             >
               <button
                 onClick={() => setOpenIdx(openIdx === i ? null : i)}
-                className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors text-left"
+                className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors text-left"
                 aria-expanded={openIdx === i}
               >
-                <span className="text-sm font-semibold text-black pr-4">{faq.q}</span>
+                <span className="text-sm font-semibold text-white pr-4">{faq.q}</span>
                 <motion.span
                   animate={{ rotate: openIdx === i ? 90 : 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
-                  <ChevronRight className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-[#666666] flex-shrink-0" />
                 </motion.span>
               </button>
               <AnimatePresence>
@@ -425,7 +451,7 @@ function FaqSection() {
                     transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                     className="overflow-hidden"
                   >
-                    <p className="px-5 pb-5 text-sm text-secondary leading-relaxed border-t border-gray-100 pt-4">
+                    <p className="px-5 pb-5 text-sm text-[#A0A0A0] leading-relaxed border-t border-white/5 pt-4">
                       {faq.a}
                     </p>
                   </motion.div>
@@ -512,7 +538,7 @@ export default function LandingPage() {
   });
 
   return (
-    <div className="bg-white text-black font-sans antialiased">
+    <div className="bg-black text-white font-sans antialiased">
       <JsonLd data={LD_SOFTWARE} id="software" />
       <JsonLd data={LD_HOW_TO} id="howto" />
       <JsonLd data={LD_FAQ_HOME} id="faq-home" />
@@ -521,6 +547,7 @@ export default function LandingPage() {
         <HeroSection />
         <FeaturesSection />
         <WorkflowSection />
+        <MetricsSection />
         <PricingSection />
         <FaqSection />
       </main>

@@ -37,7 +37,7 @@ export default function Inbox() {
         <PageHeader title="Inbox" subtitle="Reply inbox — inbox endpoint may not be available yet" />
         <Card>
           <div className="text-center py-12">
-            <p className="text-gray-500 text-sm font-mono mb-4">
+            <p className="text-white/50 text-sm font-mono mb-4">
               Inbox endpoint unavailable. This feature requires backend support for the /inbox routes.
             </p>
             <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={() => refetch()}>
@@ -104,7 +104,7 @@ export default function Inbox() {
         <motion.div className="space-y-2 max-h-[600px] overflow-y-auto" variants={staggerContainer} initial="hidden" animate="visible">
           {(!threads || threads.length === 0) ? (
             <Card>
-              <p className="text-gray-400 font-mono text-sm text-center">No threads found</p>
+              <p className="text-white/40 font-mono text-sm text-center">No threads found</p>
             </Card>
           ) : (
             threads.map((thread) => (
@@ -112,19 +112,19 @@ export default function Inbox() {
                 key={thread.id}
                 onClick={() => setSelectedThread(thread)}
                 className={cn(
-                  'w-full text-left bg-white rounded-lg p-4 border transition-all hover:bg-gray-50',
-                  selectedThread?.id === thread.id ? 'border-black shadow-sm' : 'border-gray-200',
+                  'w-full text-left bg-black rounded-lg p-4 border transition-all hover:bg-[#111]',
+                  selectedThread?.id === thread.id ? 'border-white/30 shadow-sm' : 'border-white/10',
                 )}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-900 font-medium truncate">{thread.from_email || thread.lead_email}</span>
+                  <span className="text-sm text-white font-medium truncate">{thread.from_email || thread.lead_email}</span>
                   <Badge
                     label={thread.intent_label || 'unknown'}
                     variant={thread.intent_label === 'interested' ? 'green' : thread.intent_label === 'not_interested' ? 'red' : 'muted'}
                   />
                 </div>
-                <p className="text-xs text-gray-500 truncate">{thread.subject}</p>
-                <p className="text-xs text-gray-400 mt-1 font-mono">{formatDate(thread.received_at)}</p>
+                <p className="text-xs text-white/50 truncate">{thread.subject}</p>
+                <p className="text-xs text-white/40 mt-1 font-mono">{formatDate(thread.received_at)}</p>
               </button>
             ))
           )}
@@ -134,22 +134,22 @@ export default function Inbox() {
         <div className="lg:col-span-2">
           {!selectedThread ? (
             <Card className="h-full flex items-center justify-center">
-              <p className="text-gray-400 font-mono text-sm">Select a thread to view details</p>
+              <p className="text-white/40 font-mono text-sm">Select a thread to view details</p>
             </Card>
           ) : (
             <Card className="space-y-4">
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm md:text-base text-gray-900 font-semibold line-clamp-2">{selectedThread.subject}</h3>
-                  <p className="text-[10px] md:text-xs text-gray-500 truncate">{selectedThread.from_email || selectedThread.lead_email}</p>
+                  <h3 className="text-sm md:text-base text-white font-semibold line-clamp-2">{selectedThread.subject}</h3>
+                  <p className="text-[10px] md:text-xs text-white/50 truncate">{selectedThread.from_email || selectedThread.lead_email}</p>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Tag className="w-3.5 h-3.5 text-gray-400" />
+                  <Tag className="w-3.5 h-3.5 text-white/40" />
                   <select
                     value={selectedThread.intent_label}
                     onChange={(e) => handleUpdateIntent(selectedThread.id, e.target.value as IntentLabel)}
-                    className="bg-gray-50 border border-gray-200 rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
+                    className="bg-[#111] border border-white/10 rounded-md px-2 py-1 text-[10px] md:text-xs text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
                   >
                     {Object.entries(INTENT_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
@@ -159,16 +159,16 @@ export default function Inbox() {
               </div>
 
               {/* Body */}
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-4 max-h-64 overflow-y-auto">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap font-mono">{selectedThread.body}</p>
+              <div className="bg-[#111] border border-white/10 rounded-md p-4 max-h-64 overflow-y-auto">
+                <p className="text-sm text-white/80 whitespace-pre-wrap font-mono">{selectedThread.body}</p>
               </div>
 
               {/* Reply */}
-              <div className="border-t border-gray-100 pt-4">
+              <div className="border-t border-white/5 pt-4">
                 <div className="flex items-start gap-2">
-                  <CornerDownRight className="w-4 h-4 text-gray-400 mt-2.5" />
+                  <CornerDownRight className="w-4 h-4 text-white/40 mt-2.5" />
                   <textarea
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-md p-3 text-sm text-gray-900 font-mono placeholder:text-gray-400 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
+                    className="flex-1 bg-[#111] border border-white/10 rounded-md p-3 text-sm text-white font-mono placeholder:text-white/40 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
                     placeholder="Type your reply..."
                     value={replyBody}
                     onChange={(e) => setReplyBody(e.target.value)}

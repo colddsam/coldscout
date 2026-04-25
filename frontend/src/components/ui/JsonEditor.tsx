@@ -17,11 +17,11 @@ interface JsonEditorProps {
 
 export default function JsonEditor({ value, onChange, height = 400 }: JsonEditorProps) {
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200">
+    <div className="rounded-lg overflow-hidden border border-white/10">
       <Editor
         height={`${height}px`}
         defaultLanguage="json"
-        theme="light"
+        theme="vs-dark"
         value={value}
         onChange={(v) => onChange(v || '')}
         options={{

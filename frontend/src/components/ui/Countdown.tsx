@@ -50,11 +50,11 @@ export default function Countdown({ to }: CountdownProps) {
   }, [to]);
 
   if (!to) {
-    return <span className="font-mono text-black tabular-nums">—</span>;
+    return <span className="font-mono text-white tabular-nums">—</span>;
   }
 
   return (
-    <span className="font-mono text-black tabular-nums">
+    <span className="font-mono text-white tabular-nums">
       {display !== '—' && display !== 'now' ? `in ${display}` : display}
     </span>
   );

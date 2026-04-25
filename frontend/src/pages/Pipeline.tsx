@@ -115,14 +115,14 @@ export default function Pipeline() {
 
       {/* Status Banner */}
       <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-      <div className={`rounded-lg p-6 border ${hasAnyRunning ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+      <div className={`rounded-lg p-6 border ${hasAnyRunning ? 'bg-emerald-50 border-emerald-200' : 'bg-[#111] border-white/10'}`}>
         <div className="flex items-center gap-4">
           {hasAnyRunning ? (
             <>
               <Spinner size="md" />
               <div>
                 <p className="text-emerald-700 font-semibold">Pipeline Active</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-white/50">
                   Running: {Object.entries(activeStages)
                     .filter(([, j]) => j.status === 'running')
                     .map(([s]) => s)
@@ -139,8 +139,8 @@ export default function Pipeline() {
             </>
           ) : (
             <div>
-              <p className="text-gray-900 font-semibold">Pipeline Idle</p>
-              <p className="text-sm text-gray-500 font-mono">
+              <p className="text-white font-semibold">Pipeline Idle</p>
+              <p className="text-sm text-white/50 font-mono">
                 Last run: {pipeline?.last_run?.at ? formatDate(pipeline.last_run.at) : 'Never'} ·
                 Status: {pipeline?.last_run?.status ?? '—'}
               </p>
@@ -159,21 +159,21 @@ export default function Pipeline() {
 
           return (
             <motion.div key={stage.id} variants={staggerItem}>
-            <Card className={isBusy ? 'border-black ring-1 ring-black/10' : ''}>
+            <Card className={isBusy ? 'border-white/30 ring-1 ring-black/10' : ''}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-md ${isBusy ? 'bg-black' : 'bg-gray-100'}`}>
+                  <div className={`p-2 rounded-md ${isBusy ? 'bg-black' : 'bg-white/5'}`}>
                     {isBusy && activeJob?.status === 'running' ? (
                       <Spinner size="xs" className="text-white" />
                     ) : isBusy && activeJob?.status === 'queued' ? (
                       <Lock className="w-5 h-5 text-white" />
                     ) : (
-                      <Icon className={`w-5 h-5 text-gray-500`} />
+                      <Icon className={`w-5 h-5 text-white/50`} />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{stage.label}</h3>
-                    <p className="text-xs text-gray-500">{stage.description}</p>
+                    <h3 className="text-sm font-semibold text-white">{stage.label}</h3>
+                    <p className="text-xs text-white/50">{stage.description}</p>
                   </div>
                 </div>
                 <StageStatusBadge job={activeJob} />
@@ -208,10 +208,10 @@ export default function Pipeline() {
       {/* Persistent Log */}
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
       <Card>
-        <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">Pipeline Log</h3>
-        <div className="bg-gray-50 border border-gray-200 rounded-md p-4 max-h-80 overflow-y-auto font-mono text-xs space-y-1">
+        <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-3">Pipeline Log</h3>
+        <div className="bg-[#111] border border-white/10 rounded-md p-4 max-h-80 overflow-y-auto font-mono text-xs space-y-1">
           {logEntries.length === 0 ? (
-            <p className="text-gray-400">No log entries yet. Trigger a pipeline stage to see output.</p>
+            <p className="text-white/40">No log entries yet. Trigger a pipeline stage to see output.</p>
           ) : (
             logEntries.map((entry, i) => (
               <p
@@ -220,7 +220,7 @@ export default function Pipeline() {
                   entry.status === 'failed' ? 'text-red-600' :
                   entry.status === 'running' ? 'text-emerald-600' :
                   entry.status === 'queued' ? 'text-amber-600' :
-                  'text-gray-600'
+                  'text-white/70'
                 }
               >
                 {entry.text}
@@ -233,7 +233,7 @@ export default function Pipeline() {
 
       {/* Confirm Modal */}
       <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Run Full Pipeline">
-        <p className="text-gray-500 text-sm mb-4">
+        <p className="text-white/50 text-sm mb-4">
           This will trigger all pipeline stages sequentially: Discovery → Qualification →
           Personalization → Outreach → Report. Are you sure?
         </p>

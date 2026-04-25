@@ -41,11 +41,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <>
-      <header className="flex items-center justify-between h-14 px-4 md:px-6 glass-panel-strong sticky top-0 z-30 border-b border-accents-2">
+      <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-[#0A0A0A]/80 backdrop-blur-md sticky top-0 z-30 border-b border-white/5">
         <div className="flex items-center gap-4">
           <motion.button
             onClick={onMenuClick}
-            className="lg:hidden p-1.5 text-secondary hover:text-black transition-colors"
+            className="lg:hidden p-1.5 text-[#A0A0A0] hover:text-white transition-colors"
             whileTap={{ scale: 0.9 }}
           >
             <Menu className="w-6 h-6" />
@@ -55,7 +55,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="text-base font-semibold text-black tracking-tight whitespace-nowrap"
+            className="text-base font-semibold text-white tracking-tight whitespace-nowrap"
           >
             {pageTitle}
           </motion.h1>
@@ -63,7 +63,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         <div className="flex items-center gap-3 md:gap-4">
           {!(role === 'client' && location.pathname === '/profile') && (
-            <span className="hidden sm:inline text-[10px] font-mono text-subtle">
+            <span className="hidden sm:inline text-[10px] font-mono text-[#666666]">
               Updated {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
             </span>
           )}
@@ -94,7 +94,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       {role !== 'client' && (
         <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm System Toggle">
-          <p className="text-secondary text-sm mb-4">
+          <p className="text-[#A0A0A0] text-sm mb-4">
             {isRunning
               ? 'This will pause ALL automated pipeline operations. Are you sure?'
               : 'This will resume all automated pipeline operations. Are you sure?'}

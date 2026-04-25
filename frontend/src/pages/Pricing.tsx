@@ -63,11 +63,11 @@ function CurrencySelector({ selected, onChange }: {
     <div className="relative inline-block">
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 border border-gray-200 rounded-md px-3 py-1.5 bg-white text-sm hover:border-black hover:shadow-vercel transition-all"
+        className="inline-flex items-center gap-2 border border-white/10 rounded-md px-3 py-1.5 bg-white/5 text-sm hover:border-white/25 hover:bg-white/10 transition-all"
       >
         <span>{selected.flag}</span>
-        <span className="font-medium">{selected.code}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-secondary transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <span className="font-medium text-white">{selected.code}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-[#A0A0A0] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -77,19 +77,19 @@ function CurrencySelector({ selected, onChange }: {
             variants={fadeIn}
             initial="hidden"
             animate="visible"
-            className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-vercel-hover z-50 py-1"
+            className="absolute right-0 mt-2 w-44 bg-[#1C1C1C] border border-white/10 rounded-lg shadow-elevated z-50 py-1"
           >
             {CURRENCIES.map((c) => (
               <button
                 key={c.code}
                 onClick={() => { onChange(c); setOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-accents-1 transition-colors ${
-                  c.code === selected.code ? 'bg-accents-1 font-medium' : ''
+                className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
+                  c.code === selected.code ? 'bg-white/10 font-medium text-white' : 'text-[#A0A0A0]'
                 }`}
               >
                 <span>{c.flag}</span>
                 <span>{c.code}</span>
-                <span className="ml-auto text-xs text-secondary">{c.symbol}</span>
+                <span className="ml-auto text-xs text-[#666666]">{c.symbol}</span>
               </button>
             ))}
           </motion.div>
@@ -105,13 +105,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <motion.div variants={staggerItem} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-vercel">
+    <motion.div variants={staggerItem} className="border border-white/5 rounded-2xl overflow-hidden hover:border-white/15 bg-[#111111]">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 bg-white hover:bg-accents-1 transition-colors text-left"
+        className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors text-left"
       >
-        <span className="text-sm font-semibold text-black pr-4">{q}</span>
-        <ChevronDown className={`w-4 h-4 text-secondary flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <span className="text-sm font-semibold text-white pr-4">{q}</span>
+        <ChevronDown className={`w-4 h-4 text-[#666666] flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -122,7 +122,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             exit="collapsed"
             className="overflow-hidden"
           >
-            <p className="px-5 pb-5 text-sm text-secondary leading-relaxed border-t border-gray-100 pt-4">{a}</p>
+            <p className="px-5 pb-5 text-sm text-[#A0A0A0] leading-relaxed border-t border-white/5 pt-4">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -137,31 +137,31 @@ function PricingHero({ currency, onCurrencyChange }: {
   onCurrencyChange: (c: CurrencyInfo) => void;
 }) {
   return (
-    <section className="relative pt-32 pb-10">
-      <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none" />
+    <section className="relative pt-32 pb-10 bg-black">
+      <div className="absolute inset-0 noise-overlay opacity-[0.15]" />
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
         className="relative z-10 max-w-6xl mx-auto px-6 text-center"
       >
-        <motion.div variants={staggerItem} className="inline-flex items-center gap-2 border border-gray-200 rounded-full px-4 py-1.5 mb-8 bg-white shadow-minimal">
-          <Zap className="w-3.5 h-3.5 text-black" />
-          <span className="text-xs font-medium text-secondary">Pricing</span>
+        <motion.div variants={staggerItem} className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8 bg-white/[0.03]">
+          <Zap className="w-3.5 h-3.5 text-white" />
+          <span className="text-xs font-medium text-[#A0A0A0]">Pricing</span>
         </motion.div>
 
-        <motion.h1 variants={staggerItem} className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-black leading-[0.95] mb-6">
+        <motion.h1 variants={staggerItem} className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white leading-[0.95] mb-6">
           Choose Your<br />
           <span className="text-gradient">Plan</span>
         </motion.h1>
 
-        <motion.p variants={staggerItem} className="text-lg md:text-xl text-secondary max-w-2xl mx-auto mb-8">
+        <motion.p variants={staggerItem} className="text-lg md:text-xl text-[#A0A0A0] max-w-2xl mx-auto mb-8">
           Open source forever. Pay only when you want our hosted infrastructure.
         </motion.p>
 
         <motion.div variants={staggerItem} className="flex items-center justify-center gap-3">
-          <Globe className="w-4 h-4 text-secondary" />
-          <span className="text-sm text-secondary">Currency:</span>
+          <Globe className="w-4 h-4 text-[#A0A0A0]" />
+          <span className="text-sm text-[#A0A0A0]">Currency:</span>
           <CurrencySelector selected={currency} onChange={onCurrencyChange} />
         </motion.div>
       </motion.div>
@@ -271,7 +271,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
   ];
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-black">
       <div className="max-w-6xl mx-auto px-6">
         <motion.div
           variants={staggerContainer}
@@ -288,47 +288,47 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                 key={plan.name}
                 variants={staggerItem}
                 whileHover={hoverLift}
-                className={`relative rounded-xl border overflow-hidden ${
+                className={`relative rounded-2xl border overflow-hidden ${
                   plan.featured
-                    ? 'border-black shadow-vercel-hover bg-black text-white scale-[1.02]'
-                    : 'border-gray-200 bg-white hover:shadow-vercel hover:border-black'
+                    ? 'border-white/25 bg-[#111111] text-white scale-[1.02] shadow-[0_0_30px_rgba(255,255,255,0.03)]'
+                    : 'border-white/5 bg-[#111111] hover:border-white/15'
                 }`}
               >
                 {plan.featured && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-black" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-white/25" />
                 )}
 
                 <div className="p-8">
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      plan.featured ? 'bg-white/10' : 'bg-accents-1 border border-gray-200'
+                      plan.featured ? 'bg-white/10' : 'bg-white/5 border border-white/10'
                     }`}>
-                      <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-secondary'}`} />
+                      <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-[#A0A0A0]'}`} />
                     </div>
                     <div>
                       <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${
-                        plan.featured ? 'text-white' : 'text-subtle'
+                        plan.featured ? 'text-white' : 'text-[#666666]'
                       }`}>{plan.name}</p>
                     </div>
                   </div>
 
                   {/* Price */}
                   <div className="mb-2">
-                    <span className="text-4xl font-bold tracking-tighter">{plan.price}</span>
+                    <span className="text-4xl font-bold tracking-tighter text-white">{plan.price}</span>
                     {plan.period && (
-                      <span className={`text-sm ml-1 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.period}</span>
+                      <span className={`text-sm ml-1 text-[#666666]`}>{plan.period}</span>
                     )}
                   </div>
-                  <p className={`text-xs font-medium mb-1 ${plan.featured ? 'text-gray-300' : 'text-black'}`}>{plan.tagline}</p>
-                  <p className={`text-[12px] leading-relaxed mb-6 ${plan.featured ? 'text-gray-400' : 'text-secondary'}`}>{plan.desc}</p>
+                  <p className={`text-xs font-medium mb-1 ${plan.featured ? 'text-gray-300' : 'text-white'}`}>{plan.tagline}</p>
+                  <p className={`text-[12px] leading-relaxed mb-6 text-[#A0A0A0]`}>{plan.desc}</p>
 
                   {/* Features */}
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2.5 text-sm">
-                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.featured ? 'text-white' : 'text-black'}`} />
-                        <span className={plan.featured ? 'text-gray-200' : 'text-secondary'}>{f}</span>
+                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${plan.featured ? 'text-white' : 'text-white/60'}`} />
+                        <span className="text-[#C0C0C0]">{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -339,10 +339,10 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                       href={plan.ctaLink!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      className={`flex items-center justify-center gap-2 w-full py-3 rounded-full text-sm font-medium transition-all duration-200 ${
                         plan.featured
-                          ? 'bg-white text-black hover:bg-gray-100'
-                          : 'bg-black text-white hover:bg-gray-800'
+                          ? 'bg-white text-black hover:bg-gray-200'
+                          : 'border border-white/15 text-white hover:bg-white/10'
                       }`}
                       aria-label={`${plan.cta} with the ${plan.name} plan`}
                     >
@@ -352,7 +352,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                     <button
                       onClick={handleProCheckout}
                       disabled={isLoading}
-                      className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 disabled:opacity-70 transition-all duration-200"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-full text-sm font-medium bg-white text-black hover:bg-gray-200 disabled:opacity-70 transition-all duration-200"
                       aria-label={`${plan.cta} with the ${plan.name} plan`}
                     >
                       {isLoading ? (
@@ -364,7 +364,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                   ) : (
                     <Link
                       to="/login"
-                      className="flex items-center justify-center gap-2 w-full py-3 rounded-lg text-sm font-medium bg-white text-black hover:bg-gray-100 transition-all duration-200"
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-full text-sm font-medium bg-white text-black hover:bg-gray-200 transition-all duration-200"
                       aria-label={`${plan.cta} with the ${plan.name} plan`}
                     >
                       {plan.cta} <ArrowRight className="w-3.5 h-3.5" />
@@ -378,7 +378,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
 
         {/* INR note when non-INR currency selected */}
         {currency.code !== 'INR' && (
-          <p className="text-center text-[11px] text-subtle mt-6">
+          <p className="text-center text-[11px] text-[#666666] mt-6">
             * Payments are processed in INR (₹). Displayed prices are approximate conversions for reference.
           </p>
         )}
@@ -410,9 +410,9 @@ function ComparisonTable() {
   ];
 
   function renderCell(val: boolean | string) {
-    if (val === true) return <Check className="w-4 h-4 text-black mx-auto" />;
-    if (val === false) return <X className="w-4 h-4 text-gray-300 mx-auto" />;
-    return <span className="text-xs text-secondary">{val}</span>;
+    if (val === true) return <Check className="w-4 h-4 text-white mx-auto" />;
+    if (val === false) return <X className="w-4 h-4 text-white/20 mx-auto" />;
+    return <span className="text-xs text-[#A0A0A0]">{val}</span>;
   }
 
   return (
@@ -421,45 +421,45 @@ function ComparisonTable() {
       initial="hidden"
       whileInView="visible"
       viewport={defaultViewport}
-      className="py-24 bg-accents-1"
+      className="py-24 bg-[#0A0A0A]"
     >
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Compare</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Feature Comparison</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Compare</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Feature Comparison</h2>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-4 border-b border-gray-100 bg-accents-1">
+          <div className="grid grid-cols-4 border-b border-white/5 bg-white/[0.02]">
             <div className="p-4" />
-            <div className="p-4 text-center border-l border-gray-100">
-              <p className="text-[10px] uppercase tracking-widest text-subtle font-semibold">Open Source</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5">Free</p>
+            <div className="p-4 text-center border-l border-white/5">
+              <p className="text-[10px] uppercase tracking-widest text-[#666666] font-semibold">Open Source</p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">Free</p>
             </div>
-            <div className="p-4 text-center border-l border-gray-100 bg-black/5">
-              <p className="text-[10px] uppercase tracking-widest text-black font-semibold">Pro</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5">₹100<span className="text-xs font-normal text-secondary">/mo</span></p>
+            <div className="p-4 text-center border-l border-white/5 bg-white/[0.03]">
+              <p className="text-[10px] uppercase tracking-widest text-white font-semibold">Pro</p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹100<span className="text-xs font-normal text-[#666666]">/mo</span></p>
             </div>
-            <div className="p-4 text-center border-l border-gray-100">
-              <p className="text-[10px] uppercase tracking-widest text-subtle font-semibold">Enterprise</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5">₹2,000<span className="text-xs font-normal text-secondary">/mo</span></p>
+            <div className="p-4 text-center border-l border-white/5">
+              <p className="text-[10px] uppercase tracking-widest text-[#666666] font-semibold">Enterprise</p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹2,000<span className="text-xs font-normal text-[#666666]">/mo</span></p>
             </div>
           </div>
 
 
           {/* Rows */}
           {rows.map((row, i) => (
-            <div key={row.feature} className={`grid grid-cols-4 ${i < rows.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-accents-1 transition-colors`}>
-              <div className="p-4 text-sm text-black font-medium">{row.feature}</div>
-              <div className="p-4 text-center border-l border-gray-50">{renderCell(row.os)}</div>
-              <div className="p-4 text-center border-l border-gray-50 bg-black/[0.02]">{renderCell(row.pro)}</div>
-              <div className="p-4 text-center border-l border-gray-50">{renderCell(row.ent)}</div>
+            <div key={row.feature} className={`grid grid-cols-4 ${i < rows.length - 1 ? 'border-b border-white/[0.03]' : ''} hover:bg-white/[0.02] transition-colors`}>
+              <div className="p-4 text-sm text-white font-medium">{row.feature}</div>
+              <div className="p-4 text-center border-l border-white/[0.03]">{renderCell(row.os)}</div>
+              <div className="p-4 text-center border-l border-white/[0.03] bg-white/[0.02]">{renderCell(row.pro)}</div>
+              <div className="p-4 text-center border-l border-white/[0.03]">{renderCell(row.ent)}</div>
             </div>
           ))}
         </div>
 
-        <p className="text-center text-[11px] text-subtle mt-4">
+        <p className="text-center text-[11px] text-[#666666] mt-4">
           * Open Source unlimited leads require your own Google Places API keys and Groq credits.
         </p>
       </div>
@@ -494,11 +494,11 @@ function FaqSection() {
   ];
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-24 bg-black">
       <div className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-12">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">FAQ</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Common Questions</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Common Questions</h2>
         </div>
 
         <motion.div
@@ -526,13 +526,13 @@ function CtaBanner() {
       initial="hidden"
       whileInView="visible"
       viewport={defaultViewport}
-      className="py-24 bg-accents-1"
+      className="py-24 bg-[#0A0A0A]"
     >
       <div className="max-w-4xl mx-auto px-6 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black mb-4">
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white mb-4">
           Start building today
         </h2>
-        <p className="text-secondary text-lg max-w-xl mx-auto mb-10">
+        <p className="text-[#A0A0A0] text-lg max-w-xl mx-auto mb-10">
           Whether you want full control with self-hosting or instant access with our
           managed API — Cold Scout has you covered.
         </p>
@@ -542,14 +542,14 @@ function CtaBanner() {
             href="https://github.com/colddsam/coldscout/releases"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-lg text-sm font-medium border border-gray-200 hover:border-black hover:shadow-vercel transition-all"
+            className="inline-flex items-center gap-2 border border-white/15 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white/10 transition-all"
           >
             <Download className="w-4 h-4" />
             Download Free Package
           </a>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-gray-800 transition-all hover:shadow-vercel-hover"
+            className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full text-sm font-medium hover:bg-gray-200 transition-all"
           >
             Get API Access <ArrowRight className="w-4 h-4" />
           </Link>
@@ -770,7 +770,7 @@ export default function Pricing() {
   });
 
   return (
-    <div className="bg-white text-black font-sans antialiased">
+    <div className="bg-black text-white font-sans antialiased">
       <JsonLd data={LD_WEBPAGE_PRICING} id="webpage-pricing" />
       <JsonLd data={LD_FAQ_PRICING} id="faq-pricing" />
       <JsonLd data={LD_BREADCRUMB_PRICING} id="breadcrumb-pricing" />

@@ -1,8 +1,8 @@
 /**
  * Public Footer Component.
  *
- * Scroll-triggered reveal with hover effects on social icons
- * and consistent link styling.
+ * Dark theme footer with noise-overlay CTA, scroll-triggered reveal,
+ * hover effects on social icons, and consistent link styling.
  */
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -15,7 +15,7 @@ export default function PublicFooter() {
 
   return (
     <footer
-      className="border-t border-gray-200 py-16 bg-white relative z-10"
+      className="border-t border-white/5 py-16 bg-black relative z-10"
       role="contentinfo"
       aria-label="Site footer"
       itemScope
@@ -24,18 +24,19 @@ export default function PublicFooter() {
       <div className="max-w-6xl mx-auto px-6">
         {/* CTA Section */}
         <ScrollReveal>
-          <div className="relative mb-16 rounded-2xl bg-black text-white p-8 md:p-12 overflow-hidden">
-            <div className="absolute inset-0 bg-grid-dense opacity-10" />
+          <div className="relative mb-16 rounded-3xl bg-[#111111] text-white p-8 md:p-12 overflow-hidden">
+            <div className="absolute inset-0 noise-overlay opacity-[0.25]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
             <div className="relative z-10 text-center max-w-2xl mx-auto">
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
                 Ready to automate your outreach?
               </h2>
-              <p className="text-gray-400 text-sm mb-6">
+              <p className="text-[#A0A0A0] text-sm mb-6">
                 Join thousands of freelancers using AI to discover and engage qualified leads.
               </p>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
               >
                 Get Started Free <ArrowUpRight className="w-4 h-4" />
               </Link>
@@ -56,7 +57,7 @@ export default function PublicFooter() {
               <Link to="/" className="flex items-center" aria-label="Cold Scout Home" itemProp="url">
                 <Logo size="sm" />
               </Link>
-              <p className="text-sm text-secondary leading-relaxed" itemProp="description">
+              <p className="text-sm text-[#A0A0A0] leading-relaxed" itemProp="description">
                 AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.
               </p>
               <div className="flex items-center gap-3">
@@ -86,7 +87,7 @@ export default function PublicFooter() {
                     target={item.href.startsWith('http') ? '_blank' : undefined}
                     rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     aria-label={item.label}
-                    className="text-secondary hover:text-black transition-colors p-2 rounded-lg hover:bg-gray-100"
+                    className="text-[#A0A0A0] hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5"
                     itemProp={item.itemProp}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -102,7 +103,7 @@ export default function PublicFooter() {
             {/* Product */}
             <ScrollReveal delay={0.15}>
               <div className="flex flex-col gap-4">
-                <h2 className="text-[10px] font-bold text-black uppercase tracking-[0.15em]">Product</h2>
+                <h2 className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">Product</h2>
                 <nav className="flex flex-col gap-2.5" aria-label="Product navigation">
                   {[
                     { href: '/#features', label: 'Features' },
@@ -113,11 +114,11 @@ export default function PublicFooter() {
                     { to: '/support', label: 'Support' },
                   ].map((item) =>
                     'to' in item ? (
-                      <Link key={item.label} to={item.to!} className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                      <Link key={item.label} to={item.to!} className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                         {item.label}
                       </Link>
                     ) : (
-                      <a key={item.label} href={item.href} className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                      <a key={item.label} href={item.href} className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                         {item.label}
                       </a>
                     ),
@@ -129,7 +130,7 @@ export default function PublicFooter() {
             {/* Legal */}
             <ScrollReveal delay={0.2}>
               <div className="flex flex-col gap-4">
-                <h2 className="text-[10px] font-bold text-black uppercase tracking-[0.15em]">Legal</h2>
+                <h2 className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">Legal</h2>
                 <nav className="flex flex-col gap-2.5" aria-label="Legal navigation">
                   {[
                     { to: '/privacy', label: 'Privacy Policy' },
@@ -137,7 +138,7 @@ export default function PublicFooter() {
                     { to: '/refund-policy', label: 'Refund Policy' },
                     { to: '/delete-data', label: 'Data Deletion' },
                   ].map((item) => (
-                    <Link key={item.label} to={item.to} className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                    <Link key={item.label} to={item.to} className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                       {item.label}
                     </Link>
                   ))}
@@ -148,24 +149,24 @@ export default function PublicFooter() {
             {/* Community */}
             <ScrollReveal delay={0.25}>
               <div className="flex flex-col gap-4">
-                <h2 className="text-[10px] font-bold text-black uppercase tracking-[0.15em]">Community</h2>
+                <h2 className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">Community</h2>
                 <nav className="flex flex-col gap-2.5" aria-label="Community navigation">
-                  <a href="https://github.com/colddsam/coldscout" target="_blank" rel="noopener noreferrer" className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                  <a href="https://github.com/colddsam/coldscout" target="_blank" rel="noopener noreferrer" className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                     GitHub Repository
                   </a>
-                  <a href="https://github.com/colddsam/coldscout/issues" target="_blank" rel="noopener noreferrer" className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                  <a href="https://github.com/colddsam/coldscout/issues" target="_blank" rel="noopener noreferrer" className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                     Report an Issue
                   </a>
-                  <a href="https://www.linkedin.com/company/coldscout" target="_blank" rel="noopener noreferrer" className="text-sm text-secondary hover:text-black transition-colors hover-underline inline-block">
+                  <a href="https://www.linkedin.com/company/coldscout" target="_blank" rel="noopener noreferrer" className="text-sm text-[#A0A0A0] hover:text-white transition-colors hover-underline inline-block">
                     LinkedIn Page
                   </a>
                   <a
                     href="https://github.com/sponsors/colddsam"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-secondary hover:text-black transition-colors flex items-center gap-1 hover-underline inline-block"
+                    className="text-sm text-[#A0A0A0] hover:text-white transition-colors flex items-center gap-1 hover-underline inline-block"
                   >
-                    <Heart className="w-3 h-3 fill-black text-black" /> Sponsor
+                    <Heart className="w-3 h-3 fill-white text-white" /> Sponsor
                   </a>
                 </nav>
               </div>
@@ -173,18 +174,18 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-subtle">
+        <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-[#666666]">
             &copy; {currentYear} Cold Scout. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="/sitemap.xml" className="text-[10px] text-subtle hover:text-black transition-colors uppercase tracking-[0.15em] font-medium" aria-label="XML Sitemap">
+            <a href="/sitemap.xml" className="text-[10px] text-[#666666] hover:text-white transition-colors uppercase tracking-[0.15em] font-medium" aria-label="XML Sitemap">
               Sitemap
             </a>
-            <a href="/robots.txt" className="text-[10px] text-subtle hover:text-black transition-colors uppercase tracking-[0.15em] font-medium" aria-label="Robots.txt">
+            <a href="/robots.txt" className="text-[10px] text-[#666666] hover:text-white transition-colors uppercase tracking-[0.15em] font-medium" aria-label="Robots.txt">
               Robots
             </a>
-            <span className="text-[10px] text-subtle uppercase tracking-[0.15em] font-medium">Built with precision</span>
+            <span className="text-[10px] text-[#666666] uppercase tracking-[0.15em] font-medium">Built with precision</span>
           </div>
         </div>
       </div>

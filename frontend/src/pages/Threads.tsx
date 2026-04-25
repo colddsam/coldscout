@@ -80,7 +80,7 @@ function OverviewTab() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}><div className="h-20 bg-gray-50 rounded animate-pulse" /></Card>
+          <Card key={i}><div className="h-20 bg-white/5 rounded animate-pulse" /></Card>
         ))}
       </div>
     );
@@ -94,17 +94,17 @@ function OverviewTab() {
       <motion.div variants={staggerItem}>
       <Card className={cn(
         'flex items-center gap-3',
-        enabled ? 'border-black' : 'border-gray-300 bg-gray-50'
+        enabled ? 'border-white' : 'border-white/10 bg-white/[0.02]'
       )}>
         {enabled
-          ? <Power className="w-5 h-5 text-black" />
-          : <PowerOff className="w-5 h-5 text-gray-400" />
+          ? <Power className="w-5 h-5 text-white" />
+          : <PowerOff className="w-5 h-5 text-[#666666]" />
         }
         <div>
-          <p className="text-sm font-semibold text-black">
+          <p className="text-sm font-semibold text-white">
             Threads Pipeline: {enabled ? 'Active' : 'Inactive'}
           </p>
-          <p className="text-xs text-secondary">
+          <p className="text-xs text-[#A0A0A0]">
             {enabled
               ? 'The pipeline is processing leads automatically.'
               : 'Set THREADS_ENABLED=true in .env and restart to activate.'}
@@ -144,7 +144,7 @@ function OverviewTab() {
       {/* Pipeline Triggers */}
       <motion.div variants={staggerItem}>
       <Card>
-        <h3 className="text-sm font-semibold text-black mb-4 uppercase tracking-wider">Manual Pipeline Triggers</h3>
+        <h3 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Manual Pipeline Triggers</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Button
             variant="outline"
@@ -207,7 +207,7 @@ function ProfilesTab() {
       key: 'username',
       label: 'Username',
       render: (_, row) => (
-        <span className="text-gray-900 font-medium">@{String(row.username)}</span>
+        <span className="text-white font-medium">@{String(row.username)}</span>
       ),
     },
     { key: 'name', label: 'Name' },
@@ -229,9 +229,9 @@ function ProfilesTab() {
         return (
           <span className={cn(
             'px-2 py-0.5 rounded-md font-mono text-xs border',
-            score >= 70 ? 'bg-black text-white border-black' :
-            score >= 40 ? 'bg-gray-100 text-black border-gray-300' :
-            'bg-white text-gray-500 border-gray-200'
+            score >= 70 ? 'bg-white text-black border-white' :
+            score >= 40 ? 'bg-white/10 text-white border-white/20' :
+            'bg-white/5 text-[#A0A0A0] border-white/10'
           )}>
             {score || '—'}
           </span>
@@ -260,7 +260,7 @@ function ProfilesTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -269,7 +269,7 @@ function ProfilesTab() {
             <option value="disqualified">Disqualified</option>
             <option value="converted">Converted</option>
           </select>
-          <span className="text-xs text-secondary font-mono">
+          <span className="text-xs text-[#A0A0A0] font-mono">
             {profiles?.length ?? 0} profiles
           </span>
         </div>
@@ -300,7 +300,7 @@ function EngagementsTab() {
       key: 'reply_text',
       label: 'Reply',
       render: (_, row) => (
-        <span className="text-secondary text-xs max-w-[300px] truncate block">
+        <span className="text-[#A0A0A0] text-xs max-w-[300px] truncate block">
           {row.reply_text || '—'}
         </span>
       ),
@@ -321,7 +321,7 @@ function EngagementsTab() {
       key: 'response_text',
       label: 'Response',
       render: (_, row) => (
-        <span className="text-secondary text-xs max-w-[300px] truncate block">
+        <span className="text-[#A0A0A0] text-xs max-w-[300px] truncate block">
           {row.response_text || '—'}
         </span>
       ),
@@ -344,7 +344,7 @@ function EngagementsTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             <option value="sent">Sent</option>
@@ -352,7 +352,7 @@ function EngagementsTab() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
           </select>
-          <span className="text-xs text-secondary font-mono">
+          <span className="text-xs text-[#A0A0A0] font-mono">
             {engagements?.length ?? 0} engagements
           </span>
         </div>
@@ -409,7 +409,7 @@ function SearchConfigsTab() {
     <div className="space-y-4">
       <Card padding={true}>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-secondary font-mono">
+          <span className="text-xs text-[#A0A0A0] font-mono">
             {configs?.length ?? 0} search configs
           </span>
           <Button
@@ -424,20 +424,20 @@ function SearchConfigsTab() {
 
         {/* Add Form */}
         {showAddForm && (
-          <div className="mt-4 pt-4 border-t border-accents-2 flex flex-col sm:flex-row gap-3">
+          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               placeholder="Keyword (e.g. need a website)"
               value={newKeyword}
               onChange={(e) => setNewKeyword(e.target.value)}
-              className="flex-1 bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
+              className="flex-1 bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
             />
             <input
               type="text"
               placeholder="Category (optional)"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[160px]"
+              className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors min-w-[160px]"
             />
             <Button size="sm" onClick={handleCreate} loading={createConfig.isPending}>
               Create
@@ -451,14 +451,14 @@ function SearchConfigsTab() {
         <Card>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-12 bg-gray-50 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-white/5 rounded animate-pulse" />
             ))}
           </div>
         </Card>
       ) : !configs?.length ? (
         <Card>
-          <div className="flex flex-col items-center justify-center py-12 text-secondary">
-            <Search className="w-8 h-8 mb-3 text-accents-3" />
+          <div className="flex flex-col items-center justify-center py-12 text-[#A0A0A0]">
+            <Search className="w-8 h-8 mb-3 text-[#666666]" />
             <p className="font-mono text-sm">No search configs yet</p>
             <p className="text-xs mt-1">Add keywords to start discovering leads on Threads</p>
           </div>
@@ -473,20 +473,20 @@ function SearchConfigsTab() {
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center transition-all',
                     config.is_active
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 text-[#A0A0A0] hover:bg-white/20'
                   )}
                   title={config.is_active ? 'Active — click to pause' : 'Paused — click to activate'}
                 >
                   {config.is_active ? <Play className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
                 </button>
                 <div>
-                  <p className="text-sm font-semibold text-black">{config.keyword}</p>
-                  <p className="text-xs text-secondary">
+                  <p className="text-sm font-semibold text-white">{config.keyword}</p>
+                  <p className="text-xs text-[#A0A0A0]">
                     {config.category && <span className="mr-2">{config.category}</span>}
                     <span className="font-mono">{config.search_type}</span>
                     {config.last_searched_at && (
-                      <span className="ml-2 text-secondary/50">
+                      <span className="ml-2 text-[#666666]">
                         last: {formatDate(config.last_searched_at)}
                       </span>
                     )}
@@ -502,7 +502,7 @@ function SearchConfigsTab() {
                     deleteConfig.mutate(config.id);
                   }
                 }}
-                className="text-secondary hover:text-black"
+                className="text-[#A0A0A0] hover:text-white"
               />
             </Card>
           ))}
@@ -530,7 +530,7 @@ export default function Threads() {
       />
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-white/10">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -540,8 +540,8 @@ export default function Threads() {
               className={cn(
                 'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]',
                 activeTab === tab.id
-                  ? 'border-black text-black'
-                  : 'border-transparent text-secondary hover:text-black hover:border-gray-300',
+                  ? 'border-white text-white'
+                  : 'border-transparent text-[#A0A0A0] hover:text-white hover:border-white/30',
               )}
             >
               <Icon className="w-4 h-4" />

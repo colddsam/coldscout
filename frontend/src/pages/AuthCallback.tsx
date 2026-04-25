@@ -67,12 +67,12 @@ export default function AuthCallback() {
   }, [session, supabaseUser, status, navigate, syncUserToBackend]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-black relative overflow-hidden">
       {/* Subtle grid background */}
       <div className="absolute inset-0 bg-grid opacity-40" />
 
       {/* Decorative gradient orb */}
-      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-gray-100 to-gray-200/50 rounded-full blur-3xl opacity-60" />
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-br from-white/5 to-white/[0.02] rounded-full blur-3xl opacity-60" />
 
       <Card className="w-full max-w-sm z-10 relative" padding={false}>
         <div className="p-8 text-center">
@@ -80,7 +80,7 @@ export default function AuthCallback() {
           <div className="flex justify-center mb-6">
             <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <img src="/favicon.svg" alt="Cold Scout" className="h-9 w-9 object-contain" />
-              <span className="text-2xl font-bold tracking-tight text-black">Cold Scout</span>
+              <span className="text-2xl font-bold tracking-tight text-white">Cold Scout</span>
             </Link>
           </div>
 
@@ -90,10 +90,10 @@ export default function AuthCallback() {
               <div className="flex justify-center mb-4">
                 <Spinner size="lg" />
               </div>
-              <h2 className="text-lg font-semibold text-black mb-2">
+              <h2 className="text-lg font-semibold text-white mb-2">
                 {status === 'loading' ? 'Completing sign in...' : 'Setting up your account...'}
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-white/50">
                 {status === 'loading'
                   ? 'Please wait while we verify your credentials'
                   : 'Creating your profile in our system'}
@@ -103,24 +103,24 @@ export default function AuthCallback() {
 
           {status === 'success' && (
             <>
-              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-lg font-semibold text-black mb-2">Sign in successful!</h2>
-              <p className="text-sm text-gray-500">Redirecting you to your dashboard...</p>
+              <h2 className="text-lg font-semibold text-white mb-2">Sign in successful!</h2>
+              <p className="text-sm text-white/50">Redirecting you to your dashboard...</p>
             </>
           )}
 
           {status === 'error' && (
             <>
-              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
-              <h2 className="text-lg font-semibold text-black mb-2">Authentication failed</h2>
+              <h2 className="text-lg font-semibold text-white mb-2">Authentication failed</h2>
               <p className="text-sm text-red-600 mb-4">{error || 'Something went wrong'}</p>
               <button
                 onClick={() => navigate('/login')}
-                className="w-full py-2.5 px-4 bg-black text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
+                className="w-full py-2.5 px-4 bg-white text-black rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
               >
                 Back to Login
               </button>

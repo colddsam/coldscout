@@ -53,8 +53,8 @@ export default function Toggle({
   onChange,
   labelOn = 'RUN',
   labelOff = 'HOLD',
-  colorOn = 'bg-black',
-  colorOff = 'bg-gray-300',
+  colorOn = 'bg-white',
+  colorOff = 'bg-white/20',
   disabled = false,
 }: ToggleProps) {
   return (
@@ -81,7 +81,7 @@ export default function Toggle({
          * Animates the toggle's indicator based on its state.
          */
         className={cn(
-          'absolute left-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md transition-transform duration-300',
+          'absolute left-1 flex h-6 w-6 items-center justify-center rounded-full bg-black shadow-md transition-transform duration-300',
           value && 'translate-x-12',
         )}
       />
@@ -91,7 +91,7 @@ export default function Toggle({
          */
         className={cn(
           'absolute text-xs font-mono font-semibold transition-all',
-          value ? 'left-2.5 text-white' : 'right-2 text-gray-600',
+          value ? 'left-2.5 text-black' : 'right-2 text-white/60',
         )}
       >
         {value ? labelOn : labelOff}

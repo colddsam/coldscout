@@ -40,21 +40,21 @@ export default function Terms() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-black relative overflow-hidden">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
       <JsonLd data={LD_BREADCRUMB} id="terms-breadcrumb" />
       <JsonLd data={LD_TERMS} id="terms-page" />
       {/* Background layer */}
       <div className="absolute inset-0 bg-dots pointer-events-none" />
       {/* Background glow effects */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-black rounded-full blur-[150px] opacity-10 pointer-events-none -z-10" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full blur-[150px] opacity-[0.03] pointer-events-none -z-10" />
 
       <PublicNavbar />
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 relative z-10">
         <motion.div className="text-center mb-16" variants={fadeInUp} initial="hidden" animate="visible">
-          <div className="inline-flex items-center justify-center p-3 bg-black rounded-2xl mb-6 shadow-[0_0_20px_rgba(0,0,0,0.1)] animate-float">
-            <Scale className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl mb-6 shadow-[0_0_20px_rgba(255,255,255,0.1)] animate-float">
+            <Scale className="w-8 h-8 text-black" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Terms of Service</h1>
           <p className="text-[#666666] text-lg max-w-2xl mx-auto">
@@ -63,9 +63,9 @@ export default function Terms() {
         </motion.div>
 
         <motion.div className="grid gap-8" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-          <motion.div className="bg-white rounded-2xl p-8 border border-[#eaeaea] card-glow" variants={staggerItem}>
+          <motion.div className="bg-[#111111] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
-              <Target className="w-6 h-6 text-black" />
+              <Target className="w-6 h-6 text-white" />
               <h2 className="text-2xl font-bold">1. Usage Rules</h2>
             </div>
             <p className="text-[#666666] mt-2 mb-4 leading-relaxed">
@@ -78,9 +78,9 @@ export default function Terms() {
             </ul>
           </motion.div>
 
-          <motion.div className="bg-white rounded-2xl p-8 border border-[#eaeaea] card-glow" variants={staggerItem}>
+          <motion.div className="bg-[#111111] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
-              <Shield className="w-6 h-6 text-black" />
+              <Shield className="w-6 h-6 text-white" />
               <h2 className="text-2xl font-bold">2. No Abuse</h2>
             </div>
             <p className="text-[#666666] mt-2 leading-relaxed">
@@ -92,13 +92,13 @@ export default function Terms() {
               <li>Attempt to bypass, exploit, or circumvent the platform's API rate limits or security measures.</li>
               <li>Distribute malware, phishing links, or illicit material.</li>
             </ul>
-            <div className="mt-4 inline-flex items-center px-3 py-1 bg-black text-white rounded-md text-sm font-medium border border-black">
+            <div className="mt-4 inline-flex items-center px-3 py-1 bg-white text-black rounded-md text-sm font-medium border border-white">
               Violators will face immediate termination without a refund.
             </div>
           </motion.div>
 
 
-          <motion.div className="bg-[#fafafa] rounded-2xl p-8 border border-[#eaeaea] card-glow" variants={staggerItem}>
+          <motion.div className="bg-white/[0.02] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-[#666666]" />
               <h2 className="text-2xl font-bold">3. Disclaimer</h2>

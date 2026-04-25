@@ -9,7 +9,7 @@ interface LineChartProps {
 export default function LineChart({ data, lines, xKey = 'date' }: LineChartProps) {
   if (!data.length) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500 font-mono text-sm">
+      <div className="flex items-center justify-center h-64 text-[#666666] font-mono text-sm">
         No chart data available
       </div>
     );
@@ -18,29 +18,29 @@ export default function LineChart({ data, lines, xKey = 'date' }: LineChartProps
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RechartsLineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis
           dataKey={xKey}
-          stroke="#999"
+          stroke="#666"
           fontSize={11}
-          fontFamily="Inter, system-ui, sans-serif"
+          fontFamily="Almarai, system-ui, sans-serif"
           tickLine={false}
         />
         <YAxis
-          stroke="#999"
+          stroke="#666"
           fontSize={11}
-          fontFamily="Inter, system-ui, sans-serif"
+          fontFamily="Almarai, system-ui, sans-serif"
           tickLine={false}
           axisLine={false}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #eeeeee',
+            backgroundColor: '#111111',
+            border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px',
             fontSize: '12px',
-            fontFamily: 'Inter, system-ui, sans-serif',
-            color: '#000000',
+            fontFamily: 'Almarai, system-ui, sans-serif',
+            color: '#ffffff',
           }}
         />
         {lines.map((line) => (

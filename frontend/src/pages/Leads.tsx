@@ -74,7 +74,7 @@ export default function Leads() {
       key: 'business_name',
       label: 'Business Name',
       render: (_, row) => (
-        <span className="text-gray-900 font-medium">{String(row.business_name)}</span>
+        <span className="text-white font-medium">{String(row.business_name)}</span>
       ),
     },
     {
@@ -137,13 +137,13 @@ export default function Leads() {
       <Card padding={true}>
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 items-stretch sm:items-center">
           <div className="relative flex-1 min-w-[140px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
             <input
               type="text"
               placeholder="Country..."
               value={country}
               onChange={(e) => { setCountry(e.target.value); setPage(1); }}
-              className="w-full bg-accents-1 border border-accents-2 rounded-md pl-10 pr-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
+              className="w-full bg-[#111] border border-white/10 rounded-md pl-10 pr-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
             />
           </div>
 
@@ -152,7 +152,7 @@ export default function Leads() {
             placeholder="Region / State..."
             value={region}
             onChange={(e) => { setRegion(e.target.value); setPage(1); }}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[120px]"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <input
@@ -160,7 +160,7 @@ export default function Leads() {
             placeholder="City..."
             value={city}
             onChange={(e) => { setCity(e.target.value); setPage(1); }}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[120px]"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <input
@@ -168,13 +168,13 @@ export default function Leads() {
             placeholder="Category..."
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary placeholder:text-secondary/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors min-w-[120px]"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <select
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="bg-accents-1 border border-accents-2 rounded-md px-4 py-2 text-sm text-secondary focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-accents-3 transition-colors"
+            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             {LEAD_STATUSES.map((s) => (
@@ -203,7 +203,7 @@ export default function Leads() {
       {/* Pagination */}
       {data && data.pages > 1 && (
         <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport} className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-[10px] md:text-xs font-mono text-secondary/60 order-2 sm:order-1">
+          <span className="text-[10px] md:text-xs font-mono text-white/60/60 order-2 sm:order-1">
             Showing {((page - 1) * limit) + 1}–{Math.min(page * limit, data.total)} of {data.total} leads
           </span>
           <div className="flex items-center gap-2 order-1 sm:order-2">
@@ -217,7 +217,7 @@ export default function Leads() {
             >
               <span className="hidden xs:inline">Prev</span>
             </Button>
-            <span className="text-[10px] md:text-xs font-mono text-secondary min-w-[80px] text-center">
+            <span className="text-[10px] md:text-xs font-mono text-white/60 min-w-[80px] text-center">
               Page {page} of {data.pages}
             </span>
             <Button

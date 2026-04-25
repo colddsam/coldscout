@@ -27,7 +27,7 @@ interface DataTableProps<T> {
 
 function SkeletonRow({ cols }: { cols: number }) {
   return (
-    <tr className="border-b border-accents-1">
+    <tr className="border-b border-white/5">
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-6 py-3">
           <div
@@ -50,14 +50,14 @@ export default function DataTable<T extends object>({
 }: DataTableProps<T>) {
   if (loading) {
     return (
-      <div className={cn('overflow-x-auto rounded-xl border border-gray-200', className)}>
+      <div className={cn('overflow-x-auto rounded-xl border border-white/10', className)}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-accents-2 bg-accents-1">
+            <tr className="border-b border-white/10 bg-[#111]">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-secondary"
+                  className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-white/60"
                   style={{ width: col.width }}
                 >
                   {col.label}
@@ -80,10 +80,10 @@ export default function DataTable<T extends object>({
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center py-16 text-secondary"
+        className="flex flex-col items-center justify-center py-16 text-white/60"
       >
-        <div className="w-12 h-12 rounded-xl bg-accents-1 border border-accents-2 flex items-center justify-center mb-4">
-          <span className="text-lg text-accents-3">0</span>
+        <div className="w-12 h-12 rounded-xl bg-[#111] border border-white/10 flex items-center justify-center mb-4">
+          <span className="text-lg text-white/40">0</span>
         </div>
         <p className="font-mono text-sm">{emptyMessage}</p>
       </motion.div>
@@ -91,14 +91,14 @@ export default function DataTable<T extends object>({
   }
 
   return (
-    <div className={cn('overflow-x-auto rounded-xl border border-gray-200', className)}>
+    <div className={cn('overflow-x-auto rounded-xl border border-white/10', className)}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-accents-2 bg-accents-1">
+          <tr className="border-b border-white/10 bg-[#111]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-secondary"
+                className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-white/60"
                 style={{ width: col.width }}
               >
                 {col.label}
@@ -119,13 +119,13 @@ export default function DataTable<T extends object>({
               }}
               onClick={() => onRowClick?.(row)}
               className={cn(
-                'border-b border-accents-1 transition-colors duration-200 text-secondary',
+                'border-b border-white/5 transition-colors duration-200 text-white/60',
                 onRowClick &&
-                  'cursor-pointer hover:bg-gray-50/80',
+                  'cursor-pointer hover:bg-white/10/5',
               )}
             >
               {columns.map((col) => (
-                <td key={col.key} className="px-6 py-4 text-secondary">
+                <td key={col.key} className="px-6 py-4 text-white/60">
                   {col.render
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ? col.render((row as any)[col.key], row)

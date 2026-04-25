@@ -19,25 +19,25 @@ function CampaignDetailPanel({ campaign }: { campaign: Campaign }) {
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-gray-50 border border-gray-100 rounded-md p-3 text-center">
-          <Send className="w-4 h-4 text-gray-500 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-gray-900">{stats?.total_sent ?? campaign.total_sent ?? 0}</p>
-          <p className="text-xs text-gray-400">Sent</p>
+        <div className="bg-[#111] border border-white/5 rounded-md p-3 text-center">
+          <Send className="w-4 h-4 text-white/50 mx-auto mb-1" />
+          <p className="text-lg font-mono font-bold text-white">{stats?.total_sent ?? campaign.total_sent ?? 0}</p>
+          <p className="text-xs text-white/40">Sent</p>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-md p-3 text-center">
-          <Eye className="w-4 h-4 text-gray-400 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-gray-900">{stats?.total_opened ?? campaign.total_opened ?? 0}</p>
-          <p className="text-xs text-gray-400">Opened</p>
+        <div className="bg-[#111] border border-white/5 rounded-md p-3 text-center">
+          <Eye className="w-4 h-4 text-white/40 mx-auto mb-1" />
+          <p className="text-lg font-mono font-bold text-white">{stats?.total_opened ?? campaign.total_opened ?? 0}</p>
+          <p className="text-xs text-white/40">Opened</p>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-md p-3 text-center">
-          <MousePointerClick className="w-4 h-4 text-gray-400 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-gray-900">{stats?.total_clicked ?? campaign.total_clicked ?? 0}</p>
-          <p className="text-xs text-gray-400">Clicked</p>
+        <div className="bg-[#111] border border-white/5 rounded-md p-3 text-center">
+          <MousePointerClick className="w-4 h-4 text-white/40 mx-auto mb-1" />
+          <p className="text-lg font-mono font-bold text-white">{stats?.total_clicked ?? campaign.total_clicked ?? 0}</p>
+          <p className="text-xs text-white/40">Clicked</p>
         </div>
-        <div className="bg-gray-50 border border-gray-100 rounded-md p-3 text-center">
-          <Reply className="w-4 h-4 text-gray-400 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-gray-900">{stats?.total_replied ?? campaign.total_replied ?? 0}</p>
-          <p className="text-xs text-gray-400">Replied</p>
+        <div className="bg-[#111] border border-white/5 rounded-md p-3 text-center">
+          <Reply className="w-4 h-4 text-white/40 mx-auto mb-1" />
+          <p className="text-lg font-mono font-bold text-white">{stats?.total_replied ?? campaign.total_replied ?? 0}</p>
+          <p className="text-xs text-white/40">Replied</p>
         </div>
       </div>
 
@@ -45,16 +45,16 @@ function CampaignDetailPanel({ campaign }: { campaign: Campaign }) {
       {stats && (
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-black">{stats.open_rate ?? '—'}%</p>
-            <p className="text-xs text-gray-400">Open Rate</p>
+            <p className="text-2xl font-mono font-bold text-white">{stats.open_rate ?? '—'}%</p>
+            <p className="text-xs text-white/40">Open Rate</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-black">{stats.click_rate ?? '—'}%</p>
-            <p className="text-xs text-gray-400">Click Rate</p>
+            <p className="text-2xl font-mono font-bold text-white">{stats.click_rate ?? '—'}%</p>
+            <p className="text-xs text-white/40">Click Rate</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-black">{stats.reply_rate ?? '—'}%</p>
-            <p className="text-xs text-gray-400">Reply Rate</p>
+            <p className="text-2xl font-mono font-bold text-white">{stats.reply_rate ?? '—'}%</p>
+            <p className="text-xs text-white/40">Reply Rate</p>
           </div>
         </div>
       )}
@@ -90,7 +90,7 @@ export default function Campaigns() {
     {
       key: 'name',
       label: 'Campaign',
-      render: (_, row) => <span className="text-gray-900 font-medium">{String(row.name || row.campaign_date || row.id)}</span>,
+      render: (_, row) => <span className="text-white font-medium">{String(row.name || row.campaign_date || row.id)}</span>,
     },
     {
       key: 'total_sent',
@@ -144,8 +144,8 @@ export default function Campaigns() {
           <motion.div variants={scaleIn} initial="hidden" animate="visible">
             <Card>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest">Campaign Details</h3>
-                <button onClick={() => setSelectedId(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest">Campaign Details</h3>
+                <button onClick={() => setSelectedId(null)} className="text-white/40 hover:text-white/70 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>

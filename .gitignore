@@ -65,6 +65,7 @@ alembic_*.txt
 sqlcommands/
 
 docs/
+FILES/
 
 .agent/
 

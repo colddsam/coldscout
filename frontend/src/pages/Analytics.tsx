@@ -130,7 +130,7 @@ export default function Analytics() {
       {/* Funnel */}
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
       <Card>
-        <h3 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-4">Lead Funnel (Last 7 Days)</h3>
+        <h3 className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">Lead Funnel (Last 7 Days)</h3>
         <FunnelChart stages={chartData.funnel} />
       </Card>
       </motion.div>
@@ -139,7 +139,7 @@ export default function Analytics() {
       <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
         <motion.div variants={staggerItem}>
         <Card>
-          <h3 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-4">Lead Discovery & Emails</h3>
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">Lead Discovery & Emails</h3>
           <LineChart
             data={chartData.line}
             lines={[
@@ -153,7 +153,7 @@ export default function Analytics() {
 
         <motion.div variants={staggerItem}>
         <Card>
-          <h3 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-4">Qualification & Outreach</h3>
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">Qualification & Outreach</h3>
           <BarChart
             data={chartData.bar}
             bars={[
@@ -168,7 +168,7 @@ export default function Analytics() {
       {/* Reports Table */}
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
       <Card>
-        <h3 className="text-xs font-semibold text-secondary uppercase tracking-widest mb-4">Daily Reports</h3>
+        <h3 className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-4">Daily Reports</h3>
         <DataTable
           columns={columns}
           data={reports ?? []}

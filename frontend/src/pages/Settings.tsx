@@ -121,7 +121,7 @@ export default function Settings() {
         <motion.div className="lg:col-span-2 space-y-4" variants={staggerItem}>
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest">Jobs Configuration</h3>
+              <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest">Jobs Configuration</h3>
               <div className="flex items-center gap-2">
                 {dirty && <Badge label="Modified" variant="amber" />}
                 <Button
@@ -157,13 +157,13 @@ export default function Settings() {
           {/* System Toggle */}
           <motion.div variants={staggerItem}>
           <Card>
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">Production Status</h3>
+            <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-3">Production Status</h3>
             <div className="flex items-center justify-between py-2">
               <div>
-                <p className="text-sm text-gray-900 font-medium">
+                <p className="text-sm text-white font-medium">
                   System is {isRunning ? 'running' : 'on hold'}
                 </p>
-                <p className="text-xs text-gray-400">Toggle to hold/resume all scheduled jobs</p>
+                <p className="text-xs text-white/40">Toggle to hold/resume all scheduled jobs</p>
               </div>
               <Toggle
                 value={isRunning}
@@ -177,18 +177,18 @@ export default function Settings() {
           {/* Health Info */}
           <motion.div variants={staggerItem}>
           <Card>
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">System Info</h3>
+            <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-3">System Info</h3>
             <div className="space-y-3 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-400">Version</span>
-                <span className="font-mono text-black">{health?.version ?? '—'}</span>
+                <span className="text-white/40">Version</span>
+                <span className="font-mono text-white">{health?.version ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Status</span>
+                <span className="text-white/40">Status</span>
                 <Badge label={health?.status === 'healthy' ? 'Healthy' : 'Error'} variant={health?.status === 'healthy' ? 'teal' : 'red'} />
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Scheduler</span>
+                <span className="text-white/40">Scheduler</span>
                 <Badge label={health?.scheduler_running ? 'Active' : 'Inactive'} variant={health?.scheduler_running ? 'green' : 'amber'} />
               </div>
             </div>
@@ -199,19 +199,19 @@ export default function Settings() {
           <motion.div variants={staggerItem}>
           <Card>
             <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-gray-500" />
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest">Security</h3>
+              <Shield className="w-4 h-4 text-white/50" />
+              <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest">Security</h3>
             </div>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-400">API Key</span>
-                <span className="font-mono text-gray-500">••••••••••</span>
+                <span className="text-white/40">API Key</span>
+                <span className="font-mono text-white/50">••••••••••</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Auth</span>
+                <span className="text-white/40">Auth</span>
                 <Badge label="Proxy-side" variant="green" />
               </div>
-              <p className="text-gray-400 text-[10px] mt-2">
+              <p className="text-white/40 text-[10px] mt-2">
                 API key is stored in the proxy server environment and never exposed to the frontend.
               </p>
             </div>

@@ -123,19 +123,19 @@ export default function App() {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: '#ffffff',
-            color: '#000000',
-            border: '1px solid #eaeaea',
+            background: '#1C1C1C',
+            color: '#F0F0F0',
+            border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '8px',
             fontSize: '13px',
-            fontFamily: '"Inter", system-ui, sans-serif',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            fontFamily: '"Almarai", -apple-system, BlinkMacSystemFont, sans-serif',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
           },
           success: {
-            iconTheme: { primary: '#000000', secondary: '#ffffff' },
+            iconTheme: { primary: '#33CC66', secondary: '#1C1C1C' },
           },
           error: {
-            iconTheme: { primary: '#666666', secondary: '#ffffff' },
+            iconTheme: { primary: '#FF4444', secondary: '#1C1C1C' },
           },
         }}
       />

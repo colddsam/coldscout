@@ -24,7 +24,7 @@ import PublicFooter from '../components/layout/PublicFooter';
 /* ═══════════════ SVG Decorations ═══════════════ */
 
 function GridBackground() {
-  return <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none" />;
+  return <div className="absolute inset-0 noise-overlay opacity-[0.25] pointer-events-none" />;
 }
 
 
@@ -35,16 +35,16 @@ function CollapsibleSection({ title, children, defaultOpen = false }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-vercel">
+    <div className="border border-white/10 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 bg-white hover:bg-accents-1 transition-colors text-left"
+        className="w-full flex items-center justify-between p-5 bg-black hover:bg-[#111] transition-colors text-left"
       >
-        <span className="text-sm font-semibold text-black">{title}</span>
-        <ChevronDown className={`w-4 h-4 text-secondary transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+        <span className="text-sm font-semibold text-white">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-[#F0F0F0]/60 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div className={`transition-all duration-300 overflow-hidden ${open ? 'max-h-[4000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="px-5 pb-5 border-t border-gray-100">
+        <div className="px-5 pb-5 border-t border-white/5">
           {children}
         </div>
       </div>
@@ -58,9 +58,9 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
   return (
     <div className="relative group">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-[10px] uppercase tracking-widest text-gray-500 bg-gray-800 px-2 py-0.5 rounded">{language}</span>
+        <span className="text-[10px] uppercase tracking-widest text-white/50 bg-gray-800 px-2 py-0.5 rounded">{language}</span>
       </div>
-      <pre className="bg-[#1a1a1a] text-gray-300 text-[13px] leading-relaxed p-4 rounded-md overflow-x-auto font-mono">
+      <pre className="bg-[#1a1a1a] text-white/30 text-[13px] leading-relaxed p-4 rounded-md overflow-x-auto font-mono">
         <code>{code}</code>
       </pre>
     </div>
@@ -81,26 +81,26 @@ function HeroSection() {
     <section className="relative pt-32 pb-20 overflow-hidden">
       <GridBackground />
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
-        <div className="inline-flex items-center gap-2 border border-gray-200 rounded-full px-4 py-1.5 mb-8 bg-white shadow-minimal animate-fade-in">
-          <BookOpen className="w-3.5 h-3.5 text-black" />
-          <span className="text-xs font-medium text-secondary">Documentation</span>
+        <div className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8 bg-black shadow-[0_0_15px_rgba(255,255,255,0.02)] animate-fade-in">
+          <BookOpen className="w-3.5 h-3.5 text-white" />
+          <span className="text-xs font-medium text-[#F0F0F0]/60">Documentation</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-black leading-[0.95] mb-6 animate-fade-in-up">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white leading-[0.95] mb-6 animate-fade-in-up">
           Platform<br />
           <span className="text-gradient">Resources</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-secondary max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200">
+        <p className="text-lg md:text-xl text-[#F0F0F0]/60 max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200">
           Everything you need to set up, configure, and deploy your
           AI-powered lead generation system.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 animate-fade-in-up delay-300">
           {stats.map((stat) => (
-            <div key={stat.label} className="flex items-center gap-3 border border-gray-200 rounded-lg px-5 py-3 bg-white shadow-minimal">
-              <span className="text-xl font-bold tracking-tighter text-black">{stat.value}</span>
-              <span className="text-[11px] uppercase tracking-widest text-subtle">{stat.label}</span>
+            <div key={stat.label} className="flex items-center gap-3 border border-white/10 rounded-lg px-5 py-3 bg-black shadow-[0_0_15px_rgba(255,255,255,0.02)]">
+              <span className="text-xl font-bold tracking-tighter text-white">{stat.value}</span>
+              <span className="text-[11px] uppercase tracking-widest text-[#F0F0F0]/40">{stat.label}</span>
             </div>
           ))}
         </div>
@@ -124,15 +124,15 @@ function TableOfContents() {
   ];
 
   return (
-    <section className="py-12 bg-accents-1">
+    <section className="py-12 bg-[#111]">
       <div className="max-w-6xl mx-auto px-6">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-4 text-center">On This Page</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-4 text-center">On This Page</p>
         <div className="flex flex-wrap justify-center gap-3">
           {sections.map((s) => (
             <a
               key={s.id}
               href={`#${s.id}`}
-              className="inline-flex items-center gap-2 border border-gray-200 rounded-md px-4 py-2 bg-white text-sm text-secondary hover:text-black hover:border-black hover:shadow-vercel transition-all duration-200"
+              className="inline-flex items-center gap-2 border border-white/10 rounded-md px-4 py-2 bg-black text-sm text-[#F0F0F0]/60 hover:text-white hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-200"
             >
               <s.icon className="w-3.5 h-3.5" />
               {s.label}
@@ -148,49 +148,49 @@ function TableOfContents() {
 
 function ArchitectureSection() {
   return (
-    <section id="architecture" className="py-16 md:py-24 bg-white">
+    <section id="architecture" className="py-16 md:py-24 bg-black">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Architecture</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">System Architecture</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">The platform orchestrates an asynchronous pipeline with robust state management across three deployment layers.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Architecture</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">System Architecture</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">The platform orchestrates an asynchronous pipeline with robust state management across three deployment layers.</p>
         </div>
 
         {/* SVG Architecture Diagram */}
-        <div className="border border-gray-200 rounded-xl p-8 bg-accents-1 overflow-x-auto">
+        <div className="border border-white/10 rounded-xl p-8 bg-[#111] overflow-x-auto">
           <svg viewBox="0 0 900 400" className="w-full max-w-4xl mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Frontend Layer */}
-            <rect x="20" y="30" width="180" height="60" rx="8" fill="#fff" stroke="#eaeaea" strokeWidth="1.5" />
-            <text x="110" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#000">Admin Dashboard</text>
-            <text x="110" y="72" textAnchor="middle" className="text-[10px]" fill="#666">React + Vite + Tailwind</text>
+            <rect x="20" y="30" width="180" height="60" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+            <text x="110" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#F0F0F0">Admin Dashboard</text>
+            <text x="110" y="72" textAnchor="middle" className="text-[10px]" fill="rgba(240,240,240,0.6)">React + Vite + Tailwind</text>
 
             {/* Arrow to API */}
-            <line x1="200" y1="60" x2="280" y2="60" stroke="#d4d4d4" strokeWidth="1.5" markerEnd="url(#arrow)" />
-            <text x="240" y="52" textAnchor="middle" className="text-[9px]" fill="#999">REST API</text>
+            <line x1="200" y1="60" x2="280" y2="60" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+            <text x="240" y="52" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.4)">REST API</text>
 
             {/* Backend Layer */}
-            <rect x="280" y="30" width="160" height="60" rx="8" fill="#000" stroke="#000" strokeWidth="1.5" />
-            <text x="360" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#fff">FastAPI Server</text>
-            <text x="360" y="72" textAnchor="middle" className="text-[10px]" fill="#666">Python 3.11+</text>
+            <rect x="280" y="30" width="160" height="60" rx="8" fill="#F0F0F0" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
+            <text x="360" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#0A0A0A">FastAPI Server</text>
+            <text x="360" y="72" textAnchor="middle" className="text-[10px]" fill="rgba(240,240,240,0.6)">Python 3.11+</text>
 
             {/* Arrow to DB */}
-            <line x1="440" y1="60" x2="520" y2="60" stroke="#d4d4d4" strokeWidth="1.5" markerEnd="url(#arrow)" />
+            <line x1="440" y1="60" x2="520" y2="60" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrow)" />
 
             {/* Database */}
-            <rect x="520" y="30" width="160" height="60" rx="8" fill="#fff" stroke="#eaeaea" strokeWidth="1.5" />
-            <text x="600" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#000">PostgreSQL</text>
-            <text x="600" y="72" textAnchor="middle" className="text-[10px]" fill="#666">Supabase Managed</text>
+            <rect x="520" y="30" width="160" height="60" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+            <text x="600" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#F0F0F0">PostgreSQL</text>
+            <text x="600" y="72" textAnchor="middle" className="text-[10px]" fill="rgba(240,240,240,0.6)">Supabase Managed</text>
 
             {/* Arrow down from FastAPI to Scheduler */}
-            <line x1="360" y1="90" x2="360" y2="140" stroke="#d4d4d4" strokeWidth="1.5" markerEnd="url(#arrow)" />
+            <line x1="360" y1="90" x2="360" y2="140" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrow)" />
 
             {/* Scheduler */}
-            <rect x="280" y="140" width="160" height="50" rx="8" fill="#fff" stroke="#000" strokeWidth="1.5" />
-            <text x="360" y="162" textAnchor="middle" className="text-[11px] font-semibold" fill="#000">APScheduler</text>
-            <text x="360" y="178" textAnchor="middle" className="text-[9px]" fill="#666">Cron Trigger</text>
+            <rect x="280" y="140" width="160" height="50" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
+            <text x="360" y="162" textAnchor="middle" className="text-[11px] font-semibold" fill="#F0F0F0">APScheduler</text>
+            <text x="360" y="178" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">Cron Trigger</text>
 
             {/* Pipeline steps */}
-            <line x1="360" y1="190" x2="360" y2="230" stroke="#000" strokeWidth="1.5" markerEnd="url(#arrowBlack)" />
+            <line x1="360" y1="190" x2="360" y2="230" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" markerEnd="url(#arrowBlack)" />
 
             {/* Pipeline boxes */}
             {[
@@ -201,22 +201,22 @@ function ArchitectureSection() {
               { x: 750, label: 'Brevo SMTP', sub: 'Outreach' },
             ].map((step, i) => (
               <g key={step.label}>
-                <rect x={step.x} y="230" width="150" height="50" rx="6" fill="#fff" stroke="#eaeaea" strokeWidth="1" />
-                <text x={step.x + 75} y="252" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">{step.label}</text>
-                <text x={step.x + 75} y="268" textAnchor="middle" className="text-[9px]" fill="#666">{step.sub}</text>
+                <rect x={step.x} y="230" width="150" height="50" rx="6" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                <text x={step.x + 75} y="252" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">{step.label}</text>
+                <text x={step.x + 75} y="268" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">{step.sub}</text>
                 {i < 4 && (
-                  <line x1={step.x + 150} y1="255" x2={step.x + 180} y2="255" stroke="#d4d4d4" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1={step.x + 150} y1="255" x2={step.x + 180} y2="255" stroke="rgba(255,255,255,0.2)" strokeWidth="1" markerEnd="url(#arrow)" />
                 )}
               </g>
             ))}
 
             {/* Connector from scheduler to first pipeline step */}
-            <path d="M 360 230 L 360 215 L 125 215 L 125 230" stroke="#000" strokeWidth="1.5" fill="none" markerEnd="url(#arrowBlack)" />
+            <path d="M 360 230 L 360 215 L 125 215 L 125 230" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" markerEnd="url(#arrowBlack)" />
 
             {/* Telegram alert branch */}
-            <line x1="825" y1="280" x2="825" y2="340" stroke="#d4d4d4" strokeWidth="1" markerEnd="url(#arrow)" />
-            <rect x="750" y="340" width="150" height="40" rx="6" fill="#fff" stroke="#eaeaea" strokeWidth="1" />
-            <text x="825" y="365" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">Telegram Alerts</text>
+            <line x1="825" y1="280" x2="825" y2="340" stroke="rgba(255,255,255,0.2)" strokeWidth="1" markerEnd="url(#arrow)" />
+            <rect x="750" y="340" width="150" height="40" rx="6" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            <text x="825" y="365" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">Telegram Alerts</text>
 
             {/* Arrow markers */}
             <defs>
@@ -224,7 +224,7 @@ function ArchitectureSection() {
                 <polygon points="0 0, 10 3.5, 0 7" fill="#d4d4d4" />
               </marker>
               <marker id="arrowBlack" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                <polygon points="0 0, 10 3.5, 0 7" fill="#F0F0F0" />
               </marker>
             </defs>
           </svg>
@@ -246,12 +246,12 @@ function PipelineSection() {
   ];
 
   return (
-    <section id="pipeline" className="py-16 md:py-24 bg-accents-1">
+    <section id="pipeline" className="py-16 md:py-24 bg-[#111]">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Pipeline</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Automation Pipeline</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">Five automated stages execute daily, managed by APScheduler with configurable IST scheduling.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Pipeline</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Automation Pipeline</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">Five automated stages execute daily, managed by APScheduler with configurable IST scheduling.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -259,16 +259,16 @@ function PipelineSection() {
             <div key={stage.num} className="relative">
               {i < stages.length - 1 && (
                 <div className="hidden md:block absolute top-10 left-full w-4 z-10">
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                  <ChevronRight className="w-4 h-4 text-white/30" />
                 </div>
               )}
-              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-vercel transition-all duration-300 h-full">
+              <div className="bg-black rounded-lg border border-white/10 p-5 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 h-full">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-2xl font-bold text-accents-3 tracking-tighter">{stage.num}</span>
-                  <stage.icon className="w-4 h-4 text-black" />
+                  <stage.icon className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-sm font-semibold text-black mb-2">{stage.title}</h3>
-                <p className="text-xs text-secondary leading-relaxed">{stage.desc}</p>
+                <h3 className="text-sm font-semibold text-white mb-2">{stage.title}</h3>
+                <p className="text-xs text-[#F0F0F0]/60 leading-relaxed">{stage.desc}</p>
               </div>
             </div>
           ))}
@@ -293,24 +293,24 @@ function TechStackSection() {
   ];
 
   return (
-    <section id="tech-stack" className="py-16 md:py-24 bg-white">
+    <section id="tech-stack" className="py-16 md:py-24 bg-black">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Stack</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Built With</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Stack</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Built With</h2>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
           {techs.map((tech) => (
-            <div key={tech.name} className="group border border-gray-200 rounded-lg p-5 bg-white hover:border-black hover:shadow-vercel transition-all duration-300 text-center">
+            <div key={tech.name} className="group border border-white/10 rounded-lg p-5 bg-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 text-center">
               <div
-                className="w-10 h-10 rounded-md mx-auto mb-3 flex items-center justify-center border border-gray-200 group-hover:border-black transition-colors"
+                className="w-10 h-10 rounded-md mx-auto mb-3 flex items-center justify-center border border-white/10 group-hover:border-white transition-colors"
                 style={{ backgroundColor: `${tech.color}15` }}
               >
                 <Box className="w-5 h-5" style={{ color: tech.color }} />
               </div>
-              <h3 className="text-sm font-semibold text-black">{tech.name}</h3>
-              <p className="text-[11px] text-secondary mt-1">{tech.desc}</p>
+              <h3 className="text-sm font-semibold text-white">{tech.name}</h3>
+              <p className="text-[11px] text-[#F0F0F0]/60 mt-1">{tech.desc}</p>
             </div>
           ))}
         </div>
@@ -323,22 +323,22 @@ function TechStackSection() {
 
 function SetupSection() {
   return (
-    <section id="setup" className="py-16 md:py-24 bg-accents-1">
+    <section id="setup" className="py-16 md:py-24 bg-[#111]">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Setup</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Local Development Setup</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">Follow these steps meticulously to run the complete system locally.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Setup</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Local Development Setup</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">Follow these steps meticulously to run the complete system locally.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Backend Setup */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="bg-black border border-white/10 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 rounded-md bg-black flex items-center justify-center">
                 <Server className="w-4 h-4 text-white" />
               </div>
-              <h3 className="text-base font-semibold text-black">Backend Setup (FastAPI)</h3>
+              <h3 className="text-base font-semibold text-white">Backend Setup (FastAPI)</h3>
             </div>
 
             <div className="space-y-4">
@@ -356,28 +356,28 @@ function SetupSection() {
 
               <CollapsibleSection title="4. Initialize Database & Seed Admin">
                 <div className="mb-3">
-                  <p className="text-xs text-secondary mb-2">Ensure your <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">.env</code> file is configured first.</p>
+                  <p className="text-xs text-[#F0F0F0]/60 mb-2">Ensure your <code className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[11px]">.env</code> file is configured first.</p>
                 </div>
                 <CodeBlock code={`python scripts/create_tables.py\npython scripts/seed_admin.py`} />
-                <div className="mt-3 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
-                  <p className="text-[11px] text-black">💡 Save the generated admin credentials to log into the dashboard.</p>
+                <div className="mt-3 bg-[#111] border border-white/10 rounded-md px-3 py-2">
+                  <p className="text-[11px] text-white">💡 Save the generated admin credentials to log into the dashboard.</p>
                 </div>
               </CollapsibleSection>
 
               <CollapsibleSection title="5. Start Development Server">
                 <CodeBlock code={`uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`} />
-                <p className="text-xs text-secondary mt-2">API available at: <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="text-black hover:underline font-medium">http://localhost:8000/docs</a></p>
+                <p className="text-xs text-[#F0F0F0]/60 mt-2">API available at: <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">http://localhost:8000/docs</a></p>
               </CollapsibleSection>
             </div>
           </div>
 
           {/* Frontend Setup */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="bg-black border border-white/10 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 rounded-md bg-black flex items-center justify-center">
                 <Code2 className="w-4 h-4 text-white" />
               </div>
-              <h3 className="text-base font-semibold text-black">Frontend Setup (React Dashboard)</h3>
+              <h3 className="text-base font-semibold text-white">Frontend Setup (React Dashboard)</h3>
             </div>
 
             <div className="space-y-4">
@@ -387,22 +387,22 @@ function SetupSection() {
 
               <CollapsibleSection title="2. Install Node Modules">
                 <CodeBlock code={`npm install`} />
-                <p className="text-xs text-secondary mt-2">Requires Node.js 18+</p>
+                <p className="text-xs text-[#F0F0F0]/60 mt-2">Requires Node.js 18+</p>
               </CollapsibleSection>
 
               <CollapsibleSection title="3. Configure Environment">
-                <p className="text-xs text-secondary mb-2">Create a <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">.env</code> file:</p>
+                <p className="text-xs text-[#F0F0F0]/60 mb-2">Create a <code className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[11px]">.env</code> file:</p>
                 <CodeBlock code={`# Backend API Location\nAPI_BASE_URL=http://localhost:8000\n\n# API Key (injected by proxy)\nAPI_KEY=your_secret_api_key_here\n\n# Frontend Proxy Access\nVITE_API_BASE_URL=http://localhost:3000\nVITE_API_KEY=your_secret_api_key_here`} language="env" />
               </CollapsibleSection>
 
               <CollapsibleSection title="4. Start Development Server">
                 <CodeBlock code={`# Starts proxy on :3000 and Vite on :5173\nnpm run dev`} />
-                <p className="text-xs text-secondary mt-2">Dashboard available at: <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer" className="text-black hover:underline font-medium">http://localhost:5173</a></p>
+                <p className="text-xs text-[#F0F0F0]/60 mt-2">Dashboard available at: <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">http://localhost:5173</a></p>
               </CollapsibleSection>
 
               <CollapsibleSection title="5. Build for Production">
                 <CodeBlock code={`npm run build`} />
-                <p className="text-xs text-secondary mt-2">The <code className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">dist/</code> output can be deployed to Vercel, Netlify, or AWS S3.</p>
+                <p className="text-xs text-[#F0F0F0]/60 mt-2">The <code className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[11px]">dist/</code> output can be deployed to Vercel, Netlify, or AWS S3.</p>
               </CollapsibleSection>
             </div>
           </div>
@@ -491,36 +491,36 @@ function ApiKeysSection() {
   ];
 
   return (
-    <section id="api-keys" className="py-16 md:py-24 bg-white">
+    <section id="api-keys" className="py-16 md:py-24 bg-black">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Integrations</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">API Keys & Services</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">All integrations are available on free tiers. Follow each guide to collect your keys.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Integrations</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">API Keys & Services</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">All integrations are available on free tiers. Follow each guide to collect your keys.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {services.map((svc) => (
-            <div key={svc.name} className="group border border-gray-200 rounded-lg p-5 bg-white hover:border-black hover:shadow-vercel transition-all duration-300">
+            <div key={svc.name} className="group border border-white/10 rounded-lg p-5 bg-black hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: `${svc.color}15` }}>
                     <Key className="w-4 h-4" style={{ color: svc.color }} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-black">{svc.name}</h3>
-                    <p className="text-[10px] text-secondary">{svc.desc}</p>
+                    <h3 className="text-sm font-semibold text-white">{svc.name}</h3>
+                    <p className="text-[10px] text-[#F0F0F0]/60">{svc.desc}</p>
                   </div>
                 </div>
                 {svc.url && (
-                  <a href={svc.url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-black transition-colors">
+                  <a href={svc.url} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors">
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
               </div>
 
               <div className="mb-3">
-                <code className="text-[10px] font-mono bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{svc.envKey}</code>
+                <code className="text-[10px] font-mono bg-white/5 text-white/70 px-2 py-0.5 rounded">{svc.envKey}</code>
               </div>
 
               {/* Step flow */}
@@ -528,11 +528,11 @@ function ApiKeysSection() {
                 {svc.steps.map((step, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <div className="flex-shrink-0 mt-0.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center text-[8px] font-semibold text-secondary group-hover:border-black group-hover:text-black transition-colors">
+                      <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center text-[8px] font-semibold text-[#F0F0F0]/60 group-hover:border-white group-hover:text-white transition-colors">
                         {i + 1}
                       </div>
                     </div>
-                    <p className="text-[11px] text-secondary leading-snug">{step}</p>
+                    <p className="text-[11px] text-[#F0F0F0]/60 leading-snug">{step}</p>
                   </div>
                 ))}
               </div>
@@ -641,12 +641,12 @@ function EnvVarsSection() {
   const [expandedCat, setExpandedCat] = useState<string | null>('Security');
 
   return (
-    <section id="env-vars" className="py-16 md:py-24 bg-accents-1">
+    <section id="env-vars" className="py-16 md:py-24 bg-[#111]">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Configuration</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Environment Variables</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">42 tokens required for full functionality. All must be mirrored across Render and Vercel.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Configuration</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Environment Variables</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">42 tokens required for full functionality. All must be mirrored across Render and Vercel.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -658,13 +658,13 @@ function EnvVarsSection() {
                 onClick={() => setExpandedCat(expandedCat === cat.name ? null : cat.name)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
                   expandedCat === cat.name
-                    ? 'bg-black text-white shadow-vercel'
-                    : 'bg-white border border-gray-200 text-black hover:border-black'
+                    ? 'bg-black text-white shadow-[0_0_20px_rgba(255,255,255,0.05)]'
+                    : 'bg-black border border-white/10 text-white hover:border-white'
                 }`}
               >
-                <cat.icon className={`w-4 h-4 ${expandedCat === cat.name ? 'text-white' : 'text-secondary'}`} />
+                <cat.icon className={`w-4 h-4 ${expandedCat === cat.name ? 'text-white' : 'text-[#F0F0F0]/60'}`} />
                 <span className="text-sm font-medium">{cat.name}</span>
-                <span className={`ml-auto text-[10px] ${expandedCat === cat.name ? 'text-gray-400' : 'text-subtle'}`}>{cat.vars.length}</span>
+                <span className={`ml-auto text-[10px] ${expandedCat === cat.name ? 'text-white/40' : 'text-[#F0F0F0]/40'}`}>{cat.vars.length}</span>
               </button>
             ))}
           </div>
@@ -672,24 +672,24 @@ function EnvVarsSection() {
           {/* Variable table */}
           <div className="lg:col-span-2">
             {expandedCat ? (
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div className="border-b border-gray-100 px-5 py-3 bg-accents-1">
+              <div className="bg-black border border-white/10 rounded-xl overflow-hidden">
+                <div className="border-b border-white/5 px-5 py-3 bg-[#111]">
                   <div className="grid grid-cols-2 gap-4">
-                    <span className="text-[10px] uppercase tracking-widest text-subtle font-semibold">Variable</span>
-                    <span className="text-[10px] uppercase tracking-widest text-subtle font-semibold">Description</span>
+                    <span className="text-[10px] uppercase tracking-widest text-[#F0F0F0]/40 font-semibold">Variable</span>
+                    <span className="text-[10px] uppercase tracking-widest text-[#F0F0F0]/40 font-semibold">Description</span>
                   </div>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {categories.find(c => c.name === expandedCat)?.vars.map((v) => (
-                    <div key={v.key} className="grid grid-cols-2 gap-4 px-5 py-3 hover:bg-accents-1 transition-colors">
-                      <code className="text-[12px] font-mono text-black font-medium">{v.key}</code>
-                      <span className="text-[12px] text-secondary">{v.desc}</span>
+                    <div key={v.key} className="grid grid-cols-2 gap-4 px-5 py-3 hover:bg-[#111] transition-colors">
+                      <code className="text-[12px] font-mono text-white font-medium">{v.key}</code>
+                      <span className="text-[12px] text-[#F0F0F0]/60">{v.desc}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-secondary text-sm">
+              <div className="flex items-center justify-center h-full text-[#F0F0F0]/60 text-sm">
                 Select a category to view variables
               </div>
             )}
@@ -750,12 +750,12 @@ function DeploymentSection() {
   ];
 
   return (
-    <section id="deployment" className="py-16 md:py-24 bg-white">
+    <section id="deployment" className="py-16 md:py-24 bg-black">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Deployment</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Production Deployment</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto text-sm md:text-base">Three services, three steps. Your system running 24/7 in the cloud.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Deployment</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Production Deployment</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">Three services, three steps. Your system running 24/7 in the cloud.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -763,27 +763,27 @@ function DeploymentSection() {
             <div key={s.step} className="relative">
               {i < steps.length - 1 && (
                 <div className="hidden md:block absolute top-1/2 left-full w-6 z-10 -translate-y-1/2">
-                  <ChevronRight className="w-5 h-5 text-gray-300" />
+                  <ChevronRight className="w-5 h-5 text-white/30" />
                 </div>
               )}
-              <div className="border border-gray-200 rounded-xl p-6 bg-white hover:shadow-vercel transition-all duration-300 h-full">
+              <div className="border border-white/10 rounded-xl p-6 bg-black hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-300 h-full">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${s.color}15` }}>
                     <s.icon className="w-5 h-5" style={{ color: s.color }} />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-widest text-subtle font-semibold">{s.step}</p>
-                    <h3 className="text-sm font-semibold text-black">{s.title}</h3>
+                    <p className="text-[10px] uppercase tracking-widest text-[#F0F0F0]/40 font-semibold">{s.step}</p>
+                    <h3 className="text-sm font-semibold text-white">{s.title}</h3>
                   </div>
                 </div>
 
                 <ol className="space-y-2.5 mb-5">
                   {s.items.map((item, j) => (
                     <li key={j} className="flex items-start gap-2">
-                      <span className="flex-shrink-0 w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[9px] font-semibold text-secondary mt-0.5">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[9px] font-semibold text-[#F0F0F0]/60 mt-0.5">
                         {j + 1}
                       </span>
-                      <span className="text-[12px] text-secondary leading-snug">{item}</span>
+                      <span className="text-[12px] text-[#F0F0F0]/60 leading-snug">{item}</span>
                     </li>
                   ))}
                 </ol>
@@ -792,7 +792,7 @@ function DeploymentSection() {
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-medium text-black hover:underline transition-colors"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white hover:underline transition-colors"
                 >
                   Visit {s.title.split('—')[1]?.trim()} <ExternalLink className="w-3 h-3" />
                 </a>
@@ -809,57 +809,57 @@ function DeploymentSection() {
 
 function ProdArchitectureSection() {
   return (
-    <section id="prod-arch" className="py-24 bg-accents-1">
+    <section id="prod-arch" className="py-24 bg-[#111]">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-subtle font-semibold mb-3">Production</p>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-black">Cross-Platform Architecture</h2>
-          <p className="text-secondary mt-3 max-w-lg mx-auto">Decentralized architecture ensuring high availability and performance.</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Production</p>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Cross-Platform Architecture</h2>
+          <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto">Decentralized architecture ensuring high availability and performance.</p>
         </div>
 
-        <div className="border border-gray-200 rounded-xl p-8 bg-white overflow-x-auto">
+        <div className="border border-white/10 rounded-xl p-8 bg-black overflow-x-auto">
           <svg viewBox="0 0 800 280" className="w-full max-w-3xl mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* User */}
-            <circle cx="80" cy="140" r="30" fill="#fafafa" stroke="#eaeaea" strokeWidth="1.5" />
-            <text x="80" y="136" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">👤</text>
-            <text x="80" y="150" textAnchor="middle" className="text-[8px]" fill="#666">User</text>
+            <circle cx="80" cy="140" r="30" fill="#fafafa" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+            <text x="80" y="136" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">👤</text>
+            <text x="80" y="150" textAnchor="middle" className="text-[8px]" fill="rgba(240,240,240,0.6)">User</text>
 
             {/* Arrow to Vercel */}
-            <line x1="110" y1="140" x2="190" y2="140" stroke="#d4d4d4" strokeWidth="1.5" markerEnd="url(#arrowProd)" />
+            <line x1="110" y1="140" x2="190" y2="140" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowProd)" />
 
             {/* Vercel */}
-            <rect x="190" y="110" width="140" height="60" rx="8" fill="#000" stroke="#000" strokeWidth="1.5" />
-            <text x="260" y="136" textAnchor="middle" className="text-[11px] font-semibold" fill="#fff">Vercel Frontend</text>
+            <rect x="190" y="110" width="140" height="60" rx="8" fill="#F0F0F0" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" />
+            <text x="260" y="136" textAnchor="middle" className="text-[11px] font-semibold" fill="#0A0A0A">Vercel Frontend</text>
             <text x="260" y="152" textAnchor="middle" className="text-[9px]" fill="#A4DBD9">React + Vite</text>
 
             {/* Arrow to Render */}
-            <line x1="330" y1="140" x2="420" y2="140" stroke="#d4d4d4" strokeWidth="1.5" markerEnd="url(#arrowProd)" />
-            <text x="375" y="130" textAnchor="middle" className="text-[8px]" fill="#999">X-API-Key</text>
-            <text x="375" y="140" textAnchor="middle" className="text-[8px]" fill="#999">Header</text>
+            <line x1="330" y1="140" x2="420" y2="140" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowProd)" />
+            <text x="375" y="130" textAnchor="middle" className="text-[8px]" fill="rgba(240,240,240,0.4)">X-API-Key</text>
+            <text x="375" y="140" textAnchor="middle" className="text-[8px]" fill="rgba(240,240,240,0.4)">Header</text>
 
             {/* Render */}
-            <rect x="420" y="110" width="140" height="60" rx="8" fill="#fff" stroke="#eaeaea" strokeWidth="1.5" />
-            <text x="490" y="136" textAnchor="middle" className="text-[11px] font-semibold" fill="#000">Render API</text>
-            <text x="490" y="152" textAnchor="middle" className="text-[9px]" fill="#666">FastAPI + Docker</text>
+            <rect x="420" y="110" width="140" height="60" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
+            <text x="490" y="136" textAnchor="middle" className="text-[11px] font-semibold" fill="#F0F0F0">Render API</text>
+            <text x="490" y="152" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">FastAPI + Docker</text>
 
             {/* Branch arrows */}
             {/* To Supabase */}
-            <line x1="560" y1="125" x2="650" y2="70" stroke="#d4d4d4" strokeWidth="1" markerEnd="url(#arrowProd)" />
-            <rect x="650" y="45" width="120" height="50" rx="6" fill="#fff" stroke="#3ECF8E" strokeWidth="1" />
-            <text x="710" y="67" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">Supabase</text>
-            <text x="710" y="82" textAnchor="middle" className="text-[9px]" fill="#666">PostgreSQL</text>
+            <line x1="560" y1="125" x2="650" y2="70" stroke="rgba(255,255,255,0.2)" strokeWidth="1" markerEnd="url(#arrowProd)" />
+            <rect x="650" y="45" width="120" height="50" rx="6" fill="#0A0A0A" stroke="#3ECF8E" strokeWidth="1" />
+            <text x="710" y="67" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">Supabase</text>
+            <text x="710" y="82" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">PostgreSQL</text>
 
             {/* To Groq */}
-            <line x1="560" y1="140" x2="650" y2="140" stroke="#d4d4d4" strokeWidth="1" markerEnd="url(#arrowProd)" />
-            <rect x="650" y="115" width="120" height="50" rx="6" fill="#fff" stroke="#F55036" strokeWidth="1" />
-            <text x="710" y="137" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">Groq AI</text>
-            <text x="710" y="152" textAnchor="middle" className="text-[9px]" fill="#666">Llama 3</text>
+            <line x1="560" y1="140" x2="650" y2="140" stroke="rgba(255,255,255,0.2)" strokeWidth="1" markerEnd="url(#arrowProd)" />
+            <rect x="650" y="115" width="120" height="50" rx="6" fill="#0A0A0A" stroke="#F55036" strokeWidth="1" />
+            <text x="710" y="137" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">Groq AI</text>
+            <text x="710" y="152" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">Llama 3</text>
 
             {/* To Brevo */}
-            <line x1="560" y1="155" x2="650" y2="210" stroke="#d4d4d4" strokeWidth="1" markerEnd="url(#arrowProd)" />
-            <rect x="650" y="185" width="120" height="50" rx="6" fill="#fff" stroke="#0B996E" strokeWidth="1" />
-            <text x="710" y="207" textAnchor="middle" className="text-[10px] font-semibold" fill="#000">Brevo</text>
-            <text x="710" y="222" textAnchor="middle" className="text-[9px]" fill="#666">SMTP</text>
+            <line x1="560" y1="155" x2="650" y2="210" stroke="rgba(255,255,255,0.2)" strokeWidth="1" markerEnd="url(#arrowProd)" />
+            <rect x="650" y="185" width="120" height="50" rx="6" fill="#0A0A0A" stroke="#0B996E" strokeWidth="1" />
+            <text x="710" y="207" textAnchor="middle" className="text-[10px] font-semibold" fill="#F0F0F0">Brevo</text>
+            <text x="710" y="222" textAnchor="middle" className="text-[9px]" fill="rgba(240,240,240,0.6)">SMTP</text>
 
             <defs>
               <marker id="arrowProd" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
@@ -957,7 +957,7 @@ export default function Documentation() {
   });
 
   return (
-    <div className="bg-white text-black font-sans antialiased">
+    <div className="bg-black text-white font-sans antialiased">
       <JsonLd data={LD_BREADCRUMB_DOCS} id="breadcrumb-docs" />
       <JsonLd data={LD_TECH_ARTICLE_DOCS} id="tech-article-docs" />
       <PublicNavbar />

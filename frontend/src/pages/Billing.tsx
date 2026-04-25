@@ -46,14 +46,14 @@ function daysUntil(iso?: string): number | null {
 
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    active:    { label: 'Active',    cls: 'bg-green-50 text-green-700 border-green-200' },
-    cancelled: { label: 'Cancelled', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-    expired:   { label: 'Expired',   cls: 'bg-red-50 text-red-600 border-red-200' },
-    paid:      { label: 'Paid',      cls: 'bg-green-50 text-green-700 border-green-200' },
-    created:   { label: 'Pending',   cls: 'bg-gray-50 text-gray-600 border-gray-200' },
-    failed:    { label: 'Failed',    cls: 'bg-red-50 text-red-600 border-red-200' },
+    active:    { label: 'Active',    cls: 'bg-green-900/20 text-green-400 border-green-800/30' },
+    cancelled: { label: 'Cancelled', cls: 'bg-amber-900/20 text-amber-400 border-amber-800/30' },
+    expired:   { label: 'Expired',   cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
+    paid:      { label: 'Paid',      cls: 'bg-green-900/20 text-green-400 border-green-800/30' },
+    created:   { label: 'Pending',   cls: 'bg-[#111] text-white/70 border-white/10' },
+    failed:    { label: 'Failed',    cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
   };
-  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-gray-50 text-gray-600 border-gray-200' };
+  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-[#111] text-white/70 border-white/10' };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
       {cfg.label}
@@ -82,30 +82,30 @@ function PlanCard({ plan, isCurrentPlan, onUpgrade, isLoading }: PlanCardProps) 
   return (
     <div className={`relative rounded-xl border p-5 transition-all ${
       isCurrentPlan
-        ? 'border-black bg-black text-white shadow-lg'
-        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+        ? 'border-white/30 bg-black text-white shadow-lg'
+        : 'border-white/10 bg-black hover:border-white/20 hover:shadow-sm'
     }`}>
       {isCurrentPlan && (
-        <span className="absolute -top-3 left-4 bg-white text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-gray-200 uppercase tracking-wider">
+        <span className="absolute -top-3 left-4 bg-black text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">
           Current Plan
         </span>
       )}
 
       <div className="flex items-start justify-between mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          isCurrentPlan ? 'bg-white/10' : 'bg-gray-50 border border-gray-200'
+          isCurrentPlan ? 'bg-black/10' : 'bg-[#111] border border-white/10'
         }`}>
-          <Icon className={`w-4 h-4 ${isCurrentPlan ? 'text-white' : 'text-black'}`} />
+          <Icon className={`w-4 h-4 ${isCurrentPlan ? 'text-white' : 'text-white'}`} />
         </div>
-        <span className={`text-lg font-bold tracking-tight ${isCurrentPlan ? 'text-white' : 'text-black'}`}>
+        <span className={`text-lg font-bold tracking-tight ${isCurrentPlan ? 'text-white' : 'text-white'}`}>
           {config.price}
         </span>
       </div>
 
-      <p className={`text-sm font-semibold mb-1 ${isCurrentPlan ? 'text-white' : 'text-black'}`}>
+      <p className={`text-sm font-semibold mb-1 ${isCurrentPlan ? 'text-white' : 'text-white'}`}>
         {config.label}
       </p>
-      <p className={`text-xs ${isCurrentPlan ? 'text-gray-300' : 'text-secondary'}`}>
+      <p className={`text-xs ${isCurrentPlan ? 'text-white/20' : 'text-white/60'}`}>
         {config.desc}
       </p>
 
@@ -113,7 +113,7 @@ function PlanCard({ plan, isCurrentPlan, onUpgrade, isLoading }: PlanCardProps) 
         <button
           onClick={() => onUpgrade(plan as BillingPlan)}
           disabled={isLoading}
-          className="mt-4 w-full py-2 rounded-lg text-xs font-semibold bg-black text-white hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+          className="mt-4 w-full py-2 rounded-lg text-xs font-semibold bg-white text-black hover:bg-gray-200 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
         >
           {isLoading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -144,25 +144,25 @@ function CancelDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-xl border border-gray-200 shadow-xl p-6 max-w-sm w-full">
+      <div className="relative bg-black rounded-xl border border-white/10 shadow-xl p-6 max-w-sm w-full">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-red-900/20 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-red-500" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-black">Cancel Subscription</p>
-            <p className="text-xs text-secondary">This action cannot be undone</p>
+            <p className="font-semibold text-sm text-white">Cancel Subscription</p>
+            <p className="text-xs text-white/60">This action cannot be undone</p>
           </div>
         </div>
-        <p className="text-sm text-secondary mb-5 leading-relaxed">
+        <p className="text-sm text-white/60 mb-5 leading-relaxed">
           Your access continues until{' '}
-          <span className="font-medium text-black">{formatDate(expiresAt)}</span>.
+          <span className="font-medium text-white">{formatDate(expiresAt)}</span>.
           After that, your account reverts to the Free plan.
         </p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:border-black transition-colors"
+            className="flex-1 py-2 rounded-lg border border-white/10 text-sm font-medium hover:border-white/30 transition-colors"
           >
             Keep Plan
           </button>
@@ -228,19 +228,19 @@ export default function Billing() {
           <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center">
             <CreditCard className="w-4.5 h-4.5 text-white" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-black">Billing</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">Billing</h1>
         </div>
-        <p className="text-sm text-secondary ml-12">Manage your subscription and payment history.</p>
+        <p className="text-sm text-white/60 ml-12">Manage your subscription and payment history.</p>
       </motion.div>
 
       {/* Subscription Status Banner */}
       {subscription?.has_subscription && (
         <motion.div variants={fadeInUp} initial="hidden" animate="visible" className={`rounded-xl border p-4 flex items-center justify-between ${
           subscription.status === 'active'
-            ? 'bg-black text-white border-black'
+            ? 'bg-black text-white border-white/30'
             : subscription.status === 'cancelled'
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-red-50 border-red-200'
+            ? 'bg-amber-900/20 border-amber-800/30'
+            : 'bg-red-900/20 border-red-800/30'
         }`}>
           <div className="flex items-center gap-3">
             {subscription.status === 'active' ? (
@@ -249,12 +249,12 @@ export default function Billing() {
               <XCircle className="w-5 h-5 text-amber-500" />
             )}
             <div>
-              <p className={`text-sm font-semibold ${subscription.status === 'active' ? 'text-white' : 'text-black'}`}>
+              <p className={`text-sm font-semibold ${subscription.status === 'active' ? 'text-white' : 'text-white'}`}>
                 {subscription.status === 'active'
                   ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan Active`
                   : `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} — Cancellation Scheduled`}
               </p>
-              <p className={`text-xs ${subscription.status === 'active' ? 'text-gray-300' : 'text-secondary'}`}>
+              <p className={`text-xs ${subscription.status === 'active' ? 'text-white/20' : 'text-white/60'}`}>
                 {subscription.status === 'cancelled'
                   ? `Access ends on ${formatDate(subscription.current_period_end)}`
                   : days !== null
@@ -268,8 +268,8 @@ export default function Billing() {
           <div className="flex items-center gap-2">
             {subscription.status === 'active' && (
               <>
-                <Clock className="w-4 h-4 text-gray-300" />
-                <span className="text-xs text-gray-300">
+                <Clock className="w-4 h-4 text-white/20" />
+                <span className="text-xs text-white/20">
                   {formatDate(subscription.current_period_start)} – {formatDate(subscription.current_period_end)}
                 </span>
               </>
@@ -280,7 +280,7 @@ export default function Billing() {
 
       {/* Plan Selection */}
       <section>
-        <p className="text-xs font-semibold text-secondary uppercase tracking-wider mb-3">Plans</p>
+        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Plans</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {(['free', 'pro', 'enterprise'] as const).map((p) => (
             <PlanCard
@@ -308,11 +308,11 @@ export default function Billing() {
 
       {/* Renewal notice for cancelled */}
       {subscription?.status === 'cancelled' && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-amber-800/30 bg-amber-900/20 p-4 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-black">Subscription cancelled</p>
-            <p className="text-xs text-secondary mt-0.5">
+            <p className="text-sm font-medium text-white">Subscription cancelled</p>
+            <p className="text-xs text-white/60 mt-0.5">
               You can re-subscribe at any time. If you re-subscribe before{' '}
               <span className="font-medium">{formatDate(subscription.current_period_end)}</span>,
               your access continues uninterrupted.
@@ -324,17 +324,17 @@ export default function Billing() {
       {/* Transaction History */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Receipt className="w-4 h-4 text-secondary" />
-          <p className="text-xs font-semibold text-secondary uppercase tracking-wider">Payment History</p>
+          <Receipt className="w-4 h-4 text-white/60" />
+          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Payment History</p>
         </div>
 
         {txLoading || subLoading ? (
-          <div className="rounded-xl border border-gray-200 p-8 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+          <div className="rounded-xl border border-white/10 p-8 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-white/60" />
           </div>
         ) : transactions && transactions.length > 0 ? (
-          <div className="rounded-xl border border-gray-200 overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-secondary uppercase tracking-wider bg-gray-50 border-b border-gray-100 px-4 py-2.5">
+          <div className="rounded-xl border border-white/10 overflow-hidden">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-white/60 uppercase tracking-wider bg-[#111] border-b border-white/5 px-4 py-2.5">
               <span>Plan</span>
               <span className="text-right pr-6">Amount</span>
               <span className="text-right pr-6">Status</span>
@@ -344,29 +344,29 @@ export default function Billing() {
               <div
                 key={tx.id}
                 className={`grid grid-cols-[1fr_auto_auto_auto] items-center px-4 py-3 text-sm ${
-                  i < transactions.length - 1 ? 'border-b border-gray-50' : ''
-                } hover:bg-gray-50 transition-colors`}
+                  i < transactions.length - 1 ? 'border-b border-white/5' : ''
+                } hover:bg-[#111] transition-colors`}
               >
                 <div>
-                  <p className="font-medium text-black capitalize">{tx.plan} Plan</p>
+                  <p className="font-medium text-white capitalize">{tx.plan} Plan</p>
                   <p className="text-[11px] text-subtle font-mono">{tx.razorpay_order_id}</p>
                 </div>
-                <span className="text-sm font-semibold text-black pr-6">
+                <span className="text-sm font-semibold text-white pr-6">
                   {formatAmount(tx.amount, tx.currency)}
                 </span>
                 <span className="pr-6">
                   <StatusBadge status={tx.status} />
                 </span>
-                <span className="text-xs text-secondary whitespace-nowrap">
+                <span className="text-xs text-white/60 whitespace-nowrap">
                   {formatDate(tx.created_at)}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 p-8 text-center">
-            <Receipt className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-secondary">No payment history yet.</p>
+          <div className="rounded-xl border border-white/10 p-8 text-center">
+            <Receipt className="w-8 h-8 text-white/10 mx-auto mb-2" />
+            <p className="text-sm text-white/60">No payment history yet.</p>
             <p className="text-xs text-subtle mt-1">Payments will appear here after your first subscription.</p>
           </div>
         )}

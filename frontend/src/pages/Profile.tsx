@@ -60,7 +60,7 @@ const TAB_CONFIG: Record<string, { label: string; icon: React.ElementType; roles
 function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.div
-      className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${className}`}
+      className={`bg-black rounded-xl border border-white/10 shadow-sm overflow-hidden ${className}`}
       variants={fadeInUp}
       initial="hidden"
       whileInView="visible"
@@ -82,12 +82,12 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
         {label}
       </label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
         )}
         <input
           type={type}
@@ -96,9 +96,9 @@ function InputField({
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
-          className={`w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black
-            placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black outline-none
-            transition-colors disabled:bg-gray-50 disabled:text-gray-500
+          className={`w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
+            placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
+            transition-colors disabled:bg-[#111] disabled:text-white/50
             ${Icon ? 'pl-9' : ''}`}
         />
       </div>
@@ -114,7 +114,7 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
         {label}
       </label>
       <textarea
@@ -123,12 +123,12 @@ function TextAreaField({
         placeholder={placeholder}
         maxLength={maxLength}
         rows={rows}
-        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black
-          placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black outline-none
+        className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
+          placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
           transition-colors resize-none"
       />
       {maxLength && (
-        <p className="text-[10px] text-gray-400 mt-1 text-right">{value.length}/{maxLength}</p>
+        <p className="text-[10px] text-white/40 mt-1 text-right">{value.length}/{maxLength}</p>
       )}
     </div>
   );
@@ -142,14 +142,14 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
         {label}
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black
-          focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
+        className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
+          focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((o) => (
@@ -166,18 +166,18 @@ function ToggleField({
   label: string; description?: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
       <div>
-        <p className="text-sm font-medium text-black">{label}</p>
-        {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-white">{label}</p>
+        {description && <p className="text-xs text-white/50 mt-0.5">{description}</p>}
       </div>
       <button
         type="button"
         onClick={() => onChange(!value)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200
-          ${value ? 'bg-black' : 'bg-gray-200'}`}
+          ${value ? 'bg-white' : 'bg-white/20'}`}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-black shadow transition-transform duration-200
           ${value ? 'translate-x-6' : 'translate-x-1'}`}
         />
       </button>
@@ -202,7 +202,7 @@ function TagInput({
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
         {label}
       </label>
       <div className="flex flex-wrap gap-1.5 mb-2">
@@ -212,10 +212,10 @@ function TagInput({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-xs font-medium text-black border border-transparent hover:border-gray-300 transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium text-white border border-transparent hover:border-white/20 transition-colors"
           >
             {tag}
-            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-gray-400 hover:text-black transition-colors">
+            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-white/40 hover:text-white transition-colors">
               <X className="w-3 h-3" />
             </button>
           </motion.span>
@@ -227,8 +227,8 @@ function TagInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
           placeholder={placeholder}
-          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black
-            placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
+          className="flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white
+            placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
         />
         <Button variant="outline" size="sm" onClick={addTag} disabled={!input.trim()}>Add</Button>
       </div>
@@ -282,21 +282,21 @@ function SetupModal({ onComplete }: { onComplete: () => void }) {
 
   return (
     <Modal open={true} onClose={() => {}} title="Set Up Your Profile">
-      <p className="text-sm text-secondary mb-4">Choose a unique username for your public profile.</p>
+      <p className="text-sm text-white/60 mb-4">Choose a unique username for your public profile.</p>
       <div className="space-y-4">
         <div>
           <div className="relative">
-            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               placeholder="your_username"
               maxLength={50}
-              className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-10 py-2.5 text-sm text-black
-                placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black outline-none transition-colors"
+              className="w-full rounded-lg border border-white/10 bg-black pl-9 pr-10 py-2.5 text-sm text-white
+                placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {checking && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+              {checking && <Loader2 className="w-4 h-4 animate-spin text-white/40" />}
               {!checking && availability?.available && <Check className="w-4 h-4 text-green-500" />}
               {!checking && availability && !availability.available && <X className="w-4 h-4 text-red-500" />}
             </div>
@@ -399,7 +399,7 @@ export default function Profile() {
   if (profileQuery.isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-white/40" />
       </div>
     );
   }
@@ -439,8 +439,8 @@ export default function Profile() {
               disabled={bannerMutation.isPending}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm
-                text-xs font-medium text-black hover:bg-white transition-colors shadow-sm border border-gray-200"
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/90 backdrop-blur-sm
+                text-xs font-medium text-white hover:bg-black transition-colors shadow-sm border border-white/10"
             >
               {bannerMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
               Edit Cover
@@ -458,11 +458,11 @@ export default function Profile() {
               initial="hidden"
               animate="visible"
             >
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-white shadow-md overflow-hidden">
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-black shadow-md overflow-hidden">
                 {(profile.profile_photo_url || profile.avatar_url) ? (
                   <img src={profile.profile_photo_url || profile.avatar_url || undefined} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
+                  <div className="w-full h-full flex items-center justify-center bg-white/5 text-white/20">
                     <User className="w-16 h-16" />
                   </div>
                 )}
@@ -472,8 +472,8 @@ export default function Profile() {
                 disabled={photoMutation.isPending}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute bottom-2 left-24 sm:left-28 p-2 rounded-full bg-white shadow-md border border-gray-200
-                  text-gray-600 hover:text-black transition-colors"
+                className="absolute bottom-2 left-24 sm:left-28 p-2 rounded-full bg-black shadow-md border border-white/10
+                  text-white/70 hover:text-white transition-colors"
               >
                 {photoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
               </motion.button>
@@ -484,11 +484,11 @@ export default function Profile() {
             {/* Name + headline + meta */}
             <motion.div variants={staggerContainer} initial="hidden" animate="visible">
               <motion.div variants={staggerItem}>
-                <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                   {profile.full_name || 'Your Name'}
                 </h1>
                 {profile.bio && (
-                  <p className="text-base text-gray-700 mt-0.5 max-w-2xl">{profile.bio}</p>
+                  <p className="text-base text-white/80 mt-0.5 max-w-2xl">{profile.bio}</p>
                 )}
               </motion.div>
 
@@ -500,7 +500,7 @@ export default function Profile() {
                     href={`/u/${profile.username}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-black transition-colors"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-white/60 hover:text-white transition-colors"
                   >
                     <Globe className="w-3.5 h-3.5" /> View public profile
                   </a>
@@ -508,16 +508,16 @@ export default function Profile() {
               </motion.div>
 
               {/* Location + role badge row */}
-              <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-sm text-secondary">
+              <motion.div variants={staggerItem} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-sm text-white/60">
                 {profile.location && (
                   <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{profile.location}</span>
                 )}
                 {profile.website && (
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-black transition-colors">
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
                     <Link2 className="w-3.5 h-3.5" />{profile.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-700">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 text-xs font-medium text-white/80">
                   {role === 'freelancer' ? <Briefcase className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
                   {role === 'freelancer' ? 'Freelancer' : 'Business'}
                 </span>
@@ -537,8 +537,8 @@ export default function Profile() {
                   onClick={() => setActiveTab(id as TabId)}
                   className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors
                     ${activeTab === id
-                      ? 'text-black'
-                      : 'text-gray-500 hover:text-black hover:bg-gray-50 rounded-t-lg'
+                      ? 'text-white'
+                      : 'text-white/50 hover:text-white hover:bg-[#111] rounded-t-lg'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -546,7 +546,7 @@ export default function Profile() {
                   {activeTab === id && (
                     <motion.div
                       layoutId="profile-tab-indicator"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -607,7 +607,7 @@ function ProfileUrlCopy({ username }: { username: string }) {
     <button
       onClick={copyProfileUrl}
       title="Copy profile URL"
-      className="flex items-center gap-1.5 text-sm text-secondary hover:text-black transition-colors group"
+      className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition-colors group"
     >
       <span>@{username}</span>
       {copied
@@ -639,7 +639,7 @@ function BasicInfoTab({
   return (
     <SectionCard>
       <div className="p-6">
-        <h2 className="text-lg font-bold text-black mb-5">Basic Information</h2>
+        <h2 className="text-lg font-bold text-white mb-5">Basic Information</h2>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-5"
           variants={staggerContainer}
@@ -721,7 +721,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-black mb-5">Company Information</h2>
+            <h2 className="text-lg font-bold text-white mb-5">Company Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="Company Name" value={form.company_name} onChange={set('company_name')} icon={Building2} placeholder="Acme Inc." />
               <InputField label="Brand Name" value={form.brand_name} onChange={set('brand_name')} placeholder="Your Brand" />
@@ -753,7 +753,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-black mb-5">Address</h2>
+            <h2 className="text-lg font-bold text-white mb-5">Address</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
                 <InputField label="Street Address" value={form.address} onChange={set('address')} icon={MapPin} placeholder="123 Main St" />
@@ -770,7 +770,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-black mb-5">Social Links</h2>
+            <h2 className="text-lg font-bold text-white mb-5">Social Links</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="LinkedIn" value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/company/..." />
               <InputField label="Twitter / X" value={form.twitter_url} onChange={set('twitter_url')} placeholder="https://x.com/..." />
@@ -831,7 +831,7 @@ function FreelancerTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-black mb-5">Professional Details</h2>
+            <h2 className="text-lg font-bold text-white mb-5">Professional Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="Professional Title" value={form.professional_title} onChange={set('professional_title')} icon={Briefcase} placeholder="Full-Stack Developer" />
               <InputField label="Experience (years)" value={form.experience_years} onChange={set('experience_years')} type="number" placeholder="5" />
@@ -862,7 +862,7 @@ function FreelancerTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-black mb-5">Social & Professional Links</h2>
+            <h2 className="text-lg font-bold text-white mb-5">Social & Professional Links</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="LinkedIn" value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." />
               <InputField label="GitHub" value={form.github_url} onChange={set('github_url')} placeholder="https://github.com/..." />
@@ -872,7 +872,7 @@ function FreelancerTab({
               <InputField label="Personal Website" value={form.personal_website} onChange={set('personal_website')} icon={Globe} placeholder="https://yoursite.com" />
               <InputField label="Booking URL" value={form.booking_url} onChange={set('booking_url')} icon={Link2} placeholder="https://calendly.com/your-link" />
             </div>
-            <p className="mt-2 text-xs text-gray-400">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
+            <p className="mt-2 text-xs text-white/40">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
           </div>
         </SectionCard>
       </motion.div>
@@ -905,7 +905,7 @@ function PortfolioTab({
   return (
     <div className="space-y-4">
       <motion.div className="flex justify-between items-center" variants={fadeInUp} initial="hidden" animate="visible">
-        <p className="text-sm text-secondary">Showcase your work to potential clients.</p>
+        <p className="text-sm text-white/60">Showcase your work to potential clients.</p>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button variant="outline" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowAdd(true)}>
             Add Project
@@ -917,8 +917,8 @@ function PortfolioTab({
         <motion.div variants={scaleIn} initial="hidden" animate="visible">
           <SectionCard className="text-center">
             <div className="py-12">
-              <FolderOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-secondary">No portfolio items yet. Add your first project!</p>
+              <FolderOpen className="w-10 h-10 text-white/20 mx-auto mb-3" />
+              <p className="text-sm text-white/60">No portfolio items yet. Add your first project!</p>
             </div>
           </SectionCard>
         </motion.div>
@@ -946,34 +946,34 @@ function PortfolioTab({
                 <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="text-sm font-semibold text-black">{item.title}</h4>
-                      {item.client_name && <p className="text-xs text-secondary mt-0.5">for {item.client_name}</p>}
+                      <h4 className="text-sm font-semibold text-white">{item.title}</h4>
+                      {item.client_name && <p className="text-xs text-white/60 mt-0.5">for {item.client_name}</p>}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setEditingItem(item)} className="p-1.5 rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-colors">
+                      <button onClick={() => setEditingItem(item)} className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10/5 transition-colors">
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => deleteMut.mutate(item.id)} className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <button onClick={() => deleteMut.mutate(item.id)} className="p-1.5 rounded-md text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                  {item.description && <p className="text-xs text-gray-600 mt-2 line-clamp-2">{item.description}</p>}
+                  {item.description && <p className="text-xs text-white/70 mt-2 line-clamp-2">{item.description}</p>}
                   {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-3">
                       {item.tags.map((t) => (
-                        <span key={t} className="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-medium text-gray-600">{t}</span>
+                        <span key={t} className="px-2 py-0.5 rounded-full bg-white/5 text-[10px] font-medium text-white/70">{t}</span>
                       ))}
                     </div>
                   )}
                   <div className="flex items-center gap-3 mt-3">
                     {item.project_url && (
                       <a href={item.project_url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-secondary hover:text-black flex items-center gap-1 transition-colors">
+                        className="text-xs text-white/60 hover:text-white flex items-center gap-1 transition-colors">
                         <ExternalLink className="w-3 h-3" /> View Project
                       </a>
                     )}
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${item.is_public ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${item.is_public ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-white/5 text-white/50 border border-white/10'}`}>
                       {item.is_public ? 'Public' : 'Private'}
                     </span>
                   </div>
@@ -1070,7 +1070,7 @@ function VerificationStatusIcon({ status }: { status: string }) {
   if (status === 'verified') return <Check className="w-4 h-4 text-green-600" />;
   if (status === 'failed') return <X className="w-4 h-4 text-red-500" />;
   if (status === 'expired') return <Clock className="w-4 h-4 text-amber-500" />;
-  return <Clock className="w-4 h-4 text-gray-400" />;
+  return <Clock className="w-4 h-4 text-white/40" />;
 }
 
 function VerificationTab() {
@@ -1126,11 +1126,11 @@ function VerificationTab() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-black">Profile Verification</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-lg font-bold text-white">Profile Verification</h2>
+            <p className="text-sm text-white/50 mt-1">
               Verify your profile details to build trust with leads and clients.
               {totalChecked > 0 && (
-                <span className="ml-2 font-medium text-black">
+                <span className="ml-2 font-medium text-white">
                   {verifiedCount}/{totalChecked} verified
                 </span>
               )}
@@ -1148,7 +1148,7 @@ function VerificationTab() {
 
         {/* Progress bar */}
         {totalChecked > 0 && (
-          <div className="w-full bg-gray-100 rounded-full h-2">
+          <div className="w-full bg-white/5 rounded-full h-2">
             <div
               className="bg-green-500 h-2 rounded-full transition-all duration-500"
               style={{ width: `${Math.round((verifiedCount / Math.max(totalChecked, 1)) * 100)}%` }}
@@ -1158,13 +1158,13 @@ function VerificationTab() {
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
           </div>
         ) : (
           <div className="space-y-6">
             {Array.from(groups.entries()).map(([groupName, fields]) => (
               <div key={groupName}>
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-widest mb-3">{groupName}</h3>
+                <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-3">{groupName}</h3>
                 <div className="space-y-2">
                   {fields.map((field) => {
                     const vStatus = verificationMap.get(field.key);
@@ -1181,15 +1181,15 @@ function VerificationTab() {
                             ? 'border-red-200 bg-red-50/50'
                             : status === 'expired'
                             ? 'border-amber-200 bg-amber-50/50'
-                            : 'border-gray-200 bg-gray-50/50'
+                            : 'border-white/10 bg-[#111]/50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <VerificationStatusIcon status={status} />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{field.label}</p>
+                            <p className="text-sm font-medium text-white">{field.label}</p>
                             {vStatus?.field_value && (
-                              <p className="text-xs text-gray-500 truncate max-w-[200px] sm:max-w-[300px]">
+                              <p className="text-xs text-white/50 truncate max-w-[200px] sm:max-w-[300px]">
                                 {vStatus.field_value}
                               </p>
                             )}
@@ -1212,7 +1212,7 @@ function VerificationTab() {
                           className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
                             status === 'verified'
                               ? 'text-green-700 bg-green-100 hover:bg-green-200'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                              : 'text-white/80 bg-black border border-white/20 hover:bg-[#111]'
                           } disabled:opacity-50`}
                         >
                           {isFieldVerifying ? (
@@ -1259,8 +1259,8 @@ function PrivacyTab({
       <div className="p-6">
         <motion.div variants={staggerContainer} initial="hidden" animate="visible">
           <motion.div variants={staggerItem}>
-            <h2 className="text-lg font-bold text-black mb-1">Profile Visibility</h2>
-            <p className="text-sm text-secondary mb-5">Control who can see your profile and information.</p>
+            <h2 className="text-lg font-bold text-white mb-1">Profile Visibility</h2>
+            <p className="text-sm text-white/60 mb-5">Control who can see your profile and information.</p>
           </motion.div>
 
           <div className="space-y-1">
@@ -1306,7 +1306,7 @@ function PrivacyTab({
             </motion.div>
           </div>
 
-          <motion.div variants={staggerItem} className="mt-6 p-4 rounded-lg bg-gray-50 border border-gray-200">
+          <motion.div variants={staggerItem} className="mt-6 p-4 rounded-lg bg-[#111] border border-white/10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={form.is_public ? 'public' : 'private'}
@@ -1314,7 +1314,7 @@ function PrivacyTab({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 8 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center gap-2 text-sm text-secondary"
+                className="flex items-center gap-2 text-sm text-white/60"
               >
                 {form.is_public ? (
                   <>
@@ -1323,8 +1323,8 @@ function PrivacyTab({
                   </>
                 ) : (
                   <>
-                    <EyeOff className="w-4 h-4 text-gray-500" />
-                    <span>Your profile is <strong className="text-gray-700">private</strong> and only visible to you</span>
+                    <EyeOff className="w-4 h-4 text-white/50" />
+                    <span>Your profile is <strong className="text-white/80">private</strong> and only visible to you</span>
                   </>
                 )}
               </motion.div>

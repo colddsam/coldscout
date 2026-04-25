@@ -16,19 +16,19 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<string, string> = {
-  green: 'bg-black text-white border-black shadow-minimal',
-  teal: 'bg-gray-100 text-black border-gray-400',
-  amber: 'bg-white text-black border-gray-200',
-  red: 'bg-gray-800 text-white border-gray-800',
-  muted: 'bg-accents-1 text-secondary border-accents-2',
+  green: 'bg-white text-black border-white shadow-[0_0_8px_rgba(255,255,255,0.1)]',
+  teal: 'bg-white/10 text-white border-white/20',
+  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  red: 'bg-red-500/10 text-red-400 border-red-500/20',
+  muted: 'bg-white/5 text-[#A0A0A0] border-white/10',
 };
 
 const dotColors: Record<string, string> = {
-  green: 'bg-white',
-  teal: 'bg-black',
-  amber: 'bg-gray-400',
-  red: 'bg-gray-300',
-  muted: 'bg-accents-3',
+  green: 'bg-black',
+  teal: 'bg-white',
+  amber: 'bg-amber-400',
+  red: 'bg-red-400',
+  muted: 'bg-[#666666]',
 };
 
 export default function Badge({ label, variant = 'muted', className, pulse }: BadgeProps) {

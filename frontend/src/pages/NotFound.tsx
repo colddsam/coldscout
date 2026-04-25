@@ -17,13 +17,13 @@ export default function NotFound() {
   });
 
   return (
-    <motion.div className="min-h-screen flex items-center justify-center flex-col text-center space-y-6 bg-white" variants={staggerContainer} initial="hidden" animate="visible">
-      <motion.div variants={staggerItemScale} className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-        <ShieldAlert className="w-10 h-10 text-black" />
+    <motion.div className="min-h-screen flex items-center justify-center flex-col text-center space-y-6 bg-black" variants={staggerContainer} initial="hidden" animate="visible">
+      <motion.div variants={staggerItemScale} className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center">
+        <ShieldAlert className="w-10 h-10 text-white" />
       </motion.div>
       <motion.div variants={staggerItem}>
-        <h1 className="text-5xl font-bold tracking-tight text-black mb-2">404</h1>
-        <p className="text-gray-500 max-w-md mx-auto text-sm">
+        <h1 className="text-5xl font-bold tracking-tight text-white mb-2">404</h1>
+        <p className="text-white/50 max-w-md mx-auto text-sm">
           The page you're looking for doesn't exist. Please return to the dashboard.
         </p>
       </motion.div>

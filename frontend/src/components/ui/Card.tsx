@@ -27,7 +27,7 @@ export default function Card({
   const Wrapper = interactive ? motion.div : 'div';
   const motionProps = interactive
     ? {
-        whileHover: { y: -2, boxShadow: '0 0 0 1px rgba(0,0,0,0.12), 0 12px 40px rgba(0,0,0,0.1)' },
+        whileHover: { y: -2, boxShadow: '0 0 0 1px rgba(255,255,255,0.1), 0 12px 40px rgba(0,0,0,0.4)' },
         transition: { type: 'spring' as const, stiffness: 300, damping: 24 },
       }
     : {};
@@ -35,8 +35,8 @@ export default function Card({
   return (
     <Wrapper
       className={cn(
-        'rounded-xl bg-white border border-gray-200',
-        glow && !interactive && 'hover:shadow-vercel transition-all duration-300',
+        'rounded-xl bg-[#111111] border border-white/5',
+        glow && !interactive && 'hover:border-white/15 transition-all duration-300',
         padding && 'p-5',
         className,
       )}
@@ -65,27 +65,27 @@ export function StatCard({ label, value, icon, trend, className }: StatCardProps
       transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
     >
       <Card
-        className={cn('relative overflow-hidden group hover:shadow-vercel-hover', className)}
+        className={cn('relative overflow-hidden group hover:border-white/15', className)}
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] text-secondary uppercase tracking-[0.15em] font-semibold mb-2">
+            <p className="text-[10px] text-[#666666] uppercase tracking-[0.15em] font-semibold mb-2">
               {label}
             </p>
             {isNumber ? (
               <AnimatedCounter
                 value={value}
-                className="text-3xl font-bold text-black tracking-tighter font-mono"
+                className="text-3xl font-bold text-white tracking-tighter font-mono"
               />
             ) : (
-              <p className="text-3xl font-bold text-black tracking-tighter">{value}</p>
+              <p className="text-3xl font-bold text-white tracking-tighter">{value}</p>
             )}
             {trend && (
-              <p className="text-xs text-secondary mt-1.5 font-mono">{trend}</p>
+              <p className="text-xs text-[#A0A0A0] mt-1.5 font-mono">{trend}</p>
             )}
           </div>
           {icon && (
-            <div className="text-accents-3 group-hover:text-black transition-colors duration-300 mt-1 p-2.5 bg-accents-1 rounded-xl border border-transparent group-hover:border-accents-2">
+            <div className="text-[#A0A0A0] group-hover:text-white transition-colors duration-300 mt-1 p-2.5 bg-white/5 rounded-xl border border-white/5 group-hover:border-white/15">
               <span className="w-8 h-8 flex items-center justify-center">{icon}</span>
             </div>
           )}

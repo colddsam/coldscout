@@ -22,10 +22,10 @@ export default function PageHeader({ title, subtitle, actions }: PageHeaderProps
       transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
     >
       <div>
-        <h2 className="text-xl md:text-2xl font-bold text-black tracking-tight">{title}</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">{title}</h2>
         {subtitle && (
           <motion.p
-            className="text-xs md:text-sm text-secondary mt-1"
+            className="text-xs md:text-sm text-[#A0A0A0] mt-1"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}

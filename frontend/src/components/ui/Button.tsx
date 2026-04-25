@@ -20,11 +20,11 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, Moti
 }
 
 const variants: Record<string, string> = {
-  primary: 'bg-black text-white hover:bg-gray-800 font-medium border border-black',
-  secondary: 'bg-white text-black border border-gray-200 hover:border-black hover:bg-black hover:text-white font-medium',
-  danger: 'bg-white text-black border-2 border-black hover:bg-black hover:text-white font-bold',
-  ghost: 'bg-transparent text-secondary hover:text-black hover:bg-gray-50',
-  outline: 'bg-white text-black border border-gray-200 hover:border-black hover:shadow-vercel font-medium',
+  primary: 'bg-white text-black hover:bg-gray-200 font-medium border border-white',
+  secondary: 'bg-[#111111] text-white border border-white/10 hover:border-white/25 hover:bg-white/10 font-medium',
+  danger: 'bg-[#111111] text-white border-2 border-white/20 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 font-bold',
+  ghost: 'bg-transparent text-[#A0A0A0] hover:text-white hover:bg-white/5',
+  outline: 'bg-[#111111] text-white border border-white/10 hover:border-white/25 font-medium',
 };
 
 const sizes: Record<string, string> = {
