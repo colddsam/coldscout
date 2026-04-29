@@ -6,37 +6,53 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* ── Dark Monochrome Palette ── */
+        /* ── Dark Monochrome Palette (refined SaaS scale) ── */
         surface: '#000000',
-        'surface-1': '#111111',
-        'surface-2': '#1C1C1C',
-        'surface-3': '#2A2A2A',
-        foreground: '#F0F0F0',
-        primary: '#F0F0F0',
-        'primary-dim': '#A0A0A0',
-        secondary: '#A0A0A0',
-        subtle: '#666666',
-        border: 'rgba(255,255,255,0.05)',
-        'accents-1': '#111111',
-        'accents-2': '#1C1C1C',
-        'accents-3': '#2A2A2A',
-        'accents-4': '#444444',
-        'accents-5': '#666666',
-        'accents-6': '#888888',
-        'accents-7': '#A0A0A0',
-        'accents-8': '#C0C0C0',
+        'surface-1': '#0A0A0A',
+        'surface-2': '#121212',
+        'surface-3': '#1A1A1A',
+        'surface-4': '#232323',
+        foreground: '#F5F5F5',
+        primary: '#F5F5F5',
+        'primary-dim': '#B0B0B0',
+        secondary: '#B0B0B0',
+        subtle: '#808080',
+        muted: '#7A7A7A',
+        border: 'rgba(255,255,255,0.08)',
+        'border-strong': 'rgba(255,255,255,0.14)',
+        /* Numbered accents (Vercel-style scale, brightened for legibility) */
+        'accents-1': '#0A0A0A',
+        'accents-2': '#121212',
+        'accents-3': '#1F1F1F',
+        'accents-4': '#2E2E2E',
+        'accents-5': '#5C5C5C',
+        'accents-6': '#7A7A7A',
+        'accents-7': '#A8A8A8',
+        'accents-8': '#D0D0D0',
+        /* ── Brand Accent (subtle indigo for CTAs, focus, links) ── */
+        accent: {
+          DEFAULT: '#7C7AED',
+          hover:   '#9794F1',
+          dim:     '#5E5CD9',
+          subtle:  'rgba(124,122,237,0.10)',
+          ring:    'rgba(124,122,237,0.35)',
+        },
         /* ── Semantic Colors ── */
         success: {
-          DEFAULT: '#33CC66',
-          subtle: 'rgba(51,204,102,0.1)',
+          DEFAULT: '#34D399',
+          subtle: 'rgba(52,211,153,0.10)',
         },
         warning: {
-          DEFAULT: '#FFAA33',
-          subtle: 'rgba(255,170,51,0.1)',
+          DEFAULT: '#FBBF24',
+          subtle: 'rgba(251,191,36,0.10)',
         },
         danger: {
-          DEFAULT: '#FF4444',
-          subtle: 'rgba(255,68,68,0.1)',
+          DEFAULT: '#F87171',
+          subtle: 'rgba(248,113,113,0.10)',
+        },
+        info: {
+          DEFAULT: '#60A5FA',
+          subtle: 'rgba(96,165,250,0.10)',
         },
       },
       fontFamily: {

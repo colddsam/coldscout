@@ -67,7 +67,7 @@ function CurrencySelector({ selected, onChange }: {
       >
         <span>{selected.flag}</span>
         <span className="font-medium text-white">{selected.code}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-[#A0A0A0] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-[#B0B0B0] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -84,12 +84,12 @@ function CurrencySelector({ selected, onChange }: {
                 key={c.code}
                 onClick={() => { onChange(c); setOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
-                  c.code === selected.code ? 'bg-white/10 font-medium text-white' : 'text-[#A0A0A0]'
+                  c.code === selected.code ? 'bg-white/10 font-medium text-white' : 'text-[#B0B0B0]'
                 }`}
               >
                 <span>{c.flag}</span>
                 <span>{c.code}</span>
-                <span className="ml-auto text-xs text-[#666666]">{c.symbol}</span>
+                <span className="ml-auto text-xs text-[#8A8A8A]">{c.symbol}</span>
               </button>
             ))}
           </motion.div>
@@ -105,13 +105,13 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <motion.div variants={staggerItem} className="border border-white/5 rounded-2xl overflow-hidden hover:border-white/15 bg-[#111111]">
+    <motion.div variants={staggerItem} className="border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/15 bg-surface-2">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors text-left"
       >
         <span className="text-sm font-semibold text-white pr-4">{q}</span>
-        <ChevronDown className={`w-4 h-4 text-[#666666] flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-[#8A8A8A] flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
@@ -122,7 +122,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             exit="collapsed"
             className="overflow-hidden"
           >
-            <p className="px-5 pb-5 text-sm text-[#A0A0A0] leading-relaxed border-t border-white/5 pt-4">{a}</p>
+            <p className="px-5 pb-5 text-sm text-[#B0B0B0] leading-relaxed border-t border-white/[0.08] pt-4">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -147,7 +147,7 @@ function PricingHero({ currency, onCurrencyChange }: {
       >
         <motion.div variants={staggerItem} className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8 bg-white/[0.03]">
           <Zap className="w-3.5 h-3.5 text-white" />
-          <span className="text-xs font-medium text-[#A0A0A0]">Pricing</span>
+          <span className="text-xs font-medium text-[#B0B0B0]">Pricing</span>
         </motion.div>
 
         <motion.h1 variants={staggerItem} className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white leading-[0.95] mb-6">
@@ -155,13 +155,13 @@ function PricingHero({ currency, onCurrencyChange }: {
           <span className="text-gradient">Plan</span>
         </motion.h1>
 
-        <motion.p variants={staggerItem} className="text-lg md:text-xl text-[#A0A0A0] max-w-2xl mx-auto mb-8">
+        <motion.p variants={staggerItem} className="text-lg md:text-xl text-[#B0B0B0] max-w-2xl mx-auto mb-8">
           Open source forever. Pay only when you want our hosted infrastructure.
         </motion.p>
 
         <motion.div variants={staggerItem} className="flex items-center justify-center gap-3">
-          <Globe className="w-4 h-4 text-[#A0A0A0]" />
-          <span className="text-sm text-[#A0A0A0]">Currency:</span>
+          <Globe className="w-4 h-4 text-[#B0B0B0]" />
+          <span className="text-sm text-[#B0B0B0]">Currency:</span>
           <CurrencySelector selected={currency} onChange={onCurrencyChange} />
         </motion.div>
       </motion.div>
@@ -290,8 +290,8 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                 whileHover={hoverLift}
                 className={`relative rounded-2xl border overflow-hidden ${
                   plan.featured
-                    ? 'border-white/25 bg-[#111111] text-white scale-[1.02] shadow-[0_0_30px_rgba(255,255,255,0.03)]'
-                    : 'border-white/5 bg-[#111111] hover:border-white/15'
+                    ? 'border-white/25 bg-surface-2 text-white scale-[1.02] shadow-[0_0_30px_rgba(255,255,255,0.03)]'
+                    : 'border-white/[0.08] bg-surface-2 hover:border-white/15'
                 }`}
               >
                 {plan.featured && (
@@ -304,11 +304,11 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                       plan.featured ? 'bg-white/10' : 'bg-white/5 border border-white/10'
                     }`}>
-                      <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-[#A0A0A0]'}`} />
+                      <plan.icon className={`w-4.5 h-4.5 ${plan.featured ? 'text-white' : 'text-[#B0B0B0]'}`} />
                     </div>
                     <div>
                       <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${
-                        plan.featured ? 'text-white' : 'text-[#666666]'
+                        plan.featured ? 'text-white' : 'text-[#8A8A8A]'
                       }`}>{plan.name}</p>
                     </div>
                   </div>
@@ -317,11 +317,11 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
                   <div className="mb-2">
                     <span className="text-4xl font-bold tracking-tighter text-white">{plan.price}</span>
                     {plan.period && (
-                      <span className={`text-sm ml-1 text-[#666666]`}>{plan.period}</span>
+                      <span className={`text-sm ml-1 text-[#8A8A8A]`}>{plan.period}</span>
                     )}
                   </div>
                   <p className={`text-xs font-medium mb-1 ${plan.featured ? 'text-gray-300' : 'text-white'}`}>{plan.tagline}</p>
-                  <p className={`text-[12px] leading-relaxed mb-6 text-[#A0A0A0]`}>{plan.desc}</p>
+                  <p className={`text-[12px] leading-relaxed mb-6 text-[#B0B0B0]`}>{plan.desc}</p>
 
                   {/* Features */}
                   <ul className="space-y-3 mb-8">
@@ -378,7 +378,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
 
         {/* INR note when non-INR currency selected */}
         {currency.code !== 'INR' && (
-          <p className="text-center text-[11px] text-[#666666] mt-6">
+          <p className="text-center text-[11px] text-[#8A8A8A] mt-6">
             * Payments are processed in INR (₹). Displayed prices are approximate conversions for reference.
           </p>
         )}
@@ -412,7 +412,7 @@ function ComparisonTable() {
   function renderCell(val: boolean | string) {
     if (val === true) return <Check className="w-4 h-4 text-white mx-auto" />;
     if (val === false) return <X className="w-4 h-4 text-white/20 mx-auto" />;
-    return <span className="text-xs text-[#A0A0A0]">{val}</span>;
+    return <span className="text-xs text-[#B0B0B0]">{val}</span>;
   }
 
   return (
@@ -421,29 +421,29 @@ function ComparisonTable() {
       initial="hidden"
       whileInView="visible"
       viewport={defaultViewport}
-      className="py-24 bg-[#0A0A0A]"
+      className="py-24 bg-surface-1"
     >
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Compare</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">Compare</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Feature Comparison</h2>
         </div>
 
-        <div className="bg-[#111111] border border-white/5 rounded-2xl overflow-hidden">
+        <div className="bg-surface-2 border border-white/[0.08] rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-4 border-b border-white/5 bg-white/[0.02]">
+          <div className="grid grid-cols-4 border-b border-white/[0.08] bg-white/[0.02]">
             <div className="p-4" />
-            <div className="p-4 text-center border-l border-white/5">
-              <p className="text-[10px] uppercase tracking-widest text-[#666666] font-semibold">Open Source</p>
+            <div className="p-4 text-center border-l border-white/[0.08]">
+              <p className="text-[10px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Open Source</p>
               <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">Free</p>
             </div>
-            <div className="p-4 text-center border-l border-white/5 bg-white/[0.03]">
+            <div className="p-4 text-center border-l border-white/[0.08] bg-white/[0.03]">
               <p className="text-[10px] uppercase tracking-widest text-white font-semibold">Pro</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹100<span className="text-xs font-normal text-[#666666]">/mo</span></p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹100<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
             </div>
-            <div className="p-4 text-center border-l border-white/5">
-              <p className="text-[10px] uppercase tracking-widest text-[#666666] font-semibold">Enterprise</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹2,000<span className="text-xs font-normal text-[#666666]">/mo</span></p>
+            <div className="p-4 text-center border-l border-white/[0.08]">
+              <p className="text-[10px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Enterprise</p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹2,000<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
             </div>
           </div>
 
@@ -459,7 +459,7 @@ function ComparisonTable() {
           ))}
         </div>
 
-        <p className="text-center text-[11px] text-[#666666] mt-4">
+        <p className="text-center text-[11px] text-[#8A8A8A] mt-4">
           * Open Source unlimited leads require your own Google Places API keys and Groq credits.
         </p>
       </div>
@@ -497,7 +497,7 @@ function FaqSection() {
     <section className="py-24 bg-black">
       <div className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-12">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">FAQ</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">FAQ</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Common Questions</h2>
         </div>
 
@@ -526,13 +526,13 @@ function CtaBanner() {
       initial="hidden"
       whileInView="visible"
       viewport={defaultViewport}
-      className="py-24 bg-[#0A0A0A]"
+      className="py-24 bg-surface-1"
     >
       <div className="max-w-4xl mx-auto px-6 text-center">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white mb-4">
           Start building today
         </h2>
-        <p className="text-[#A0A0A0] text-lg max-w-xl mx-auto mb-10">
+        <p className="text-[#B0B0B0] text-lg max-w-xl mx-auto mb-10">
           Whether you want full control with self-hosting or instant access with our
           managed API — Cold Scout has you covered.
         </p>

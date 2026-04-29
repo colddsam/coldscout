@@ -27,11 +27,24 @@ def get_template_env() -> Environment:
 
 import bleach
 
-def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_token: str, app_url: str, demo_url: str = None, booking_url: str = None) -> str:
+def render_email_html(
+    lead_data: Dict[str, Any],
+    ai_body_html: str,
+    tracking_token: str,
+    app_url: str,
+    demo_url: str = None,
+    booking_url: str = None,
+    profile_signature_html: str = "",
+) -> str:
     """
     Renders the final HTML email body payload, merging static template structures
     with dynamic LLM-generated content and unique tracking pixels.
     Sanitizes AI-generated content to prevent XSS.
+
+    ``profile_signature_html`` is an optional, pre-sanitized block emitted by
+    ``signature_renderer.get_freelancer_signature_html``. When non-empty it is
+    injected after the brand sign-off. Empty string preserves the historical
+    template output exactly.
     """
     # Sanitize AI-generated HTML first (outside try so fallback always has safe content)
     allowed_tags = [
@@ -68,8 +81,13 @@ def render_email_html(lead_data: Dict[str, Any], ai_body_html: str, tracking_tok
             logo_url=settings.IMAGE_BASE_URL,
             demo_url=demo_url,
             booking_url=booking_url,
+            profile_signature_html=profile_signature_html or "",
         )
         return html_content
     except Exception as e:
         logger.exception("Failed to render email with Jinja2 template")
-        return f"<html><body>{sanitized_body}<br><br><p>Best regards</p></body></html>"
+        fallback_signature = profile_signature_html or ""
+        return (
+            f"<html><body>{sanitized_body}<br><br>"
+            f"<p>Best regards</p>{fallback_signature}</body></html>"
+        )

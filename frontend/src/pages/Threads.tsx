@@ -98,13 +98,13 @@ function OverviewTab() {
       )}>
         {enabled
           ? <Power className="w-5 h-5 text-white" />
-          : <PowerOff className="w-5 h-5 text-[#666666]" />
+          : <PowerOff className="w-5 h-5 text-[#8A8A8A]" />
         }
         <div>
           <p className="text-sm font-semibold text-white">
             Threads Pipeline: {enabled ? 'Active' : 'Inactive'}
           </p>
-          <p className="text-xs text-[#A0A0A0]">
+          <p className="text-xs text-[#B0B0B0]">
             {enabled
               ? 'The pipeline is processing leads automatically.'
               : 'Set THREADS_ENABLED=true in .env and restart to activate.'}
@@ -231,7 +231,7 @@ function ProfilesTab() {
             'px-2 py-0.5 rounded-md font-mono text-xs border',
             score >= 70 ? 'bg-white text-black border-white' :
             score >= 40 ? 'bg-white/10 text-white border-white/20' :
-            'bg-white/5 text-[#A0A0A0] border-white/10'
+            'bg-white/5 text-[#B0B0B0] border-white/10'
           )}>
             {score || '—'}
           </span>
@@ -260,7 +260,7 @@ function ProfilesTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -269,7 +269,7 @@ function ProfilesTab() {
             <option value="disqualified">Disqualified</option>
             <option value="converted">Converted</option>
           </select>
-          <span className="text-xs text-[#A0A0A0] font-mono">
+          <span className="text-xs text-[#B0B0B0] font-mono">
             {profiles?.length ?? 0} profiles
           </span>
         </div>
@@ -300,7 +300,7 @@ function EngagementsTab() {
       key: 'reply_text',
       label: 'Reply',
       render: (_, row) => (
-        <span className="text-[#A0A0A0] text-xs max-w-[300px] truncate block">
+        <span className="text-[#B0B0B0] text-xs max-w-[300px] truncate block">
           {row.reply_text || '—'}
         </span>
       ),
@@ -321,7 +321,7 @@ function EngagementsTab() {
       key: 'response_text',
       label: 'Response',
       render: (_, row) => (
-        <span className="text-[#A0A0A0] text-xs max-w-[300px] truncate block">
+        <span className="text-[#B0B0B0] text-xs max-w-[300px] truncate block">
           {row.response_text || '—'}
         </span>
       ),
@@ -344,7 +344,7 @@ function EngagementsTab() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             <option value="sent">Sent</option>
@@ -352,7 +352,7 @@ function EngagementsTab() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
           </select>
-          <span className="text-xs text-[#A0A0A0] font-mono">
+          <span className="text-xs text-[#B0B0B0] font-mono">
             {engagements?.length ?? 0} engagements
           </span>
         </div>
@@ -409,7 +409,7 @@ function SearchConfigsTab() {
     <div className="space-y-4">
       <Card padding={true}>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#A0A0A0] font-mono">
+          <span className="text-xs text-[#B0B0B0] font-mono">
             {configs?.length ?? 0} search configs
           </span>
           <Button
@@ -430,14 +430,14 @@ function SearchConfigsTab() {
               placeholder="Keyword (e.g. need a website)"
               value={newKeyword}
               onChange={(e) => setNewKeyword(e.target.value)}
-              className="flex-1 bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+              className="flex-1 bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-[#7A7A7A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
             />
             <input
               type="text"
               placeholder="Category (optional)"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors min-w-[160px]"
+              className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-[#7A7A7A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors min-w-[160px]"
             />
             <Button size="sm" onClick={handleCreate} loading={createConfig.isPending}>
               Create
@@ -457,8 +457,8 @@ function SearchConfigsTab() {
         </Card>
       ) : !configs?.length ? (
         <Card>
-          <div className="flex flex-col items-center justify-center py-12 text-[#A0A0A0]">
-            <Search className="w-8 h-8 mb-3 text-[#666666]" />
+          <div className="flex flex-col items-center justify-center py-12 text-[#B0B0B0]">
+            <Search className="w-8 h-8 mb-3 text-[#8A8A8A]" />
             <p className="font-mono text-sm">No search configs yet</p>
             <p className="text-xs mt-1">Add keywords to start discovering leads on Threads</p>
           </div>
@@ -474,7 +474,7 @@ function SearchConfigsTab() {
                     'w-8 h-8 rounded-full flex items-center justify-center transition-all',
                     config.is_active
                       ? 'bg-white text-black'
-                      : 'bg-white/10 text-[#A0A0A0] hover:bg-white/20'
+                      : 'bg-white/10 text-[#B0B0B0] hover:bg-white/20'
                   )}
                   title={config.is_active ? 'Active — click to pause' : 'Paused — click to activate'}
                 >
@@ -482,11 +482,11 @@ function SearchConfigsTab() {
                 </button>
                 <div>
                   <p className="text-sm font-semibold text-white">{config.keyword}</p>
-                  <p className="text-xs text-[#A0A0A0]">
+                  <p className="text-xs text-[#B0B0B0]">
                     {config.category && <span className="mr-2">{config.category}</span>}
                     <span className="font-mono">{config.search_type}</span>
                     {config.last_searched_at && (
-                      <span className="ml-2 text-[#666666]">
+                      <span className="ml-2 text-[#8A8A8A]">
                         last: {formatDate(config.last_searched_at)}
                       </span>
                     )}
@@ -502,7 +502,7 @@ function SearchConfigsTab() {
                     deleteConfig.mutate(config.id);
                   }
                 }}
-                className="text-[#A0A0A0] hover:text-white"
+                className="text-[#B0B0B0] hover:text-white"
               />
             </Card>
           ))}
@@ -541,7 +541,7 @@ export default function Threads() {
                 'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]',
                 activeTab === tab.id
                   ? 'border-white text-white'
-                  : 'border-transparent text-[#A0A0A0] hover:text-white hover:border-white/30',
+                  : 'border-transparent text-[#B0B0B0] hover:text-white hover:border-white/30',
               )}
             >
               <Icon className="w-4 h-4" />

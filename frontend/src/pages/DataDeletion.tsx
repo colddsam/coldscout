@@ -63,7 +63,7 @@ export default function DataDeletion() {
 
         <motion.div className="text-center mb-12" variants={staggerItem}>
           <h1 className="text-4xl font-bold tracking-tight mb-4">Request Data Deletion</h1>
-          <p className="text-[#666666] text-lg max-w-xl mx-auto">
+          <p className="text-[#8A8A8A] text-lg max-w-xl mx-auto">
             We believe you should have complete control over your data. If you wish to permanently delete your account and all associated data, follow the instructions below.
           </p>
         </motion.div>
@@ -74,7 +74,7 @@ export default function DataDeletion() {
               <Mail className="w-5 h-5 text-white" />
               How to delete your data
             </h2>
-            <p className="text-[#666666] mb-6">
+            <p className="text-[#8A8A8A] mb-6">
               To securely request the deletion of your account, teams, and generated leads, please send an email to our support team from the email address associated with your Cold Scout account.
             </p>
 
@@ -91,15 +91,15 @@ export default function DataDeletion() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-white shrink-0 mt-0.5" />
-                <span className="text-[#666666] text-sm">We will securely verify your identity to prevent unauthorized deletion.</span>
+                <span className="text-[#8A8A8A] text-sm">We will securely verify your identity to prevent unauthorized deletion.</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-white shrink-0 mt-0.5" />
-                <span className="text-[#666666] text-sm">Once verified, all your platform data (leads, campaigns, billing information) will be permanently eradicated within 30 days.</span>
+                <span className="text-[#8A8A8A] text-sm">Once verified, all your platform data (leads, campaigns, billing information) will be permanently eradicated within 30 days.</span>
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 text-white shrink-0 mt-0.5" />
-                <span className="text-[#666666] text-sm">You will receive a final confirmation email once the process is complete.</span>
+                <span className="text-[#8A8A8A] text-sm">You will receive a final confirmation email once the process is complete.</span>
               </li>
             </ul>
           </div>

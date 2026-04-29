@@ -16,9 +16,11 @@ export default function ErrorState({
   return (
     <Card>
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <AlertTriangle className="w-8 h-8 text-[#A0A0A0] mb-3" />
-        <p className="text-sm font-semibold text-white mb-1">{title}</p>
-        <p className="text-xs text-[#666666] font-mono mb-4 max-w-md">{message}</p>
+        <div className="w-12 h-12 rounded-xl bg-danger/10 border border-danger/25 flex items-center justify-center mb-4">
+          <AlertTriangle className="w-5 h-5 text-danger" />
+        </div>
+        <p className="text-base font-semibold text-white mb-1.5">{title}</p>
+        <p className="text-sm text-secondary mb-5 max-w-md">{message}</p>
         {onRetry && (
           <Button variant="outline" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={onRetry}>
             Retry

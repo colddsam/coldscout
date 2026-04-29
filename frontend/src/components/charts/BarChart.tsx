@@ -9,7 +9,7 @@ interface BarChartProps {
 export default function BarChart({ data, bars, xKey = 'date' }: BarChartProps) {
   if (!data.length) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#666666] font-mono text-sm">
+      <div className="flex items-center justify-center h-64 text-[#8A8A8A] font-mono text-sm">
         No chart data available
       </div>
     );

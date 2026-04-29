@@ -164,7 +164,7 @@ function GlobalConfigEditor({
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-base font-semibold text-white capitalize">{jobId.replace(/_/g, ' ')}</h3>
-                    <p className="text-xs text-white/50">{type}</p>
+                    <p className="text-xs text-white/75">{type}</p>
                   </div>
                   <Button
                     variant={isRunning ? 'outline' : 'primary'}
@@ -236,7 +236,7 @@ function NumberField({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-white/50">
+    <label className="flex flex-col gap-1 text-xs text-white/75">
       {label}
       <input
         type="number"
@@ -248,7 +248,7 @@ function NumberField({
           const n = Number(e.target.value);
           if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
         }}
-        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-[#111] disabled:text-white/40"
+        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-surface-2 disabled:text-white/70"
       />
     </label>
   );
@@ -264,13 +264,13 @@ function DayOfWeekField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-white/50">
+    <label className="flex flex-col gap-1 text-xs text-white/75">
       Day of week
       <select
         value={value ?? ''}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-[#111] disabled:text-white/40"
+        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-surface-2 disabled:text-white/70"
       >
         <option value="">(any)</option>
         {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => (
@@ -313,7 +313,7 @@ function MyPreferences({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">My Preferences</h2>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-white/75">
             Turn individual jobs off just for your account. Global HOLD jobs are locked.
           </p>
         </div>
@@ -348,7 +348,7 @@ function MyPreferences({
               <li key={j.job_id} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
                   {rowLocked ? (
-                    <Lock className="w-4 h-4 text-white/40" />
+                    <Lock className="w-4 h-4 text-white/70" />
                   ) : effective === 'RUN' ? (
                     <Play className="w-4 h-4 text-emerald-500" />
                   ) : (
@@ -356,7 +356,7 @@ function MyPreferences({
                   )}
                   <div>
                     <p className="text-sm font-medium text-white capitalize">{j.job_id.replace(/_/g, ' ')}</p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-white/75">
                       Global: {j.global_status}
                       {j.system_only && ' · system-only'}
                       {globalHold && !j.system_only && ' · controlled by admin'}

@@ -87,7 +87,7 @@ function InputField({
       </label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
         )}
         <input
           type={type}
@@ -97,8 +97,8 @@ function InputField({
           maxLength={maxLength}
           disabled={disabled}
           className={`w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
-            placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
-            transition-colors disabled:bg-[#111] disabled:text-white/50
+            placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
+            transition-colors disabled:bg-surface-2 disabled:text-white/75
             ${Icon ? 'pl-9' : ''}`}
         />
       </div>
@@ -124,11 +124,11 @@ function TextAreaField({
         maxLength={maxLength}
         rows={rows}
         className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
-          placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
+          placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
           transition-colors resize-none"
       />
       {maxLength && (
-        <p className="text-[10px] text-white/40 mt-1 text-right">{value.length}/{maxLength}</p>
+        <p className="text-[10px] text-white/70 mt-1 text-right">{value.length}/{maxLength}</p>
       )}
     </div>
   );
@@ -166,10 +166,10 @@ function ToggleField({
   label: string; description?: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-white/[0.08] last:border-0">
       <div>
         <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-white/50 mt-0.5">{description}</p>}
+        {description && <p className="text-xs text-white/75 mt-0.5">{description}</p>}
       </div>
       <button
         type="button"
@@ -215,7 +215,7 @@ function TagInput({
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium text-white border border-transparent hover:border-white/20 transition-colors"
           >
             {tag}
-            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-white/40 hover:text-white transition-colors">
+            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-white/70 hover:text-white transition-colors">
               <X className="w-3 h-3" />
             </button>
           </motion.span>
@@ -228,7 +228,7 @@ function TagInput({
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
           placeholder={placeholder}
           className="flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white
-            placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
+            placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
         />
         <Button variant="outline" size="sm" onClick={addTag} disabled={!input.trim()}>Add</Button>
       </div>
@@ -286,17 +286,17 @@ function SetupModal({ onComplete }: { onComplete: () => void }) {
       <div className="space-y-4">
         <div>
           <div className="relative">
-            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
             <input
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               placeholder="your_username"
               maxLength={50}
               className="w-full rounded-lg border border-white/10 bg-black pl-9 pr-10 py-2.5 text-sm text-white
-                placeholder:text-white/40 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
+                placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {checking && <Loader2 className="w-4 h-4 animate-spin text-white/40" />}
+              {checking && <Loader2 className="w-4 h-4 animate-spin text-white/70" />}
               {!checking && availability?.available && <Check className="w-4 h-4 text-green-500" />}
               {!checking && availability && !availability.available && <X className="w-4 h-4 text-red-500" />}
             </div>
@@ -399,7 +399,7 @@ export default function Profile() {
   if (profileQuery.isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+        <Loader2 className="w-6 h-6 animate-spin text-white/70" />
       </div>
     );
   }
@@ -538,7 +538,7 @@ export default function Profile() {
                   className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors
                     ${activeTab === id
                       ? 'text-white'
-                      : 'text-white/50 hover:text-white hover:bg-[#111] rounded-t-lg'
+                      : 'text-white/75 hover:text-white hover:bg-surface-2 rounded-t-lg'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -813,6 +813,7 @@ function FreelancerTab({
     behance_url: data?.behance_url || '',
     personal_website: data?.personal_website || '',
     booking_url: data?.booking_url || '',
+    include_profile_signature: data?.include_profile_signature ?? false,
   });
 
   const set = (key: string) => (val: string | string[] | number | boolean | null) => setForm((p) => ({ ...p, [key]: val }));
@@ -872,7 +873,25 @@ function FreelancerTab({
               <InputField label="Personal Website" value={form.personal_website} onChange={set('personal_website')} icon={Globe} placeholder="https://yoursite.com" />
               <InputField label="Booking URL" value={form.booking_url} onChange={set('booking_url')} icon={Link2} placeholder="https://calendly.com/your-link" />
             </div>
-            <p className="mt-2 text-xs text-white/40">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
+            <p className="mt-2 text-xs text-white/70">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
+          </div>
+        </SectionCard>
+      </motion.div>
+
+      <motion.div variants={staggerItem}>
+        <SectionCard>
+          <div className="p-6">
+            <h2 className="text-lg font-bold text-white mb-1">Outreach Email Signature</h2>
+            <p className="text-xs text-white/75 mb-4">
+              Append your profile (name, title, photo, contacts and social links) to outreach emails sent to your leads.
+              Visibility of email/phone/location follows your basic privacy toggles. Off keeps emails identical to before.
+            </p>
+            <ToggleField
+              label="Include my profile in outreach emails"
+              description="Adds a signature block with your details after the email body."
+              value={form.include_profile_signature}
+              onChange={(v) => set('include_profile_signature')(v)}
+            />
           </div>
         </SectionCard>
       </motion.div>
@@ -950,10 +969,10 @@ function PortfolioTab({
                       {item.client_name && <p className="text-xs text-white/60 mt-0.5">for {item.client_name}</p>}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setEditingItem(item)} className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10/5 transition-colors">
+                      <button onClick={() => setEditingItem(item)} className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10/5 transition-colors">
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => deleteMut.mutate(item.id)} className="p-1.5 rounded-md text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <button onClick={() => deleteMut.mutate(item.id)} className="p-1.5 rounded-md text-white/70 hover:text-red-500 hover:bg-red-50 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -973,7 +992,7 @@ function PortfolioTab({
                         <ExternalLink className="w-3 h-3" /> View Project
                       </a>
                     )}
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${item.is_public ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-white/5 text-white/50 border border-white/10'}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${item.is_public ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-white/5 text-white/75 border border-white/10'}`}>
                       {item.is_public ? 'Public' : 'Private'}
                     </span>
                   </div>
@@ -1070,7 +1089,7 @@ function VerificationStatusIcon({ status }: { status: string }) {
   if (status === 'verified') return <Check className="w-4 h-4 text-green-600" />;
   if (status === 'failed') return <X className="w-4 h-4 text-red-500" />;
   if (status === 'expired') return <Clock className="w-4 h-4 text-amber-500" />;
-  return <Clock className="w-4 h-4 text-white/40" />;
+  return <Clock className="w-4 h-4 text-white/70" />;
 }
 
 function VerificationTab() {
@@ -1127,7 +1146,7 @@ function VerificationTab() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-white">Profile Verification</h2>
-            <p className="text-sm text-white/50 mt-1">
+            <p className="text-sm text-white/75 mt-1">
               Verify your profile details to build trust with leads and clients.
               {totalChecked > 0 && (
                 <span className="ml-2 font-medium text-white">
@@ -1158,13 +1177,13 @@ function VerificationTab() {
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <Loader2 className="w-6 h-6 animate-spin text-white/70" />
           </div>
         ) : (
           <div className="space-y-6">
             {Array.from(groups.entries()).map(([groupName, fields]) => (
               <div key={groupName}>
-                <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-3">{groupName}</h3>
+                <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">{groupName}</h3>
                 <div className="space-y-2">
                   {fields.map((field) => {
                     const vStatus = verificationMap.get(field.key);
@@ -1181,7 +1200,7 @@ function VerificationTab() {
                             ? 'border-red-200 bg-red-50/50'
                             : status === 'expired'
                             ? 'border-amber-200 bg-amber-50/50'
-                            : 'border-white/10 bg-[#111]/50'
+                            : 'border-white/10 bg-surface-2/50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -1189,7 +1208,7 @@ function VerificationTab() {
                           <div>
                             <p className="text-sm font-medium text-white">{field.label}</p>
                             {vStatus?.field_value && (
-                              <p className="text-xs text-white/50 truncate max-w-[200px] sm:max-w-[300px]">
+                              <p className="text-xs text-white/75 truncate max-w-[200px] sm:max-w-[300px]">
                                 {vStatus.field_value}
                               </p>
                             )}
@@ -1212,7 +1231,7 @@ function VerificationTab() {
                           className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
                             status === 'verified'
                               ? 'text-green-700 bg-green-100 hover:bg-green-200'
-                              : 'text-white/80 bg-black border border-white/20 hover:bg-[#111]'
+                              : 'text-white/80 bg-black border border-white/20 hover:bg-surface-2'
                           } disabled:opacity-50`}
                         >
                           {isFieldVerifying ? (
@@ -1306,7 +1325,7 @@ function PrivacyTab({
             </motion.div>
           </div>
 
-          <motion.div variants={staggerItem} className="mt-6 p-4 rounded-lg bg-[#111] border border-white/10">
+          <motion.div variants={staggerItem} className="mt-6 p-4 rounded-lg bg-surface-2 border border-white/10">
             <AnimatePresence mode="wait">
               <motion.div
                 key={form.is_public ? 'public' : 'private'}
@@ -1323,7 +1342,7 @@ function PrivacyTab({
                   </>
                 ) : (
                   <>
-                    <EyeOff className="w-4 h-4 text-white/50" />
+                    <EyeOff className="w-4 h-4 text-white/75" />
                     <span>Your profile is <strong className="text-white/80">private</strong> and only visible to you</span>
                   </>
                 )}

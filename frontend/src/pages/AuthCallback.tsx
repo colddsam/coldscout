@@ -93,7 +93,7 @@ export default function AuthCallback() {
               <h2 className="text-lg font-semibold text-white mb-2">
                 {status === 'loading' ? 'Completing sign in...' : 'Setting up your account...'}
               </h2>
-              <p className="text-sm text-white/50">
+              <p className="text-sm text-white/75">
                 {status === 'loading'
                   ? 'Please wait while we verify your credentials'
                   : 'Creating your profile in our system'}
@@ -107,7 +107,7 @@ export default function AuthCallback() {
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h2 className="text-lg font-semibold text-white mb-2">Sign in successful!</h2>
-              <p className="text-sm text-white/50">Redirecting you to your dashboard...</p>
+              <p className="text-sm text-white/75">Redirecting you to your dashboard...</p>
             </>
           )}
 

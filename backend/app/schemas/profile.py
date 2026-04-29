@@ -206,6 +206,7 @@ class FreelancerProfileUpdate(BaseModel):
     is_public: Optional[bool] = None
     show_rates: Optional[bool] = None
     show_availability: Optional[bool] = None
+    include_profile_signature: Optional[bool] = None
 
     @field_validator("booking_url")
     @classmethod
@@ -248,6 +249,7 @@ class FreelancerProfileOut(BaseModel):
     is_public: bool = True
     show_rates: bool = True
     show_availability: bool = True
+    include_profile_signature: bool = False
     created_at: datetime
     updated_at: datetime
 

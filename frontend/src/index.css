@@ -7,23 +7,38 @@
 /* ═══════════════ Design Tokens ═══════════════ */
 
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #111111;
-  --bg-tertiary: #1C1C1C;
-  --surface-1: #111111;
-  --surface-2: #1C1C1C;
-  --surface-3: #2A2A2A;
-  --border: rgba(255,255,255,0.05);
-  --border-hover: rgba(255,255,255,0.15);
-  --border-strong: #ffffff;
-  --text-primary: #F0F0F0;
-  --text-secondary: #A0A0A0;
-  --text-muted: #666666;
-  --accent: #ffffff;
-  --accent-hover: #e0e0e0;
-  --success: #33CC66;
-  --warning: #FFAA33;
-  --danger: #FF4444;
+  /* Surfaces — refined depth scale for stacked panels */
+  --bg-primary:   #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-tertiary:  #121212;
+  --surface-1:    #0A0A0A;
+  --surface-2:    #121212;
+  --surface-3:    #1A1A1A;
+  --surface-4:    #232323;
+
+  /* Borders — strong enough to define cards without hard edges */
+  --border:        rgba(255,255,255,0.08);
+  --border-hover:  rgba(255,255,255,0.18);
+  --border-strong: rgba(255,255,255,0.22);
+
+  /* Text — passes WCAG AA on black backgrounds */
+  --text-primary:   #F5F5F5;
+  --text-secondary: #B0B0B0;
+  --text-tertiary:  #8A8A8A;
+  --text-muted:     #7A7A7A;
+
+  /* Brand accent — strategic indigo for primary CTAs, links, focus */
+  --accent:        #7C7AED;
+  --accent-hover:  #9794F1;
+  --accent-dim:    #5E5CD9;
+  --accent-ring:   rgba(124,122,237,0.35);
+  --accent-subtle: rgba(124,122,237,0.10);
+
+  /* Semantic */
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger:  #F87171;
+  --info:    #60A5FA;
 }
 
 * {
@@ -77,8 +92,18 @@ body {
 /* ═══════════════ Focus Ring ═══════════════ */
 
 :focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
+  outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Form controls get a softer, branded focus state */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
 /* ═══════════════ Noise Overlay ═══════════════ */
@@ -127,17 +152,17 @@ body {
 /* ═══════════════ Glass Panel (Dark) ═══════════════ */
 
 .glass-panel {
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(10,10,10,0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
 }
 
 .glass-panel-strong {
-  background: rgba(0,0,0,0.85);
+  background: rgba(10,10,10,0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
 }
 
 /* ═══════════════ Text Effects ═══════════════ */
@@ -159,29 +184,29 @@ body {
 /* ═══════════════ Card Effects ═══════════════ */
 
 .card-glow {
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 .card-glow:hover {
-  border-color: rgba(255,255,255,0.15);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 8px 30px rgba(0,0,0,0.3);
+  border-color: var(--border-hover);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 30px rgba(0,0,0,0.45);
   transform: translateY(-1px);
 }
 
 .card-interactive {
-  border: 1px solid rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
   transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 .card-interactive:hover {
-  border-color: rgba(255,255,255,0.2);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 12px 40px rgba(0,0,0,0.3);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.10), 0 12px 40px rgba(0,0,0,0.45);
   transform: translateY(-2px);
 }
 
 /* ═══════════════ Shimmer Loading ═══════════════ */
 
 .shimmer-bg {
-  background: linear-gradient(90deg, #111111 25%, #1C1C1C 50%, #111111 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
@@ -193,11 +218,11 @@ body {
 
 /* ═══════════════ Border Utilities ═══════════════ */
 
-.minimal-border { border: 1px solid rgba(255,255,255,0.05); }
-.minimal-border-b { border-bottom: 1px solid rgba(255,255,255,0.05); }
-.minimal-border-t { border-top: 1px solid rgba(255,255,255,0.05); }
-.minimal-border-r { border-right: 1px solid rgba(255,255,255,0.05); }
-.minimal-border-l { border-left: 1px solid rgba(255,255,255,0.05); }
+.minimal-border { border: 1px solid var(--border); }
+.minimal-border-b { border-bottom: 1px solid var(--border); }
+.minimal-border-t { border-top: 1px solid var(--border); }
+.minimal-border-r { border-right: 1px solid var(--border); }
+.minimal-border-l { border-left: 1px solid var(--border); }
 
 /* ═══════════════ Hover Underline ═══════════════ */
 
@@ -321,6 +346,147 @@ body {
   position: absolute;
   bottom: 0;
   height: 2px;
-  background: #fff;
+  background: var(--accent);
   transition: left 0.3s ease, width 0.3s ease;
+}
+
+/* ═══════════════ Reusable SaaS Primitives ═══════════════ */
+
+/* Surface tokens — keep page sections visually consistent */
+.surface-1 { background-color: var(--surface-1); }
+.surface-2 { background-color: var(--surface-2); }
+.surface-3 { background-color: var(--surface-3); }
+
+/* Card surface — replaces ad-hoc bg-surface-2/border-white/[0.08] patterns */
+.surface-card {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+.surface-card-hover {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.surface-card-hover:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 12px 32px rgba(0,0,0,0.45);
+}
+
+/* Text tokens — readable hierarchy on dark backgrounds */
+.text-strong    { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary  { color: var(--text-tertiary); }
+.text-faint     { color: var(--text-muted); }
+
+/* Eyebrow label — section/stat labels (uppercase, spaced, readable) */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Form input — single source of truth for all text fields */
+.input-field {
+  width: 100%;
+  background-color: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.input-field::placeholder { color: var(--text-muted); }
+.input-field:hover:not(:disabled):not(:focus) {
+  border-color: var(--border-hover);
+  background-color: rgba(255,255,255,0.04);
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+  background-color: rgba(255,255,255,0.04);
+}
+.input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Section divider with optional label — used between page sections */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* KBD — keyboard hint chip */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 1px rgba(0,0,0,0.4);
+}
+
+/* Subtle elevated panel — used by modals, popovers, dropdowns */
+.elevated-panel {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-hover);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 24px 48px rgba(0,0,0,0.55);
+}
+
+/* Subtle button — secondary actions on cards */
+.btn-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+.btn-subtle:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.06);
+  border-color: var(--border-hover);
+}
+
+/* Accent link — used for inline anchors in body copy */
+.link-accent {
+  color: var(--accent-hover);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+.link-accent:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

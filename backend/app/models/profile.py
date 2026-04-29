@@ -161,6 +161,14 @@ class FreelancerProfile(Base):
     show_rates = Column(Boolean, default=True, nullable=False)
     show_availability = Column(Boolean, default=True, nullable=False)
 
+    # Outreach personalization
+    include_profile_signature = Column(Boolean, default=False, nullable=False)
+    """
+    When True, outreach emails sent for this freelancer's leads include a
+    signature block built from this profile (name, title, photo, contact
+    fields, social links). Off by default to preserve historical behaviour.
+    """
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

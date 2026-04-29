@@ -66,7 +66,7 @@ export default function Overview() {
       <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4" variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
         {/* Pipeline Status */}
         <Card>
-          <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-4">Pipeline Status</h3>
+          <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-4">Pipeline Status</h3>
           <div className="flex flex-wrap items-center gap-y-3 gap-x-2 mb-4">
             {PIPELINE_STAGES.map((stage, i) => (
               <div key={stage.id} className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export default function Overview() {
                   "px-2.5 py-1.5 rounded-md text-[10px] md:text-xs font-mono border transition-all",
                   pipeline?.last_run?.stage === stage.id
                     ? 'bg-white text-black border-white shadow-vercel'
-                    : 'bg-[#111] text-white/60 border-white/10 hover:border-white/20 hover:bg-black'
+                    : 'bg-surface-2 text-white/60 border-white/10 hover:border-white/20 hover:bg-black'
                 )}>
                   {stage.label}
                 </div>
@@ -84,7 +84,7 @@ export default function Overview() {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-4 text-xs text-white/40 font-mono">
+          <div className="flex items-center gap-4 text-xs text-white/70 font-mono">
             <span>Last run: {pipeline?.last_run?.at ? formatDate(pipeline.last_run.at) : '—'}</span>
             <span>Status: {pipeline?.last_run?.status ?? '—'}</span>
           </div>
@@ -102,22 +102,22 @@ export default function Overview() {
 
         {/* System Health */}
         <Card>
-          <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-4">System Health</h3>
+          <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-4">System Health</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-white/50">API Status</span>
+              <span className="text-sm text-white/75">API Status</span>
               <Badge label={health?.status === 'healthy' ? 'OK' : 'Error'} variant={health?.status === 'healthy' ? 'teal' : 'red'} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-white/50">Scheduler</span>
+              <span className="text-sm text-white/75">Scheduler</span>
               <Badge label={health?.scheduler_running ? 'Running' : 'Stopped'} variant={health?.scheduler_running ? 'teal' : 'red'} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-white/50">Production Status</span>
+              <span className="text-sm text-white/75">Production Status</span>
               <Badge label={health?.production_status ? 'RUN' : 'HOLD'} variant={health?.production_status ? 'teal' : 'amber'} />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-white/50">Version</span>
+              <span className="text-sm text-white/75">Version</span>
               <span className="text-xs font-mono text-white">{health?.version ?? '—'}</span>
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function Overview() {
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest">Recent Leads</h3>
+          <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest">Recent Leads</h3>
           <Button variant="ghost" size="sm" onClick={() => navigate('/leads')}>View All →</Button>
         </div>
         <DataTable<Lead & Record<string, unknown>>
@@ -151,10 +151,10 @@ export default function Overview() {
       <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-4" variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
         {/* Job Status */}
         <Card>
-          <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-4">Job Status</h3>
+          <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-4">Job Status</h3>
           <div className="space-y-3">
             {jobsConfig && Object.entries(jobsConfig).map(([jobId, config]) => (
-              <div key={jobId} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div key={jobId} className="flex items-center justify-between py-2 border-b border-white/[0.08] last:border-0">
                 <div className="flex items-center gap-3">
                   <StatusDot status={String(config.status).toUpperCase() === 'RUN' ? 'live' : 'hold'} />
                   <span className="text-sm text-white/80 font-mono">{jobId}</span>
@@ -166,14 +166,14 @@ export default function Overview() {
               </div>
             ))}
             {!jobsConfig && (
-              <p className="text-sm text-white/40 font-mono">Loading jobs...</p>
+              <p className="text-sm text-white/70 font-mono">Loading jobs...</p>
             )}
           </div>
         </Card>
 
         {/* Quick Actions */}
         <Card>
-          <h3 className="text-xs font-medium text-white/50 uppercase tracking-widest mb-4">Quick Actions</h3>
+          <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <Button
               className="w-full"

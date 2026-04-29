@@ -41,14 +41,15 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <>
-      <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-[#0A0A0A]/80 backdrop-blur-md sticky top-0 z-30 border-b border-white/5">
+      <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-black/75 backdrop-blur-md sticky top-0 z-30 border-b border-white/[0.08]">
         <div className="flex items-center gap-4">
           <motion.button
             onClick={onMenuClick}
-            className="lg:hidden p-1.5 text-[#A0A0A0] hover:text-white transition-colors"
+            className="lg:hidden p-1.5 -ml-1 text-secondary hover:text-white hover:bg-white/[0.06] rounded-md transition-colors"
             whileTap={{ scale: 0.9 }}
+            aria-label="Open navigation menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </motion.button>
           <motion.h1
             key={pageTitle}
@@ -63,7 +64,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         <div className="flex items-center gap-3 md:gap-4">
           {!(role === 'client' && location.pathname === '/profile') && (
-            <span className="hidden sm:inline text-[10px] font-mono text-[#666666]">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-tertiary">
+              <span className="w-1 h-1 rounded-full bg-success/70" />
               Updated {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
             </span>
           )}
@@ -94,7 +96,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       {role !== 'client' && (
         <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm System Toggle">
-          <p className="text-[#A0A0A0] text-sm mb-4">
+          <p className="text-secondary text-sm mb-5 leading-relaxed">
             {isRunning
               ? 'This will pause ALL automated pipeline operations. Are you sure?'
               : 'This will resume all automated pipeline operations. Are you sure?'}
@@ -103,7 +105,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <Button variant="ghost" onClick={() => setShowConfirm(false)}>
               Cancel
             </Button>
-            <Button variant={isRunning ? 'danger' : 'primary'} onClick={confirmToggle}>
+            <Button variant={isRunning ? 'danger' : 'accent'} onClick={confirmToggle}>
               {isRunning ? 'Hold System' : 'Resume System'}
             </Button>
           </div>

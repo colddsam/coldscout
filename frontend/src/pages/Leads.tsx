@@ -143,7 +143,7 @@ export default function Leads() {
               placeholder="Country..."
               value={country}
               onChange={(e) => { setCountry(e.target.value); setPage(1); }}
-              className="w-full bg-[#111] border border-white/10 rounded-md pl-10 pr-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
+              className="w-full bg-surface-2 border border-white/10 rounded-md pl-10 pr-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
             />
           </div>
 
@@ -152,7 +152,7 @@ export default function Leads() {
             placeholder="Region / State..."
             value={region}
             onChange={(e) => { setRegion(e.target.value); setPage(1); }}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <input
@@ -160,7 +160,7 @@ export default function Leads() {
             placeholder="City..."
             value={city}
             onChange={(e) => { setCity(e.target.value); setPage(1); }}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <input
@@ -168,13 +168,13 @@ export default function Leads() {
             placeholder="Category..."
             value={category}
             onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 placeholder:text-white/60/50 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors min-w-[120px]"
           />
 
           <select
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="bg-[#111] border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
+            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/60 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-white/20 transition-colors"
           >
             <option value="">All Statuses</option>
             {LEAD_STATUSES.map((s) => (

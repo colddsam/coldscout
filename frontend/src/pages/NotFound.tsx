@@ -23,7 +23,7 @@ export default function NotFound() {
       </motion.div>
       <motion.div variants={staggerItem}>
         <h1 className="text-5xl font-bold tracking-tight text-white mb-2">404</h1>
-        <p className="text-white/50 max-w-md mx-auto text-sm">
+        <p className="text-white/75 max-w-md mx-auto text-sm">
           The page you're looking for doesn't exist. Please return to the dashboard.
         </p>
       </motion.div>

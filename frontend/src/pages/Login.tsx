@@ -144,7 +144,7 @@ export default function Login() {
             </Link>
           </div>
 
-          <p className="text-center text-sm text-[#A0A0A0] mb-6">Sign in to access your dashboard</p>
+          <p className="text-center text-sm text-[#B0B0B0] mb-6">Sign in to access your dashboard</p>
 
           {/* Role Tabs */}
           <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-lg mb-6">
@@ -154,7 +154,7 @@ export default function Login() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'freelancer'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-[#A0A0A0] hover:text-white'
+                  : 'text-[#B0B0B0] hover:text-white'
               }`}
             >
               Freelancer
@@ -165,7 +165,7 @@ export default function Login() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'client'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-[#A0A0A0] hover:text-white'
+                  : 'text-[#B0B0B0] hover:text-white'
               }`}
             >
               Client
@@ -206,7 +206,7 @@ export default function Login() {
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#111111] text-[#666666]">or continue with email</span>
+              <span className="px-4 bg-surface-2 text-[#8A8A8A]">or continue with email</span>
             </div>
           </div>
 
@@ -214,28 +214,28 @@ export default function Login() {
           <motion.div variants={fadeInUp} initial="hidden" animate="visible">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Email</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Password</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -252,8 +252,8 @@ export default function Login() {
           </motion.div>
         </div>
 
-        <div className="border-t border-white/5 bg-white/[0.02] p-4 text-center rounded-b-lg">
-          <p className="text-sm text-[#A0A0A0]">
+        <div className="border-t border-white/[0.08] bg-white/[0.02] p-4 text-center rounded-b-lg">
+          <p className="text-sm text-[#B0B0B0]">
             Don't have an account?{' '}
             <Link to="/signup" className="font-medium text-white hover:underline">
               Sign up

@@ -86,7 +86,7 @@ export default function Welcome() {
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="border-b border-white/5">
+      <header className="border-b border-white/[0.08]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo — links to landing page */}
@@ -94,7 +94,7 @@ export default function Welcome() {
               <Logo size="md" />
             </Link>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-white/50">
+              <span className="text-sm text-white/75">
                 {user?.full_name || user?.email}
               </span>
               <Link
@@ -129,7 +129,7 @@ export default function Welcome() {
 
             <motion.h1 variants={fadeInUp} className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-6">
               Welcome to Cold Scout,{' '}
-              <span className="text-white/40">{user?.full_name?.split(' ')[0] || 'there'}!</span>
+              <span className="text-white/70">{user?.full_name?.split(' ')[0] || 'there'}!</span>
             </motion.h1>
 
             <motion.p variants={fadeInUp} className="text-lg text-white/70 mb-8 max-w-2xl">
@@ -150,7 +150,7 @@ export default function Welcome() {
               </a>
               <Link
                 to="/docs"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/10 text-white/80 rounded-md text-sm font-medium hover:bg-[#111] transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/10 text-white/80 rounded-md text-sm font-medium hover:bg-surface-2 transition-colors"
               >
                 Learn More
                 <ArrowRight className="w-4 h-4" />
@@ -161,7 +161,7 @@ export default function Welcome() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-[#111]/50">
+      <section className="py-20 bg-surface-2/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-white mb-4">What You Get</h2>
@@ -215,10 +215,10 @@ export default function Welcome() {
         <ScrollReveal>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex justify-center mb-6">
-            <Clock className="w-12 h-12 text-white/40" />
+            <Clock className="w-12 h-12 text-white/70" />
           </div>
           <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
-          <p className="text-white/40 mb-8 max-w-xl mx-auto">
+          <p className="text-white/70 mb-8 max-w-xl mx-auto">
             Schedule a 15-minute call to discuss your lead generation goals and see how Cold Scout
             can help grow your business.
           </p>

@@ -51,7 +51,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
       <motion.aside
         className={cn(
-          'flex flex-col bg-[#000] border-r border-white/10 z-50',
+          'flex flex-col bg-black border-r border-white/[0.08] z-50',
           'fixed inset-y-0 left-0 lg:static',
           !mobileOpen && '-translate-x-full lg:translate-x-0',
           mobileOpen && 'translate-x-0',
@@ -60,7 +60,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-14 border-b border-white/10">
+        <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.08]">
           <div className="flex items-center overflow-hidden">
             <Logo
               size={collapsed && !mobileOpen ? 'sm' : 'md'}
@@ -73,8 +73,9 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           {mobileOpen && (
             <motion.button
               onClick={onMobileClose}
-              className="lg:hidden p-1 text-[#F0F0F0]/60 hover:text-white transition-colors"
+              className="lg:hidden p-1.5 text-secondary hover:text-white hover:bg-white/[0.06] rounded-md transition-colors"
               whileTap={{ scale: 0.9 }}
+              aria-label="Close menu"
             >
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
@@ -89,7 +90,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             onClick={onMobileClose}
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-[#F0F0F0]/60 hover:text-white hover:bg-white/10',
+              'text-secondary hover:text-white hover:bg-white/[0.06]',
               collapsed && !mobileOpen && 'justify-center px-0',
             )}
           >
@@ -108,7 +109,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             </AnimatePresence>
           </Link>
 
-          <div className="border-b border-white/5 my-1.5 mx-1" />
+          <div className="border-b border-white/[0.06] my-1.5 mx-1" />
 
           {NAV_ITEMS.filter((item) => (item.roles as readonly string[]).includes(role)).map((item) => {
             const Icon = ICON_MAP[item.icon];
@@ -121,8 +122,8 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   cn(
                     'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group relative',
                     isActive
-                      ? 'bg-white/10 text-white'
-                      : 'text-[#F0F0F0]/60 hover:text-white hover:bg-white/10',
+                      ? 'bg-white/[0.08] text-white shadow-[inset_2px_0_0_var(--accent)]'
+                      : 'text-secondary hover:text-white hover:bg-white/[0.06]',
                     collapsed && !mobileOpen && 'justify-center px-0',
                   )
                 }
@@ -131,7 +132,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                   <>
                     {Icon && (
                       <motion.span
-                        className="flex-shrink-0"
+                        className={cn('flex-shrink-0', isActive ? 'text-accent' : '')}
                         whileHover={!isActive ? { scale: 1.1 } : undefined}
                         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                       >
@@ -144,7 +145,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                           initial={{ opacity: 0, width: 0 }}
                           animate={{ opacity: 1, width: 'auto' }}
                           exit={{ opacity: 0, width: 0 }}
-                          className="font-medium whitespace-nowrap overflow-hidden"
+                          className={cn(
+                            'whitespace-nowrap overflow-hidden',
+                            isActive ? 'font-semibold' : 'font-medium',
+                          )}
                         >
                           {item.label}
                         </motion.span>
@@ -153,7 +157,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
                     {/* Tooltip for collapsed state */}
                     {collapsed && !mobileOpen && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-[#111111] text-white text-xs rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-white/10">
+                      <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-surface-3 text-white text-xs font-medium rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-white/[0.12] shadow-lg">
                         {item.label}
                       </div>
                     )}
@@ -165,7 +169,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         </nav>
 
         {/* Bottom Area */}
-        <div className="border-t border-white/10 p-3 space-y-1.5">
+        <div className="border-t border-white/[0.08] p-3 space-y-1.5">
           {/* Logout */}
           <button
             onClick={() => {
@@ -174,7 +178,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             }}
             className={cn(
               'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-[#F0F0F0]/60 hover:text-white hover:bg-white/10',
+              'text-secondary hover:text-white hover:bg-white/[0.06]',
               collapsed && !mobileOpen && 'justify-center px-0',
             )}
             title="Logout"
@@ -201,7 +205,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             rel="noopener noreferrer"
             className={cn(
               'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-[#F0F0F0]/60 hover:text-white hover:bg-white/10',
+              'text-secondary hover:text-white hover:bg-white/[0.06]',
               collapsed && !mobileOpen && 'justify-center px-0',
             )}
             title="Sponsor the project"
@@ -230,7 +234,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           {role !== 'client' && (
             <motion.div
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg bg-[#111] border border-white/10',
+                'flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-white/[0.08]',
                 collapsed && !mobileOpen && 'justify-center px-0',
               )}
               layout
@@ -242,7 +246,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                     initial={{ opacity: 0, width: 0 }}
                     animate={{ opacity: 1, width: 'auto' }}
                     exit={{ opacity: 0, width: 0 }}
-                    className="text-[10px] font-mono text-[#F0F0F0]/60 uppercase tracking-[0.15em] whitespace-nowrap overflow-hidden"
+                    className="text-[10px] font-mono text-secondary uppercase tracking-[0.12em] font-semibold whitespace-nowrap overflow-hidden"
                   >
                     {isRunning ? 'SYSTEM RUN' : 'SYSTEM HOLD'}
                   </motion.span>
@@ -254,9 +258,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           {/* Collapse Toggle (desktop) */}
           <motion.button
             onClick={onToggle}
-            className="hidden lg:flex items-center justify-center w-full p-2 rounded-lg text-[#F0F0F0]/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="hidden lg:flex items-center justify-center w-full p-2 rounded-lg text-secondary hover:text-white hover:bg-white/[0.06] transition-colors"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <motion.span
               animate={{ rotate: collapsed ? 180 : 0 }}

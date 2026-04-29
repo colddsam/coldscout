@@ -396,10 +396,10 @@ export default function PublicProfilePage() {
         </>
       )}
 
-      <main className="min-h-screen bg-[#111] pt-16 pb-12">
+      <main className="min-h-screen bg-surface-2 pt-16 pb-12">
         {isLoading && (
           <div className="flex items-center justify-center h-96" role="status" aria-label="Loading profile">
-            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <Loader2 className="w-6 h-6 animate-spin text-white/70" />
           </div>
         )}
 
@@ -631,7 +631,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                         className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                           i === 0
                             ? 'bg-black text-white hover:bg-gray-800'
-                            : 'border border-white/20 text-white/80 hover:bg-[#111] hover:border-gray-400'
+                            : 'border border-white/20 text-white/80 hover:bg-surface-2 hover:border-gray-400'
                         }`}
                         {...(link.field === 'email' ? { itemProp: 'email' } : {})}
                         {...(link.field === 'phone' ? { itemProp: 'telephone' } : {})}
@@ -722,7 +722,7 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
                     <motion.div
                       key={stat.label}
                       variants={staggerItem}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-[#111] border border-white/5"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-white/[0.08]"
                     >
                       <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center flex-shrink-0">
                         <Icon className="w-4 h-4 text-white" />
@@ -739,8 +739,8 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
 
             {/* Education */}
             {data.education && (
-              <div className="flex items-start gap-3 py-3 border-t border-white/5">
-                <GraduationCap className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/[0.08]">
+                <GraduationCap className="w-5 h-5 text-white/70 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Education</h3>
                   <p className="text-sm text-white/80 mt-1 whitespace-pre-line">{data.education}</p>
@@ -750,8 +750,8 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
 
             {/* Languages */}
             {data.languages && data.languages.length > 0 && (
-              <div className="flex items-start gap-3 py-3 border-t border-white/5">
-                <Languages className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/[0.08]">
+                <Languages className="w-5 h-5 text-white/70 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Languages</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -765,8 +765,8 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
 
             {/* Certifications */}
             {data.certifications && data.certifications.length > 0 && (
-              <div className="flex items-start gap-3 py-3 border-t border-white/5">
-                <Award className="w-5 h-5 text-white/40 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 py-3 border-t border-white/[0.08]">
+                <Award className="w-5 h-5 text-white/70 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="text-xs text-white/60 font-medium uppercase tracking-wider">Certifications</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
@@ -831,10 +831,10 @@ function FreelancerCard({ data, verifiedFields }: { data: NonNullable<PublicProf
                   rel="noopener noreferrer"
                   variants={staggerItem}
                   whileHover={{ x: 2 }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-white/5 hover:border-white/20 hover:bg-[#111] transition-colors group"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg border border-white/[0.08] hover:border-white/20 hover:bg-surface-2 transition-colors group"
                   itemProp="sameAs"
                 >
-                  <ExternalLink className="w-4 h-4 text-white/40 group-hover:text-white transition-colors" />
+                  <ExternalLink className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-white flex items-center gap-1.5">
                       {l.label}
@@ -910,9 +910,9 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
                 <motion.div
                   key={item.label}
                   variants={staggerItem}
-                  className="p-3 rounded-lg bg-[#111] border border-white/5 text-center"
+                  className="p-3 rounded-lg bg-surface-2 border border-white/[0.08] text-center"
                 >
-                  <Icon className="w-4 h-4 text-white/40 mx-auto mb-1.5" />
+                  <Icon className="w-4 h-4 text-white/70 mx-auto mb-1.5" />
                   <p className="text-xs text-white/60">{item.label}</p>
                   <p className="text-sm font-semibold text-white mt-0.5">{item.value}</p>
                 </motion.div>
@@ -923,7 +923,7 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
 
         {/* Social */}
         {socialLinks.length > 0 && (
-          <nav className="flex flex-wrap gap-2 pt-4 border-t border-white/5" aria-label="Business social links">
+          <nav className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.08]" aria-label="Business social links">
             {socialLinks.map((l) => (
               <motion.a
                 key={l.label}
@@ -988,7 +988,7 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
                   </div>
                   {item.project_url && (
                     <a href={item.project_url} target="_blank" rel="noopener noreferrer"
-                      className="flex-shrink-0 p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10/5 transition-colors"
+                      className="flex-shrink-0 p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10/5 transition-colors"
                       itemProp="url"
                       aria-label={`View ${item.title} project`}
                     >

@@ -57,36 +57,36 @@ export default function Terms() {
             <Scale className="w-8 h-8 text-black" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Terms of Service</h1>
-          <p className="text-[#666666] text-lg max-w-2xl mx-auto">
+          <p className="text-[#8A8A8A] text-lg max-w-2xl mx-auto">
             Please read these rules carefully. They govern your use of the Cold Scout platform and services.
           </p>
         </motion.div>
 
         <motion.div className="grid gap-8" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-          <motion.div className="bg-[#111111] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
+          <motion.div className="bg-surface-2 rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
               <Target className="w-6 h-6 text-white" />
               <h2 className="text-2xl font-bold">1. Usage Rules</h2>
             </div>
-            <p className="text-[#666666] mt-2 mb-4 leading-relaxed">
+            <p className="text-[#8A8A8A] mt-2 mb-4 leading-relaxed">
               By accessing Cold Scout, you agree to comply with these terms. Our software is provided for lawful B2B data prospecting and outreach automation. You are responsible for ensuring that your usage complies with your local regulations (e.g., GDPR, CCPA, CAN-SPAM).
             </p>
-            <ul className="list-disc pl-5 space-y-2 text-[#666666]">
+            <ul className="list-disc pl-5 space-y-2 text-[#8A8A8A]">
               <li>You must be at least 18 years old to use the platform.</li>
               <li>You must provide accurate and complete setup information.</li>
               <li>You are responsible for safeguarding your account credentials.</li>
             </ul>
           </motion.div>
 
-          <motion.div className="bg-[#111111] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
+          <motion.div className="bg-surface-2 rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-6 h-6 text-white" />
               <h2 className="text-2xl font-bold">2. No Abuse</h2>
             </div>
-            <p className="text-[#666666] mt-2 leading-relaxed">
+            <p className="text-[#8A8A8A] mt-2 leading-relaxed">
               We maintain a strict zero-tolerance policy against platform abuse. You may not use Cold Scout to:
             </p>
-            <ul className="list-disc pl-5 mt-4 space-y-2 text-[#666666]">
+            <ul className="list-disc pl-5 mt-4 space-y-2 text-[#8A8A8A]">
               <li>Send unsolicited, harassing, or threatening communications.</li>
               <li>Scrape or extract data for the purpose of reselling it as a standalone database.</li>
               <li>Attempt to bypass, exploit, or circumvent the platform's API rate limits or security measures.</li>
@@ -100,10 +100,10 @@ export default function Terms() {
 
           <motion.div className="bg-white/[0.02] rounded-2xl p-8 border border-white/10" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-[#666666]" />
+              <AlertTriangle className="w-6 h-6 text-[#8A8A8A]" />
               <h2 className="text-2xl font-bold">3. Disclaimer</h2>
             </div>
-            <p className="text-[#666666] mt-2 leading-relaxed text-sm">
+            <p className="text-[#8A8A8A] mt-2 leading-relaxed text-sm">
               COLD SCOUT IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. WE DO NOT GUARANTEE THAT THE SERVICE WILL BE UNINTERRUPTED, COMPLETELY SECURE, OR FREE FROM ERRORS. IN NO EVENT SHALL COLD SCOUT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES RESULTING FROM YOUR USE OF THE PLATFORM.
             </p>
           </motion.div>

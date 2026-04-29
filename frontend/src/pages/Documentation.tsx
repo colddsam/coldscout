@@ -38,13 +38,13 @@ function CollapsibleSection({ title, children, defaultOpen = false }: {
     <div className="border border-white/10 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 bg-black hover:bg-[#111] transition-colors text-left"
+        className="w-full flex items-center justify-between p-5 bg-black hover:bg-surface-2 transition-colors text-left"
       >
         <span className="text-sm font-semibold text-white">{title}</span>
         <ChevronDown className={`w-4 h-4 text-[#F0F0F0]/60 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div className={`transition-all duration-300 overflow-hidden ${open ? 'max-h-[4000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="px-5 pb-5 border-t border-white/5">
+        <div className="px-5 pb-5 border-t border-white/[0.08]">
           {children}
         </div>
       </div>
@@ -58,9 +58,9 @@ function CodeBlock({ code, language = 'bash' }: { code: string; language?: strin
   return (
     <div className="relative group">
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="text-[10px] uppercase tracking-widest text-white/50 bg-gray-800 px-2 py-0.5 rounded">{language}</span>
+        <span className="text-[10px] uppercase tracking-widest text-tertiary bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded">{language}</span>
       </div>
-      <pre className="bg-[#1a1a1a] text-white/30 text-[13px] leading-relaxed p-4 rounded-md overflow-x-auto font-mono">
+      <pre className="bg-surface-3 border border-white/[0.06] text-foreground/90 text-[13px] leading-relaxed p-4 rounded-lg overflow-x-auto font-mono">
         <code>{code}</code>
       </pre>
     </div>
@@ -124,7 +124,7 @@ function TableOfContents() {
   ];
 
   return (
-    <section className="py-12 bg-[#111]">
+    <section className="py-12 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-4 text-center">On This Page</p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -157,7 +157,7 @@ function ArchitectureSection() {
         </div>
 
         {/* SVG Architecture Diagram */}
-        <div className="border border-white/10 rounded-xl p-8 bg-[#111] overflow-x-auto">
+        <div className="border border-white/10 rounded-xl p-8 bg-surface-2 overflow-x-auto">
           <svg viewBox="0 0 900 400" className="w-full max-w-4xl mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Frontend Layer */}
             <rect x="20" y="30" width="180" height="60" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
@@ -246,7 +246,7 @@ function PipelineSection() {
   ];
 
   return (
-    <section id="pipeline" className="py-16 md:py-24 bg-[#111]">
+    <section id="pipeline" className="py-16 md:py-24 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Pipeline</p>
@@ -323,7 +323,7 @@ function TechStackSection() {
 
 function SetupSection() {
   return (
-    <section id="setup" className="py-16 md:py-24 bg-[#111]">
+    <section id="setup" className="py-16 md:py-24 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Setup</p>
@@ -359,7 +359,7 @@ function SetupSection() {
                   <p className="text-xs text-[#F0F0F0]/60 mb-2">Ensure your <code className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[11px]">.env</code> file is configured first.</p>
                 </div>
                 <CodeBlock code={`python scripts/create_tables.py\npython scripts/seed_admin.py`} />
-                <div className="mt-3 bg-[#111] border border-white/10 rounded-md px-3 py-2">
+                <div className="mt-3 bg-surface-2 border border-white/10 rounded-md px-3 py-2">
                   <p className="text-[11px] text-white">💡 Save the generated admin credentials to log into the dashboard.</p>
                 </div>
               </CollapsibleSection>
@@ -513,7 +513,7 @@ function ApiKeysSection() {
                   </div>
                 </div>
                 {svc.url && (
-                  <a href={svc.url} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors">
+                  <a href={svc.url} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
@@ -641,7 +641,7 @@ function EnvVarsSection() {
   const [expandedCat, setExpandedCat] = useState<string | null>('Security');
 
   return (
-    <section id="env-vars" className="py-16 md:py-24 bg-[#111]">
+    <section id="env-vars" className="py-16 md:py-24 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 md:mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Configuration</p>
@@ -664,7 +664,7 @@ function EnvVarsSection() {
               >
                 <cat.icon className={`w-4 h-4 ${expandedCat === cat.name ? 'text-white' : 'text-[#F0F0F0]/60'}`} />
                 <span className="text-sm font-medium">{cat.name}</span>
-                <span className={`ml-auto text-[10px] ${expandedCat === cat.name ? 'text-white/40' : 'text-[#F0F0F0]/40'}`}>{cat.vars.length}</span>
+                <span className={`ml-auto text-[10px] ${expandedCat === cat.name ? 'text-white/70' : 'text-[#F0F0F0]/40'}`}>{cat.vars.length}</span>
               </button>
             ))}
           </div>
@@ -673,7 +673,7 @@ function EnvVarsSection() {
           <div className="lg:col-span-2">
             {expandedCat ? (
               <div className="bg-black border border-white/10 rounded-xl overflow-hidden">
-                <div className="border-b border-white/5 px-5 py-3 bg-[#111]">
+                <div className="border-b border-white/[0.08] px-5 py-3 bg-surface-2">
                   <div className="grid grid-cols-2 gap-4">
                     <span className="text-[10px] uppercase tracking-widest text-[#F0F0F0]/40 font-semibold">Variable</span>
                     <span className="text-[10px] uppercase tracking-widest text-[#F0F0F0]/40 font-semibold">Description</span>
@@ -681,7 +681,7 @@ function EnvVarsSection() {
                 </div>
                 <div className="divide-y divide-gray-50">
                   {categories.find(c => c.name === expandedCat)?.vars.map((v) => (
-                    <div key={v.key} className="grid grid-cols-2 gap-4 px-5 py-3 hover:bg-[#111] transition-colors">
+                    <div key={v.key} className="grid grid-cols-2 gap-4 px-5 py-3 hover:bg-surface-2 transition-colors">
                       <code className="text-[12px] font-mono text-white font-medium">{v.key}</code>
                       <span className="text-[12px] text-[#F0F0F0]/60">{v.desc}</span>
                     </div>
@@ -809,7 +809,7 @@ function DeploymentSection() {
 
 function ProdArchitectureSection() {
   return (
-    <section id="prod-arch" className="py-24 bg-[#111]">
+    <section id="prod-arch" className="py-24 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-3">Production</p>

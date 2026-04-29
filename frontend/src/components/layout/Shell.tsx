@@ -38,7 +38,7 @@ export default function Shell() {
   });
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-black">
       <Sidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
@@ -46,7 +46,7 @@ export default function Shell() {
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      <div className="relative flex flex-1 flex-col overflow-hidden bg-accents-1">
+      <div className="relative flex flex-1 flex-col overflow-hidden bg-surface-1">
         {/* Ambient animated background — anchored to the column, stays put as main scrolls */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <AnimatedBackground variant="dashboard" />

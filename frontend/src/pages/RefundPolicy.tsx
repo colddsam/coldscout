@@ -62,7 +62,7 @@ export default function RefundPolicy() {
             <ReceiptText className="w-8 h-8 text-black" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gradient">Cancellation & Refund Policy</h1>
-          <p className="text-[#666666] text-lg max-w-2xl mx-auto">
+          <p className="text-[#8A8A8A] text-lg max-w-2xl mx-auto">
             We believe in transparency. This policy explains how cancellations work, when refunds apply, and how to submit a request — with no fine print.
           </p>
           <p className="text-xs text-[#999999] mt-4">Last updated: March 2026</p>
@@ -71,14 +71,14 @@ export default function RefundPolicy() {
         <motion.div className="space-y-8" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
 
           {/* Subscription Cancellation */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <XCircle className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">1. Subscription Cancellation</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>
                 You may cancel your Cold Scout subscription at any time. Cancellation takes effect at the end of your current billing period — you will retain full access to all platform features until then.
               </p>
@@ -92,14 +92,14 @@ export default function RefundPolicy() {
           </motion.section>
 
           {/* Refund Eligibility */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">2. Refund Eligibility</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>We offer refunds in the following circumstances:</p>
             </div>
             <div className="mt-4 space-y-3">
@@ -121,7 +121,7 @@ export default function RefundPolicy() {
                   <CheckCircle className="w-4 h-4 text-white mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-white">{item.label}</p>
-                    <p className="text-xs text-[#666666] mt-0.5">{item.desc}</p>
+                    <p className="text-xs text-[#8A8A8A] mt-0.5">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -129,14 +129,14 @@ export default function RefundPolicy() {
           </motion.section>
 
           {/* No-Refund Scenarios */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">3. Non-Refundable Situations</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>Refunds will <strong>not</strong> be issued in the following cases:</p>
               <ul className="list-disc pl-5 mt-4 space-y-2">
                 <li>Requests made after the 7-day new-subscriber window has elapsed.</li>
@@ -153,14 +153,14 @@ export default function RefundPolicy() {
           </motion.section>
 
           {/* How to Request */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Mail className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">4. How to Request a Refund</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>
                 To submit a refund request, email us at the address below. To speed up processing, please include the following in your message:
               </p>
@@ -189,11 +189,11 @@ export default function RefundPolicy() {
           <motion.section className="bg-white/[0.02] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-black/5 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-[#666666]" />
+                <AlertTriangle className="w-5 h-5 text-[#8A8A8A]" />
               </div>
               <h2 className="text-2xl font-semibold">5. Billing Disputes & Chargebacks</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>
                 We strongly encourage you to contact us directly before initiating a chargeback through your bank or payment provider. In many cases, we can resolve billing issues faster and without the delays that chargebacks introduce.
               </p>

@@ -41,10 +41,10 @@ export default function BookingPage() {
   return (
     <>
       <PublicNavbar />
-      <main className="min-h-screen bg-[#111] pt-16 pb-12">
+      <main className="min-h-screen bg-surface-2 pt-16 pb-12">
         {isLoading && (
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <Loader2 className="w-6 h-6 animate-spin text-white/70" />
           </div>
         )}
 
@@ -61,7 +61,7 @@ export default function BookingPage() {
             <motion.h2 variants={staggerItem} className="text-xl font-bold text-white mb-2">
               Profile Not Found
             </motion.h2>
-            <motion.p variants={staggerItem} className="text-sm text-white/50 mb-6">
+            <motion.p variants={staggerItem} className="text-sm text-white/75 mb-6">
               The booking page you are looking for does not exist.
             </motion.p>
             <motion.div variants={staggerItem}>
@@ -102,7 +102,7 @@ export default function BookingPage() {
                 </motion.div>
                 <h1 className="text-xl font-bold text-white">{displayName}</h1>
                 {profile.freelancer?.professional_title && (
-                  <p className="text-sm text-white/40 mt-1">{profile.freelancer.professional_title}</p>
+                  <p className="text-sm text-white/70 mt-1">{profile.freelancer.professional_title}</p>
                 )}
               </div>
 
@@ -114,7 +114,7 @@ export default function BookingPage() {
                     <div>
                       <Calendar className="w-10 h-10 text-white mx-auto mb-3" />
                       <h2 className="text-lg font-bold text-white">Book a Meeting</h2>
-                      <p className="text-sm text-white/50 mt-1">
+                      <p className="text-sm text-white/75 mt-1">
                         Choose a time that works for you.
                       </p>
                     </div>
@@ -132,7 +132,7 @@ export default function BookingPage() {
                       <ExternalLink className="w-3.5 h-3.5" />
                     </motion.a>
 
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-white/70">
                       You will be redirected to an external scheduling service.
                     </p>
                   </motion.div>
@@ -142,7 +142,7 @@ export default function BookingPage() {
                     <div>
                       <Calendar className="w-10 h-10 text-white/20 mx-auto mb-3" />
                       <h2 className="text-lg font-bold text-white">Get in Touch</h2>
-                      <p className="text-sm text-white/50 mt-1">
+                      <p className="text-sm text-white/75 mt-1">
                         Reach out directly to schedule a conversation.
                       </p>
                     </div>
@@ -160,14 +160,14 @@ export default function BookingPage() {
                       {profile.phone && (
                         <a
                           href={`tel:${profile.phone}`}
-                          className="flex items-center justify-center gap-2 px-6 py-3 border border-white/20 text-white/80 rounded-full text-sm font-semibold hover:bg-[#111] hover:border-gray-400 transition-colors"
+                          className="flex items-center justify-center gap-2 px-6 py-3 border border-white/20 text-white/80 rounded-full text-sm font-semibold hover:bg-surface-2 hover:border-gray-400 transition-colors"
                         >
                           <Phone className="w-4 h-4" />
                           {profile.phone}
                         </a>
                       )}
                       {!profile.email && !profile.phone && (
-                        <p className="text-sm text-white/40">
+                        <p className="text-sm text-white/70">
                           No contact information available. Visit their{' '}
                           <Link to={`/u/${username}`} className="text-white underline hover:no-underline">
                             profile
@@ -180,10 +180,10 @@ export default function BookingPage() {
                 )}
 
                 {/* Profile link */}
-                <div className="mt-6 pt-5 border-t border-white/5 text-center">
+                <div className="mt-6 pt-5 border-t border-white/[0.08] text-center">
                   <Link
                     to={`/u/${username}`}
-                    className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors"
                   >
                     View full profile <ExternalLink className="w-3 h-3" />
                   </Link>

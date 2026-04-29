@@ -51,7 +51,7 @@ export default function WordsPullUp({
             delay: delay + words.length * 0.08,
             ease: [0.22, 1, 0.36, 1],
           }}
-          className="inline-block text-[#A0A0A0]"
+          className="inline-block text-[#B0B0B0]"
         >
           *
         </motion.span>

@@ -15,6 +15,7 @@ from app.models.campaign import Campaign, EmailOutreach
 from app.modules.personalization.groq_client import GroqClient
 from app.modules.personalization.email_generator import render_email_html
 from app.modules.personalization.booking_utils import get_resolved_booking_url
+from app.modules.personalization.signature_renderer import get_freelancer_signature_html
 from app.modules.outreach.email_sender import send_email
 from app.config import get_settings
 
@@ -120,12 +121,17 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                 ai_data = await groq_client.generate_followup_email(lead_data, next_count)
                 
                 tracking_token = _generate_tracking_token(lead.id, campaign.id)
+                # Optional per-freelancer signature; "" preserves prior output.
+                profile_signature_html = await get_freelancer_signature_html(
+                    lead.user_id, db
+                )
                 html_body = render_email_html(
                     {"business_name": lead.business_name},
                     ai_data.get('body_html', ''),
                     tracking_token,
                     settings.APP_URL,
                     booking_url=resolved_booking_url,
+                    profile_signature_html=profile_signature_html,
                 )
                 
                 subject = ai_data.get('subject', f"Following up: {lead.business_name}")

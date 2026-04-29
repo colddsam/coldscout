@@ -41,11 +41,11 @@ export default function FunnelChart({ stages }: FunnelChartProps) {
             </div>
 
             {/* Label */}
-            <span className="text-xs font-mono text-[#A0A0A0] text-center">{stage.label}</span>
+            <span className="text-xs font-mono text-[#B0B0B0] text-center">{stage.label}</span>
 
             {/* Conversion rate */}
             {conversionRate && (
-              <span className="text-[10px] font-mono text-[#666666]">{conversionRate}</span>
+              <span className="text-[10px] font-mono text-[#8A8A8A]">{conversionRate}</span>
             )}
           </div>
         );

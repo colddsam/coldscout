@@ -24,7 +24,7 @@ const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center bg-black">
     <div className="text-center">
       <Spinner size="lg" />
-      <p className="mt-4 text-sm text-[#A0A0A0]">Loading...</p>
+      <p className="mt-4 text-sm text-[#B0B0B0]">Loading...</p>
     </div>
   </div>
 );

@@ -10,25 +10,27 @@ import { STATUS_COLORS } from '../../lib/constants';
 
 interface BadgeProps {
   label: string;
-  variant?: 'green' | 'teal' | 'amber' | 'red' | 'muted';
+  variant?: 'green' | 'teal' | 'amber' | 'red' | 'muted' | 'accent';
   className?: string;
   pulse?: boolean;
 }
 
 const variantStyles: Record<string, string> = {
-  green: 'bg-white text-black border-white shadow-[0_0_8px_rgba(255,255,255,0.1)]',
-  teal: 'bg-white/10 text-white border-white/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red: 'bg-red-500/10 text-red-400 border-red-500/20',
-  muted: 'bg-white/5 text-[#A0A0A0] border-white/10',
+  green:  'bg-success/10 text-success border-success/25',
+  teal:   'bg-white/[0.08] text-white border-white/15',
+  amber:  'bg-warning/10 text-warning border-warning/25',
+  red:    'bg-danger/10 text-danger border-danger/25',
+  accent: 'bg-accent/10 text-accent border-accent/25',
+  muted:  'bg-white/[0.04] text-[#B0B0B0] border-white/10',
 };
 
 const dotColors: Record<string, string> = {
-  green: 'bg-black',
-  teal: 'bg-white',
-  amber: 'bg-amber-400',
-  red: 'bg-red-400',
-  muted: 'bg-[#666666]',
+  green:  'bg-success',
+  teal:   'bg-white',
+  amber:  'bg-warning',
+  red:    'bg-danger',
+  accent: 'bg-accent',
+  muted:  'bg-[#7A7A7A]',
 };
 
 export default function Badge({ label, variant = 'muted', className, pulse }: BadgeProps) {

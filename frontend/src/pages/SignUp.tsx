@@ -146,7 +146,7 @@ export default function SignUp() {
               <Check className="w-8 h-8 text-green-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
-            <p className="text-sm text-[#A0A0A0] mb-6">
+            <p className="text-sm text-[#B0B0B0] mb-6">
               We've sent a confirmation link to <strong>{email}</strong>. Click the link to
               activate your account.
             </p>
@@ -182,7 +182,7 @@ export default function SignUp() {
             </Link>
           </div>
 
-          <p className="text-center text-sm text-[#A0A0A0] mb-6">Create your account to get started</p>
+          <p className="text-center text-sm text-[#B0B0B0] mb-6">Create your account to get started</p>
 
           {/* Role Tabs */}
           <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-lg mb-6">
@@ -192,7 +192,7 @@ export default function SignUp() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'freelancer'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-[#A0A0A0] hover:text-white'
+                  : 'text-[#B0B0B0] hover:text-white'
               }`}
             >
               Freelancer
@@ -203,7 +203,7 @@ export default function SignUp() {
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
                 selectedRole === 'client'
                   ? 'bg-white text-black shadow-sm'
-                  : 'text-[#A0A0A0] hover:text-white'
+                  : 'text-[#B0B0B0] hover:text-white'
               }`}
             >
               Client
@@ -244,7 +244,7 @@ export default function SignUp() {
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#111111] text-[#666666]">or sign up with email</span>
+              <span className="px-4 bg-surface-2 text-[#8A8A8A]">or sign up with email</span>
             </div>
           </div>
 
@@ -252,54 +252,54 @@ export default function SignUp() {
           <motion.div variants={fadeInUp} initial="hidden" animate="visible">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Full Name</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="John Doe"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Email</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-md pl-10 pr-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Password</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Password</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#A0A0A0]">Confirm Password</label>
+              <label className="text-sm font-medium text-[#B0B0B0]">Confirm Password</label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-4 py-2.5 text-white placeholder:text-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/25 transition-colors text-sm"
                 placeholder="••••••••"
               />
             </div>
@@ -315,20 +315,20 @@ export default function SignUp() {
           </form>
           </motion.div>
 
-          <p className="mt-4 text-xs text-center text-[#666666]">
+          <p className="mt-4 text-xs text-center text-[#8A8A8A]">
             By signing up, you agree to our{' '}
-            <Link to="/terms" className="text-[#A0A0A0] hover:underline">
+            <Link to="/terms" className="text-[#B0B0B0] hover:underline">
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-[#A0A0A0] hover:underline">
+            <Link to="/privacy" className="text-[#B0B0B0] hover:underline">
               Privacy Policy
             </Link>
           </p>
         </div>
 
-        <div className="border-t border-white/5 bg-white/[0.02] p-4 text-center rounded-b-lg">
-          <p className="text-sm text-[#A0A0A0]">
+        <div className="border-t border-white/[0.08] bg-white/[0.02] p-4 text-center rounded-b-lg">
+          <p className="text-sm text-[#B0B0B0]">
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-white hover:underline">
               Sign in

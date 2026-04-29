@@ -804,6 +804,7 @@ export interface FreelancerProfile {
   is_public: boolean;
   show_rates: boolean;
   show_availability: boolean;
+  include_profile_signature: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -827,6 +828,7 @@ export interface FreelancerProfileUpdate {
   is_public?: boolean;
   show_rates?: boolean;
   show_availability?: boolean;
+  include_profile_signature?: boolean;
 }
 
 export interface PortfolioItem {

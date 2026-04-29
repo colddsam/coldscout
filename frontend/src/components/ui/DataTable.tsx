@@ -27,11 +27,11 @@ interface DataTableProps<T> {
 
 function SkeletonRow({ cols }: { cols: number }) {
   return (
-    <tr className="border-b border-white/5">
+    <tr className="border-b border-white/[0.06]">
       {Array.from({ length: cols }).map((_, i) => (
-        <td key={i} className="px-6 py-3">
+        <td key={i} className="px-5 py-3.5">
           <div
-            className="h-4 rounded shimmer-bg"
+            className="h-3.5 rounded shimmer-bg"
             style={{ width: `${60 + ((i * 17) % 40)}%` }}
           />
         </td>
@@ -50,14 +50,14 @@ export default function DataTable<T extends object>({
 }: DataTableProps<T>) {
   if (loading) {
     return (
-      <div className={cn('overflow-x-auto rounded-xl border border-white/10', className)}>
+      <div className={cn('overflow-x-auto rounded-xl border border-white/[0.08] bg-surface-2', className)}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-white/10 bg-[#111]">
+            <tr className="border-b border-white/[0.08] bg-white/[0.02]">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-white/60"
+                  className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-tertiary"
                   style={{ width: col.width }}
                 >
                   {col.label}
@@ -80,25 +80,25 @@ export default function DataTable<T extends object>({
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center py-16 text-white/60"
+        className="flex flex-col items-center justify-center py-16 px-6 rounded-xl border border-white/[0.08] bg-surface-2"
       >
-        <div className="w-12 h-12 rounded-xl bg-[#111] border border-white/10 flex items-center justify-center mb-4">
-          <span className="text-lg text-white/40">0</span>
+        <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
+          <span className="text-lg text-tertiary font-mono">∅</span>
         </div>
-        <p className="font-mono text-sm">{emptyMessage}</p>
+        <p className="font-sans text-sm text-secondary">{emptyMessage}</p>
       </motion.div>
     );
   }
 
   return (
-    <div className={cn('overflow-x-auto rounded-xl border border-white/10', className)}>
+    <div className={cn('overflow-x-auto rounded-xl border border-white/[0.08] bg-surface-2', className)}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-[#111]">
+          <tr className="border-b border-white/[0.08] bg-white/[0.02]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-6 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-white/60"
+                className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-tertiary"
                 style={{ width: col.width }}
               >
                 {col.label}
@@ -119,13 +119,12 @@ export default function DataTable<T extends object>({
               }}
               onClick={() => onRowClick?.(row)}
               className={cn(
-                'border-b border-white/5 transition-colors duration-200 text-white/60',
-                onRowClick &&
-                  'cursor-pointer hover:bg-white/10/5',
+                'border-b border-white/[0.05] last:border-0 transition-colors duration-150 text-foreground/90',
+                onRowClick && 'cursor-pointer hover:bg-white/[0.035]',
               )}
             >
               {columns.map((col) => (
-                <td key={col.key} className="px-6 py-4 text-white/60">
+                <td key={col.key} className="px-5 py-3.5 align-middle">
                   {col.render
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ? col.render((row as any)[col.key], row)

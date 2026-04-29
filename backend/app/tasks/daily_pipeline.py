@@ -44,6 +44,7 @@ from app.modules.reporting.email_reporter import send_daily_report_email
 from app.modules.personalization.proposal_xlsx_generator import generate_proposal_xlsx
 from app.modules.demo_builder.generator import generate_demo_for_lead
 from app.modules.personalization.booking_utils import get_resolved_booking_url
+from app.modules.personalization.signature_renderer import get_freelancer_signature_html
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -639,6 +640,13 @@ async def run_personalization_stage(manual: bool = False, user_id: Optional[int]
                     ):
                         demo_url = f"{settings.FRONTEND_DOMAIN}/demo/{lead.id}"
 
+                    # Optional per-freelancer profile signature.
+                    # Returns "" when toggle is off / data missing / on any error,
+                    # so the pre-existing email body remains unchanged.
+                    profile_signature_html = await get_freelancer_signature_html(
+                        lead.user_id, db
+                    )
+
                     html_body = render_email_html(
                         {"business_name": lead.business_name},
                         ai_data.get('body_html', ''),
@@ -646,6 +654,7 @@ async def run_personalization_stage(manual: bool = False, user_id: Optional[int]
                         settings.APP_URL,
                         demo_url=demo_url,
                         booking_url=resolved_booking_url,
+                        profile_signature_html=profile_signature_html,
                     )
 
                     outreach = EmailOutreach(

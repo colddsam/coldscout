@@ -137,7 +137,7 @@ export default function PublicNavbar() {
                     className={`relative z-10 transition-colors duration-200 ${
                       isActive
                         ? 'text-white font-medium'
-                        : 'text-[#F0F0F0]/60 group-hover:text-white'
+                        : 'text-[#B0B0B0] group-hover:text-white'
                     }`}
                   >
                     {link.name}
@@ -150,7 +150,7 @@ export default function PublicNavbar() {
               href="https://github.com/sponsors/colddsam"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 px-3 py-1.5 text-xs text-[#F0F0F0]/60 hover:text-white transition-colors flex items-center gap-1.5 group"
+              className="ml-2 px-3 py-1.5 text-xs text-[#B0B0B0] hover:text-white transition-colors flex items-center gap-1.5 group"
             >
               <motion.span
                 animate={{ scale: [1, 1.15, 1] }}
@@ -218,7 +218,7 @@ export default function PublicNavbar() {
                 >
                   <Link
                     to={link.href}
-                    className="text-lg font-medium text-white border-b border-white/5 py-4 flex items-center justify-between group w-full"
+                    className="text-lg font-medium text-white border-b border-white/[0.08] py-4 flex items-center justify-between group w-full"
                     onClick={handleLinkClick}
                   >
                     {link.name}
@@ -230,7 +230,7 @@ export default function PublicNavbar() {
                 href="https://github.com/sponsors/colddsam"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-lg font-medium text-white border-b border-white/5 py-4 flex items-center gap-2"
+                className="text-lg font-medium text-white border-b border-white/[0.08] py-4 flex items-center gap-2"
                 onClick={handleLinkClick}
                 initial={{ opacity: 0, x: 24 }}
                 animate={{ opacity: 1, x: 0 }}

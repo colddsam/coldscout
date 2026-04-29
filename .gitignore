@@ -90,3 +90,4 @@ test_demo_result.html
 
 # One-off test scripts
 backend/scripts/test_demo_full.py
+temp.txt

@@ -45,13 +45,13 @@ export function timeAgo(dateStr: string | null | undefined): string {
 export function scoreColor(score: number): string {
   if (score >= 80) return 'text-white font-bold';
   if (score >= 60) return 'text-white/70';
-  return 'text-white/40';
+  return 'text-white/70';
 }
 
 export function scoreBgColor(score: number): string {
   if (score >= 80) return 'bg-white text-black border-white shadow-minimal';
   if (score >= 60) return 'bg-white/10 text-white border-white/20';
-  return 'bg-white/5 text-white/40 border-white/10';
+  return 'bg-white/5 text-white/70 border-white/10';
 }
 
 /**

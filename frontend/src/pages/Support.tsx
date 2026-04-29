@@ -102,7 +102,7 @@ export default function Support() {
             <Headphones className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gradient">Customer Support</h1>
-          <p className="text-[#666666] text-lg max-w-2xl mx-auto">
+          <p className="text-[#8A8A8A] text-lg max-w-2xl mx-auto">
             We're here to help. Whether you have a technical issue, billing question, or just need some guidance — our support team has you covered.
           </p>
         </motion.div>
@@ -110,80 +110,80 @@ export default function Support() {
         <motion.div className="space-y-8" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
 
           {/* Contact Us */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/5 card-glow text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Mail className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold text-white">1. How to Reach Us</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#A0A0A0] prose-invert">
+            <div className="prose prose-sm max-w-none text-[#B0B0B0] prose-invert">
               <p>
                 Our primary support channel is email. Send us a detailed message and we'll get back to you as quickly as possible. To help us resolve your issue faster, please include your account email, a description of the problem, and any relevant screenshots.
               </p>
             </div>
             <div className="mt-6 grid sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/10 transition-colors">
                 <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">General & Technical Support</p>
                 <a href="mailto:admin@colddsam.com" className="text-white font-medium hover:underline transition-colors text-sm">
                   admin@colddsam.com
                 </a>
-                <p className="text-xs text-[#666666] mt-1">Setup, bugs, AI pipeline issues</p>
+                <p className="text-xs text-[#8A8A8A] mt-1">Setup, bugs, AI pipeline issues</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-colors">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/10 transition-colors">
                 <p className="text-xs font-semibold text-white uppercase tracking-wider mb-1">Billing & Account</p>
                 <a href="mailto:admin@colddsam.com" className="text-white font-medium hover:underline transition-colors text-sm">
                   admin@colddsam.com
                 </a>
-                <p className="text-xs text-[#666666] mt-1">Subscriptions, invoices, refunds</p>
+                <p className="text-xs text-[#8A8A8A] mt-1">Subscriptions, invoices, refunds</p>
               </div>
             </div>
           </motion.section>
 
           {/* Response Times */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/5 card-glow text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Clock className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold text-white">2. Support Hours & Response Times</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#A0A0A0] prose-invert mb-6">
+            <div className="prose prose-sm max-w-none text-[#B0B0B0] prose-invert mb-6">
               <p>
                 Our team operates across multiple time zones to provide timely support. Response times depend on the nature and severity of your request.
               </p>
             </div>
             <div className="grid sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 text-center">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
                 <p className="text-2xl font-bold text-white tracking-tight">≤ 4h</p>
                 <p className="text-xs font-semibold text-white uppercase tracking-wider mt-1">Critical Issues</p>
-                <p className="text-xs text-[#666666] mt-1">Platform outages, data loss</p>
+                <p className="text-xs text-[#8A8A8A] mt-1">Platform outages, data loss</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 text-center">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
                 <p className="text-2xl font-bold text-white tracking-tight">≤ 24h</p>
                 <p className="text-xs font-semibold text-white uppercase tracking-wider mt-1">Standard Issues</p>
-                <p className="text-xs text-[#666666] mt-1">Bugs, setup errors, billing</p>
+                <p className="text-xs text-[#8A8A8A] mt-1">Bugs, setup errors, billing</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 text-center">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
                 <p className="text-2xl font-bold text-white tracking-tight">≤ 72h</p>
                 <p className="text-xs font-semibold text-white uppercase tracking-wider mt-1">General Enquiries</p>
-                <p className="text-xs text-[#666666] mt-1">Feature requests, questions</p>
+                <p className="text-xs text-[#8A8A8A] mt-1">Feature requests, questions</p>
               </div>
             </div>
-            <p className="text-xs text-[#666666] mt-4">
+            <p className="text-xs text-[#8A8A8A] mt-4">
               Response times are measured during business hours (Mon–Fri). Weekend tickets are handled on the next business day.
             </p>
           </motion.section>
 
           {/* What We Can Help With */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/5 card-glow text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <MessageSquare className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold text-white">3. What We Can Help With</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#A0A0A0] prose-invert mb-4">
+            <div className="prose prose-sm max-w-none text-[#B0B0B0] prose-invert mb-4">
               <p>Our support team is trained to assist with all aspects of the Cold Scout platform, including but not limited to:</p>
             </div>
             <ul className="space-y-3">
@@ -193,11 +193,11 @@ export default function Support() {
                 { icon: <Mail className="w-4 h-4" />, title: 'Account & Billing', desc: 'Managing your subscription, updating payment methods, downloading invoices, and processing refunds.' },
                 { icon: <AlertCircle className="w-4 h-4" />, title: 'Bugs & Technical Errors', desc: 'Reporting unexpected behavior, UI issues, or API errors you encounter in the platform.' },
               ].map((item, i) => (
-                <li key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/5">
+                <li key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/[0.08]">
                   <span className="mt-0.5 text-white shrink-0">{item.icon}</span>
                   <div>
                     <p className="text-sm font-semibold text-white">{item.title}</p>
-                    <p className="text-xs text-[#A0A0A0] mt-0.5">{item.desc}</p>
+                    <p className="text-xs text-[#B0B0B0] mt-0.5">{item.desc}</p>
                   </div>
                 </li>
               ))}
@@ -205,14 +205,14 @@ export default function Support() {
           </motion.section>
 
           {/* Self-Service Resources */}
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/5 card-glow text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold text-white">4. Self-Service Resources</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#A0A0A0] prose-invert">
+            <div className="prose prose-sm max-w-none text-[#B0B0B0] prose-invert">
               <p>
                 Before reaching out, you may be able to find an instant answer in our documentation or platform guides. We keep these updated with every release.
               </p>
@@ -247,14 +247,14 @@ export default function Support() {
           </motion.section>
 
           {/* Escalation */}
-          <motion.section className="bg-white/[0.03] rounded-2xl p-8 border border-white/5 card-glow text-left" variants={staggerItem}>
+          <motion.section className="bg-white/[0.03] rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-[#A0A0A0]" />
+                <AlertCircle className="w-5 h-5 text-[#B0B0B0]" />
               </div>
               <h2 className="text-2xl font-semibold text-white">5. Escalation & Unresolved Issues</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#A0A0A0] prose-invert">
+            <div className="prose prose-sm max-w-none text-[#B0B0B0] prose-invert">
               <p>
                 If your issue has not been resolved within the expected response window, or if you are not satisfied with the resolution provided, you may escalate by replying to your original support thread and adding <strong>"ESCALATE"</strong> in the subject line. A senior team member will review your case and respond within 24 hours.
               </p>

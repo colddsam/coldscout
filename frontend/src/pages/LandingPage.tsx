@@ -56,7 +56,7 @@ function HeroSection() {
             <span className="inline-block w-2 h-2 rounded-full bg-white" />
             <span className="absolute inline-block w-2 h-2 rounded-full bg-white animate-ping" />
           </span>
-          <span className="text-xs font-medium text-[#A0A0A0]">AI-Powered Lead Generation</span>
+          <span className="text-xs font-medium text-[#B0B0B0]">AI-Powered Lead Generation</span>
         </motion.div>
 
         {/* Giant heading */}
@@ -78,7 +78,7 @@ function HeroSection() {
         </h1>
 
         <motion.p
-          className="text-base md:text-lg text-[#A0A0A0] max-w-2xl mx-auto mb-10"
+          className="text-base md:text-lg text-[#B0B0B0] max-w-2xl mx-auto mb-10"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 0.5 }}
@@ -136,7 +136,7 @@ function HeroSection() {
                 className="text-2xl md:text-3xl font-bold tracking-tighter text-white font-mono"
                 duration={1.5}
               />
-              <p className="text-[10px] uppercase tracking-[0.15em] text-[#666666] mt-1 font-semibold">{stat.label}</p>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8A8A] mt-1 font-semibold">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -162,7 +162,7 @@ function FeaturesSection() {
       <AnimatedBackground variant="subtle" showShapes={true} showConstellation={false} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Features</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">Features</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Everything you need to scale outreach
           </h2>
@@ -178,17 +178,17 @@ function FeaturesSection() {
           {features.map((feature, i) => (
             <StaggeredCard key={feature.title} index={i} className="h-full">
               <motion.div
-                className="group p-6 rounded-2xl border border-white/5 bg-[#111111] hover:border-white/15 transition-all duration-300 h-full"
+                className="group p-6 rounded-2xl border border-white/[0.08] bg-surface-2 hover:border-white/15 transition-all duration-300 h-full"
                 whileHover={{ y: -4 }}
               >
                 <motion.div
                   className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:bg-white group-hover:border-white transition-colors duration-300"
                   whileHover={{ rotate: 5 }}
                 >
-                  <feature.icon className="w-5 h-5 text-[#A0A0A0] group-hover:text-black transition-colors duration-300" />
+                  <feature.icon className="w-5 h-5 text-[#B0B0B0] group-hover:text-black transition-colors duration-300" />
                 </motion.div>
                 <h3 className="text-base font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-sm text-[#A0A0A0] leading-relaxed">{feature.description}</p>
+                <p className="text-sm text-[#B0B0B0] leading-relaxed">{feature.description}</p>
               </motion.div>
             </StaggeredCard>
           ))}
@@ -209,11 +209,11 @@ function WorkflowSection() {
   ];
 
   return (
-    <section id="workflow" className="py-24 md:py-32 bg-[#0A0A0A] relative overflow-hidden">
+    <section id="workflow" className="py-24 md:py-32 bg-surface-1 relative overflow-hidden">
       <AnimatedBackground variant="subtle" showShapes={false} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">How it works</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">How it works</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Four steps to qualified leads
           </h2>
@@ -234,13 +234,13 @@ function WorkflowSection() {
                 </div>
               )}
               <motion.div
-                className="bg-[#111111] rounded-2xl border border-white/5 p-6 h-full hover:border-white/15 transition-all duration-300"
+                className="bg-surface-2 rounded-2xl border border-white/[0.08] p-6 h-full hover:border-white/15 transition-all duration-300"
                 whileHover={{ y: -4, boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 4px 20px rgba(0,0,0,0.4)' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               >
                 <span className="text-3xl font-bold text-white/10 tracking-tighter font-mono">{step.num}</span>
                 <h3 className="text-base font-semibold text-white mt-3 mb-2">{step.title}</h3>
-                <p className="text-sm text-[#A0A0A0] leading-relaxed">{step.desc}</p>
+                <p className="text-sm text-[#B0B0B0] leading-relaxed">{step.desc}</p>
               </motion.div>
             </motion.div>
           ))}
@@ -257,7 +257,7 @@ function MetricsSection() {
     <section className="py-24 md:py-32 bg-black relative">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <FadeUpBlock>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-6">Results</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-6">Results</p>
         </FadeUpBlock>
         <AnimatedLetter
           text="Cold Scout helps teams discover 10x more qualified leads, cut prospecting time by 80%, and increase reply rates by 3x — all with zero manual data entry."
@@ -308,15 +308,15 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-24 md:py-32 bg-[#0A0A0A] relative overflow-hidden">
+    <section id="pricing" className="py-24 md:py-32 bg-surface-1 relative overflow-hidden">
       <AnimatedBackground variant="subtle" showShapes={true} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">Pricing</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">Pricing</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Simple, transparent pricing
           </h2>
-          <p className="text-[#A0A0A0] mt-3 max-w-md mx-auto">Open source forever. Pay only for our hosted infrastructure.</p>
+          <p className="text-[#B0B0B0] mt-3 max-w-md mx-auto">Open source forever. Pay only for our hosted infrastructure.</p>
         </ScrollReveal>
 
         <motion.div
@@ -332,21 +332,21 @@ function PricingSection() {
                 whileHover={{ y: -4 }}
                 className={`rounded-2xl border p-8 transition-all duration-300 h-full ${
                   plan.featured
-                    ? 'border-white/25 bg-[#111111] shadow-[0_0_30px_rgba(255,255,255,0.03)]'
-                    : 'border-white/5 bg-[#111111] hover:border-white/15'
+                    ? 'border-white/25 bg-surface-2 shadow-[0_0_30px_rgba(255,255,255,0.03)]'
+                    : 'border-white/[0.08] bg-surface-2 hover:border-white/15'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${plan.featured ? 'text-white' : 'text-[#666666]'}`}>{plan.name}</p>
+                  <p className={`text-[10px] uppercase tracking-[0.15em] font-semibold ${plan.featured ? 'text-white' : 'text-[#8A8A8A]'}`}>{plan.name}</p>
                   {plan.featured && (
                     <span className="text-[9px] uppercase tracking-wider bg-white/10 text-white px-2 py-0.5 rounded-full font-medium">Popular</span>
                   )}
                 </div>
                 <div className="mb-4">
                   <span className="text-4xl font-bold tracking-tighter text-white">{plan.price}</span>
-                  {plan.period && <span className="text-sm text-[#666666]">{plan.period}</span>}
+                  {plan.period && <span className="text-sm text-[#8A8A8A]">{plan.period}</span>}
                 </div>
-                <p className="text-sm mb-6 text-[#A0A0A0]">{plan.desc}</p>
+                <p className="text-sm mb-6 text-[#B0B0B0]">{plan.desc}</p>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm text-[#C0C0C0]">
@@ -382,7 +382,7 @@ function PricingSection() {
         </motion.div>
 
         <ScrollReveal delay={0.3} className="text-center mt-8">
-          <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm text-[#A0A0A0] hover:text-white transition-colors group">
+          <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm text-[#B0B0B0] hover:text-white transition-colors group">
             See full comparison & regional pricing
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
@@ -410,7 +410,7 @@ function FaqSection() {
     <section id="faq" className="py-24 md:py-32 bg-black relative">
       <div className="max-w-3xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#666666] font-semibold mb-3">FAQ</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">FAQ</p>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">
             Frequently asked questions
           </h2>
@@ -427,7 +427,7 @@ function FaqSection() {
             <motion.div
               key={i}
               variants={staggerItem}
-              className="border border-white/5 rounded-2xl overflow-hidden hover:border-white/15 transition-all duration-200 bg-[#111111]"
+              className="border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/15 transition-all duration-200 bg-surface-2"
             >
               <button
                 onClick={() => setOpenIdx(openIdx === i ? null : i)}
@@ -439,7 +439,7 @@ function FaqSection() {
                   animate={{ rotate: openIdx === i ? 90 : 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
-                  <ChevronRight className="w-4 h-4 text-[#666666] flex-shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-[#8A8A8A] flex-shrink-0" />
                 </motion.span>
               </button>
               <AnimatePresence>
@@ -451,7 +451,7 @@ function FaqSection() {
                     transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                     className="overflow-hidden"
                   >
-                    <p className="px-5 pb-5 text-sm text-[#A0A0A0] leading-relaxed border-t border-white/5 pt-4">
+                    <p className="px-5 pb-5 text-sm text-[#B0B0B0] leading-relaxed border-t border-white/[0.08] pt-4">
                       {faq.a}
                     </p>
                   </motion.div>

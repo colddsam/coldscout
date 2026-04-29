@@ -6,10 +6,19 @@ and email personalization.
 Playwright is tried first (full JS rendering).
 Falls back to httpx if Playwright is unavailable or times out.
 httpx fallback always follows redirects (301/302) automatically.
+
+Windows compatibility note
+--------------------------
+uvicorn forces ``WindowsSelectorEventLoopPolicy`` on Windows for psycopg2
+compatibility, but that loop cannot ``subprocess_exec``, so Playwright's
+browser launch raises ``NotImplementedError`` and leaves a dangling
+"Task exception was never retrieved" warning. We detect that situation up
+front and skip Playwright cleanly so the httpx fallback runs without noise.
 """
 import asyncio
 import logging
 import re
+import sys
 
 import httpx
 from bs4 import BeautifulSoup
@@ -17,6 +26,28 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
 logger = logging.getLogger(__name__)
+
+
+def _running_loop_supports_subprocess() -> bool:
+    """
+    Returns True iff the current asyncio loop can spawn subprocesses
+    (i.e. Playwright will actually be able to launch a browser).
+
+    Non-Windows: every standard loop supports subprocess_exec.
+    Windows: only the ProactorEventLoop does. uvicorn defaults to the
+    SelectorEventLoop on Windows, which does NOT.
+    """
+    if sys.platform != "win32":
+        return True
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop — caller will create one; assume it works.
+        return True
+    proactor_cls = getattr(asyncio, "ProactorEventLoop", None)
+    if proactor_cls is None:
+        return False
+    return isinstance(loop, proactor_cls)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -91,35 +122,54 @@ async def extract_website_content(url: str) -> dict:
     html_content = ""
 
     # ── 1. Playwright (preferred) ─────────────────────────────────────────────
-    try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                viewport={"width": 1280, "height": 800},
-                user_agent=_USER_AGENT,
-                ignore_https_errors=True,
-            )
-            page = await context.new_page()
-            try:
-                await page.goto(url, wait_until="domcontentloaded", timeout=8000)
-                html_content = await page.content()
-
-                viewport_meta = await page.evaluate(
-                    "() => { "
-                    "  const m = document.querySelector('meta[name=\"viewport\"]'); "
-                    "  return m ? m.content : null; "
-                    "}"
+    # Skip the Playwright path if the current loop cannot launch subprocesses
+    # (Windows + SelectorEventLoop, which uvicorn forces by default). Going
+    # straight to httpx avoids the NotImplementedError stack trace and the
+    # "Task exception was never retrieved" warning Playwright would leak.
+    if not _running_loop_supports_subprocess():
+        logger.debug(
+            "Skipping Playwright for %s: current event loop cannot spawn "
+            "subprocesses (Windows SelectorEventLoop). Using httpx.",
+            url,
+        )
+    else:
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    viewport={"width": 1280, "height": 800},
+                    user_agent=_USER_AGENT,
+                    ignore_https_errors=True,
                 )
-                if not viewport_meta or "width=device-width" not in viewport_meta:
-                    result["is_mobile_responsive"] = False
+                page = await context.new_page()
+                try:
+                    await page.goto(url, wait_until="domcontentloaded", timeout=8000)
+                    html_content = await page.content()
 
-            except PlaywrightTimeoutError:
-                logger.warning(f"Playwright timeout for {url}, falling back to httpx")
-            finally:
-                await browser.close()
+                    viewport_meta = await page.evaluate(
+                        "() => { "
+                        "  const m = document.querySelector('meta[name=\"viewport\"]'); "
+                        "  return m ? m.content : null; "
+                        "}"
+                    )
+                    if not viewport_meta or "width=device-width" not in viewport_meta:
+                        result["is_mobile_responsive"] = False
 
-    except Exception as e:
-        logger.error(f"Playwright failed for {url}: {e}, falling back to httpx")
+                except PlaywrightTimeoutError:
+                    logger.warning(f"Playwright timeout for {url}, falling back to httpx")
+                finally:
+                    await browser.close()
+
+        except NotImplementedError:
+            # Defensive: if the loop check ever misses an edge case, downgrade
+            # the message and continue with httpx — never crash the pipeline.
+            logger.warning(
+                "Playwright cannot launch on this event loop for %s; "
+                "using httpx fallback.",
+                url,
+            )
+        except Exception as e:
+            logger.error(f"Playwright failed for {url}: {e}, falling back to httpx")
 
     # ── 2. httpx fallback ─────────────────────────────────────────────────────
     # BUG FIX: follow_redirects=True added — previously raised an exception on

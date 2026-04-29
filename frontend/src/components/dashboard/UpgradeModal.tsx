@@ -59,7 +59,7 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
       />
 
       {/* Dialog card */}
-      <div className="relative w-full max-w-md bg-[#111111] rounded-xl border border-white/10 shadow-[0_25px_65px_rgba(0,0,0,0.5)] animate-fade-in-up overflow-hidden">
+      <div className="relative w-full max-w-md bg-surface-2 rounded-xl border border-white/10 shadow-[0_25px_65px_rgba(0,0,0,0.5)] animate-fade-in-up overflow-hidden">
 
         {/* Header accent bar */}
         <div className="h-1 w-full bg-white" />
@@ -67,7 +67,7 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
         {/* Dismiss button */}
         <button
           onClick={onDismiss}
-          className="absolute top-4 right-4 p-1.5 rounded-md text-[#666666] hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-md text-[#8A8A8A] hover:text-white hover:bg-white/10 transition-colors"
           aria-label="Dismiss"
         >
           <X className="w-4 h-4" />
@@ -80,10 +80,10 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
               <Lock className="w-5 h-5 text-black" />
             </div>
             <div>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-semibold uppercase tracking-widest text-[#A0A0A0] mb-1">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-semibold uppercase tracking-widest text-[#B0B0B0] mb-1">
                 <Zap className="w-3 h-3" /> Pro Feature
               </span>
-              <p className="text-xs text-[#666666]">Your current plan: Free</p>
+              <p className="text-xs text-[#8A8A8A]">Your current plan: Free</p>
             </div>
           </div>
 
@@ -94,7 +94,7 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
           >
             Unlock Your Full Dashboard
           </h2>
-          <p className="text-sm text-[#A0A0A0] mb-6 leading-relaxed">
+          <p className="text-sm text-[#B0B0B0] mb-6 leading-relaxed">
             You're on the <strong className="text-white">Free plan</strong>. Upgrade to <strong className="text-white">Pro</strong> or{' '}
             <strong className="text-white">Enterprise</strong> to access live data, pipeline controls, and AI-powered
             lead generation.
@@ -123,7 +123,7 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
             </button>
             <button
               onClick={onDismiss}
-              className="w-full py-2.5 px-6 text-sm text-[#A0A0A0] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              className="w-full py-2.5 px-6 text-sm text-[#B0B0B0] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
             >
               Maybe Later — Continue with Limited View
             </button>

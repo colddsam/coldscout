@@ -40,7 +40,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
       {open && (
         <motion.div
           ref={overlayRef}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
           variants={modalOverlay}
           initial="hidden"
           animate="visible"
@@ -51,7 +51,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
         >
           <motion.div
             className={cn(
-              'bg-[#111111] rounded-xl border border-white/10 w-full shadow-[0_25px_65px_rgba(0,0,0,0.5)]',
+              'elevated-panel w-full',
               maxWidth,
             )}
             variants={modalContent}
@@ -60,19 +60,20 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             exit="exit"
           >
             {title && (
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
                 <h3 className="text-base font-semibold text-white tracking-tight">{title}</h3>
                 <motion.button
                   onClick={onClose}
-                  className="text-[#666666] hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                  className="text-secondary hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
                 </motion.button>
               </div>
             )}
-            <div className="p-5">{children}</div>
+            <div className="p-6">{children}</div>
           </motion.div>
         </motion.div>
       )}

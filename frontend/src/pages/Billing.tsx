@@ -50,10 +50,10 @@ function StatusBadge({ status }: { status?: string }) {
     cancelled: { label: 'Cancelled', cls: 'bg-amber-900/20 text-amber-400 border-amber-800/30' },
     expired:   { label: 'Expired',   cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
     paid:      { label: 'Paid',      cls: 'bg-green-900/20 text-green-400 border-green-800/30' },
-    created:   { label: 'Pending',   cls: 'bg-[#111] text-white/70 border-white/10' },
+    created:   { label: 'Pending',   cls: 'bg-surface-2 text-white/70 border-white/10' },
     failed:    { label: 'Failed',    cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
   };
-  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-[#111] text-white/70 border-white/10' };
+  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-surface-2 text-white/70 border-white/10' };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
       {cfg.label}
@@ -93,7 +93,7 @@ function PlanCard({ plan, isCurrentPlan, onUpgrade, isLoading }: PlanCardProps) 
 
       <div className="flex items-start justify-between mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          isCurrentPlan ? 'bg-black/10' : 'bg-[#111] border border-white/10'
+          isCurrentPlan ? 'bg-black/10' : 'bg-surface-2 border border-white/10'
         }`}>
           <Icon className={`w-4 h-4 ${isCurrentPlan ? 'text-white' : 'text-white'}`} />
         </div>
@@ -334,7 +334,7 @@ export default function Billing() {
           </div>
         ) : transactions && transactions.length > 0 ? (
           <div className="rounded-xl border border-white/10 overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-white/60 uppercase tracking-wider bg-[#111] border-b border-white/5 px-4 py-2.5">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-white/60 uppercase tracking-wider bg-surface-2 border-b border-white/[0.08] px-4 py-2.5">
               <span>Plan</span>
               <span className="text-right pr-6">Amount</span>
               <span className="text-right pr-6">Status</span>
@@ -344,8 +344,8 @@ export default function Billing() {
               <div
                 key={tx.id}
                 className={`grid grid-cols-[1fr_auto_auto_auto] items-center px-4 py-3 text-sm ${
-                  i < transactions.length - 1 ? 'border-b border-white/5' : ''
-                } hover:bg-[#111] transition-colors`}
+                  i < transactions.length - 1 ? 'border-b border-white/[0.08]' : ''
+                } hover:bg-surface-2 transition-colors`}
               >
                 <div>
                   <p className="font-medium text-white capitalize">{tx.plan} Plan</p>

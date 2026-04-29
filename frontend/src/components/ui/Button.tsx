@@ -13,24 +13,31 @@ import { useCallback, useRef } from 'react';
 type MotionConflicts = 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart';
 
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, MotionConflicts> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: ReactNode;
 }
 
 const variants: Record<string, string> = {
-  primary: 'bg-white text-black hover:bg-gray-200 font-medium border border-white',
-  secondary: 'bg-[#111111] text-white border border-white/10 hover:border-white/25 hover:bg-white/10 font-medium',
-  danger: 'bg-[#111111] text-white border-2 border-white/20 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400 font-bold',
-  ghost: 'bg-transparent text-[#A0A0A0] hover:text-white hover:bg-white/5',
-  outline: 'bg-[#111111] text-white border border-white/10 hover:border-white/25 font-medium',
+  primary:
+    'bg-white text-black hover:bg-[#E5E5E5] font-medium border border-white shadow-[0_1px_0_rgba(255,255,255,0.4)_inset,0_4px_12px_rgba(0,0,0,0.4)]',
+  accent:
+    'bg-accent text-white hover:bg-accent-hover font-medium border border-accent/40 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_4px_16px_rgba(124,122,237,0.3)]',
+  secondary:
+    'bg-[#121212] text-white border border-white/10 hover:border-white/22 hover:bg-white/[0.06] font-medium',
+  danger:
+    'bg-[#121212] text-white/90 border border-red-500/25 hover:bg-red-500/10 hover:border-red-500/45 hover:text-red-300 font-medium',
+  ghost:
+    'bg-transparent text-[#B0B0B0] hover:text-white hover:bg-white/[0.06]',
+  outline:
+    'bg-transparent text-white border border-white/12 hover:border-white/25 hover:bg-white/[0.04] font-medium',
 };
 
 const sizes: Record<string, string> = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'px-3 py-1.5 text-xs h-8',
+  md: 'px-4 py-2 text-sm h-9',
+  lg: 'px-5 py-2.5 text-sm h-11',
 };
 
 export default function Button({
@@ -73,9 +80,10 @@ export default function Button({
       whileTap={disabled || loading ? undefined : { scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       className={cn(
-        'ripple-container inline-flex items-center justify-center gap-2 rounded-md font-sans',
-        'transition-colors duration-250',
-        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'ripple-container inline-flex items-center justify-center gap-2 rounded-lg font-sans whitespace-nowrap',
+        'transition-all duration-200 ease-out',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-current',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         variants[variant],
         sizes[size],
         className,

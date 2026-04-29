@@ -37,7 +37,7 @@ export default function LeadDemoViewer() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-black text-white px-4 py-3 flex items-center justify-between text-sm shadow-lg">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-tight">Cold Scout</span>
-          <span className="hidden sm:inline text-white/40">|</span>
+          <span className="hidden sm:inline text-white/70">|</span>
           <span className="hidden sm:inline text-white/20">
             This website demo was built for your business
           </span>
@@ -55,7 +55,7 @@ export default function LeadDemoViewer() {
         <div className="absolute inset-0 flex items-center justify-center bg-black z-40">
           <div className="text-center space-y-4">
             <div className="w-10 h-10 border-2 border-white/30 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-white/50 text-sm">Loading your website demo...</p>
+            <p className="text-white/75 text-sm">Loading your website demo...</p>
           </div>
         </div>
       )}
@@ -68,7 +68,7 @@ export default function LeadDemoViewer() {
               <span className="text-2xl">🌐</span>
             </div>
             <h1 className="text-2xl font-bold text-white">Demo Not Available</h1>
-            <p className="text-white/50 text-sm leading-relaxed">
+            <p className="text-white/75 text-sm leading-relaxed">
               This website demo may have expired or is still being generated.
               If you received this link in an email, please try again shortly.
             </p>

@@ -15,7 +15,7 @@ function Shimmer({ className }: { className?: string }) {
 
 function SkeletonCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-[#111111] border border-white/5 p-5">
+    <div className="rounded-lg bg-surface-2 border border-white/[0.08] p-5">
       {children}
     </div>
   );
@@ -86,7 +86,7 @@ export default function DashboardSkeleton() {
           <Shimmer className="h-6 w-20 rounded-md" />
         </div>
         {/* Table header */}
-        <div className="grid grid-cols-5 gap-4 pb-3 border-b border-white/5 mb-2">
+        <div className="grid grid-cols-5 gap-4 pb-3 border-b border-white/[0.08] mb-2">
           {['Business', 'City', 'Category', 'Status', 'Discovered'].map((col) => (
             <Shimmer key={col} className="h-2.5 w-full" />
           ))}
@@ -113,7 +113,7 @@ export default function DashboardSkeleton() {
           <Shimmer className="h-2.5 w-20 mb-4" />
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+              <div key={i} className="flex items-center justify-between py-2 border-b border-white/[0.08] last:border-0">
                 <div className="flex items-center gap-3">
                   <Shimmer className="h-2.5 w-2.5 rounded-full" />
                   <Shimmer className="h-3.5 w-32" />
@@ -137,10 +137,10 @@ export default function DashboardSkeleton() {
 
       {/* Upgrade CTA banner */}
       <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
-        <p className="text-xs font-semibold text-[#666666] uppercase tracking-widest mb-1">
+        <p className="text-xs font-semibold text-[#8A8A8A] uppercase tracking-widest mb-1">
           Limited View
         </p>
-        <p className="text-sm text-[#A0A0A0]">
+        <p className="text-sm text-[#B0B0B0]">
           Upgrade to <span className="font-semibold text-white">Pro</span> or{' '}
           <span className="font-semibold text-white">Enterprise</span> to unlock live data and
           full pipeline controls.

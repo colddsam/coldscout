@@ -57,21 +57,21 @@ export default function Privacy() {
             <Shield className="w-8 h-8 text-black" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gradient">Privacy Policy</h1>
-          <p className="text-[#666666] text-lg max-w-2xl mx-auto">
+          <p className="text-[#8A8A8A] text-lg max-w-2xl mx-auto">
             We value your privacy and are committed to protecting your personal data.
             This policy outlines how we handle your information securely.
           </p>
         </motion.div>
 
         <motion.div className="space-y-8" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Database className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">1. What data we collect</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>When you use Cold Scout, we may collect the following types of information:</p>
               <ul className="list-disc pl-5 mt-4 space-y-2">
                 <li><strong>Account Information:</strong> Name, email address, and billing details provided during registration.</li>
@@ -81,14 +81,14 @@ export default function Privacy() {
             </div>
           </motion.section>
 
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Shield className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">2. How we use it</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>We use the collected data to provide, maintain, and improve our services to you:</p>
               <ul className="list-disc pl-5 mt-4 space-y-2">
                 <li>To operate and provide the Cold Scout platform services.</li>
@@ -101,14 +101,14 @@ export default function Privacy() {
             </div>
           </motion.section>
 
-          <motion.section className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
+          <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/10 text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-white/5 rounded-lg">
                 <Mail className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-2xl font-semibold">3. Contact email</h2>
             </div>
-            <div className="prose prose-sm max-w-none text-[#666666]">
+            <div className="prose prose-sm max-w-none text-[#8A8A8A]">
               <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please don't hesitate to reach out to our privacy team.</p>
               <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-center justify-between transition-colors hover:bg-white/5 hover:border-white/20">
                 <div>

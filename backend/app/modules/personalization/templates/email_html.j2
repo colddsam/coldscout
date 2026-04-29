@@ -403,6 +403,10 @@
         <em>Cold Scout · Helping local businesses grow online</em>
       </p>
 
+      {% if profile_signature_html %}
+      {{ profile_signature_html | safe }}
+      {% endif %}
+
     </div>
 
     <!-- ══ FOOTER ═════════════════════════════════════════════ -->

@@ -35,7 +35,7 @@ const SessionExpiredModal: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm text-[#A0A0A0]">
+          <p className="text-sm text-[#B0B0B0]">
             For your security, your session has expired due to inactivity or invalid credentials.
           </p>
           <p className="text-sm font-medium text-white">
