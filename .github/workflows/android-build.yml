@@ -64,51 +64,32 @@ jobs:
         working-directory: ./frontend/android
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
+      - name: Build Release Artifacts
         working-directory: ./frontend/android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease bundleRelease
 
-      - name: Upload Debug APK
+      - name: Sign Release APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: frontend/android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_CONTENT }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug.apk
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
-
-      - name: Decode Keystore and Build Release
-        if: ${{ env.KEYSTORE_BASE64 != '' && env.KEY_PASSWORD != '' && env.KEY_ALIAS != '' && env.STORE_PASSWORD != '' }}
-        env:
-          KEYSTORE_BASE64: ${{ secrets.PLAYSTORE_KEYSTORE_BASE64 }}
-          KEY_PASSWORD: ${{ secrets.PLAYSTORE_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.PLAYSTORE_KEY_ALIAS }}
-          STORE_PASSWORD: ${{ secrets.PLAYSTORE_STORE_PASSWORD }}
-        working-directory: ./frontend/android
-        run: |
-          echo $KEYSTORE_BASE64 | base64 --decode > app/keystore.jks
-          ./gradlew assembleRelease bundleRelease -Pandroid.injected.signing.storeFile=keystore.jks -Pandroid.injected.signing.storePassword=$STORE_PASSWORD -Pandroid.injected.signing.keyAlias=$KEY_ALIAS -Pandroid.injected.signing.keyPassword=$KEY_PASSWORD
-
-      - name: Upload Release APK
-        if: ${{ env.KEYSTORE_BASE64 != '' && env.KEY_PASSWORD != '' && env.KEY_ALIAS != '' && env.STORE_PASSWORD != '' }}
-        env:
-          KEYSTORE_BASE64: ${{ secrets.PLAYSTORE_KEYSTORE_BASE64 }}
-          KEY_PASSWORD: ${{ secrets.PLAYSTORE_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.PLAYSTORE_KEY_ALIAS }}
-          STORE_PASSWORD: ${{ secrets.PLAYSTORE_STORE_PASSWORD }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release.apk
-          path: frontend/android/app/build/outputs/apk/release/app-release.apk
+          name: ColdScout-Signed-Release.apk
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
           retention-days: 7
 
       - name: Upload Release AAB (App Bundle for Play Store)
-        if: ${{ env.KEYSTORE_BASE64 != '' && env.KEY_PASSWORD != '' && env.KEY_ALIAS != '' && env.STORE_PASSWORD != '' }}
-        env:
-          KEYSTORE_BASE64: ${{ secrets.PLAYSTORE_KEYSTORE_BASE64 }}
-          KEY_PASSWORD: ${{ secrets.PLAYSTORE_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.PLAYSTORE_KEY_ALIAS }}
-          STORE_PASSWORD: ${{ secrets.PLAYSTORE_STORE_PASSWORD }}
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.aab
+          name: ColdScout-Release.aab
           path: frontend/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
