@@ -11,9 +11,10 @@ import { PageLoader } from '../components/ui/Spinner';
 import PageHeader from '../components/layout/PageHeader';
 import { formatDate, cn } from '../lib/utils';
 import { LEAD_STATUSES } from '../lib/constants';
-import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map, Monitor, RefreshCw, Eye } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map, Monitor, RefreshCw, Eye, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { client } from '../lib/api';
+import LeadOutreachActions from '../components/dashboard/LeadOutreachActions';
 
 /**
  * Lead Detail & Management View.
@@ -234,6 +235,21 @@ export default function LeadDetail() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-4">
+          {/* Outreach Actions */}
+          <motion.div variants={staggerItem}>
+          <Card>
+            <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">
+              <Send className="w-3.5 h-3.5 inline mr-1.5" />Outreach
+            </h3>
+            <LeadOutreachActions
+              leadId={lead.id}
+              leadStatusHint={lead.status}
+              hasEmailHint={Boolean(lead.email)}
+              hasPhoneHint={Boolean(lead.phone)}
+            />
+          </Card>
+          </motion.div>
+
           {/* Status */}
           <motion.div variants={staggerItem}>
           <Card>

@@ -97,7 +97,19 @@ async def _upload_image_to_supabase(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size must be under 5 MB")
 
-    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    # Derive the stored extension from the validated MIME type rather than
+    # the user-supplied filename. The original code trusted ``file.filename``
+    # which made values like ``foo/../evil.html`` flow straight into the
+    # storage path and the resulting public URL. Mapping from the
+    # whitelisted content-type closes both the path-traversal vector and
+    # the "weird extension served from our domain" concern.
+    _CONTENT_TYPE_TO_EXT = {
+        "image/jpeg": "jpg",
+        "image/png":  "png",
+        "image/webp": "webp",
+        "image/gif":  "gif",
+    }
+    ext = _CONTENT_TYPE_TO_EXT.get(file.content_type, "jpg")
     filename = f"{folder}/{user_id}/{uuid.uuid4().hex}.{ext}"
 
     import httpx

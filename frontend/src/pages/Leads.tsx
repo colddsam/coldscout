@@ -15,6 +15,7 @@ import { exportLeadsCsv, type Lead } from '../lib/api';
 import toast from 'react-hot-toast';
 import { downloadBlob } from '../lib/utils';
 import ErrorState from '../components/ui/ErrorState';
+import LeadOutreachActions from '../components/dashboard/LeadOutreachActions';
 
 /**
  * CRM-style Leads Management page.
@@ -108,6 +109,21 @@ export default function Leads() {
       key: 'created_at',
       label: 'Discovered',
       render: (_, row) => <span className="font-mono text-xs">{formatDate(String(row.created_at))}</span>,
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      // Wider so the WhatsApp / Sent / Queued labels never wrap.
+      width: '180px',
+      render: (_, row) => (
+        <LeadOutreachActions
+          leadId={String(row.id)}
+          leadStatusHint={String(row.status)}
+          hasEmailHint={Boolean(row.email)}
+          hasPhoneHint={Boolean(row.phone)}
+          compact
+        />
+      ),
     },
   ];
 

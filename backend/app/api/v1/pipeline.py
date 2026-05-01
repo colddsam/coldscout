@@ -12,7 +12,6 @@ Key Features:
 4. Dynamic Configuration: Enables patching of cron-based schedules without service restarts.
 """
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
-import asyncio
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from loguru import logger
@@ -29,10 +28,10 @@ from app.tasks.daily_pipeline import (
 from app.modules.analytics.performance_analyzer import run_weekly_optimization
 from app.core.scheduler import scheduler
 from app.core.pipeline_tracker import (
-    enqueue_job, mark_running, mark_completed, mark_failed,
-    append_log, get_active_jobs, get_job_history, is_stage_busy,
+    enqueue_job, get_active_jobs, get_job_history,
     get_active_jobs_all_users, get_job_history_all_users,
 )
+from app.core.job_queue import enqueue as enqueue_queue, register_stage
 
 from app.api.deps import get_current_active_superuser, get_current_user
 from app.models.user import User
@@ -67,41 +66,8 @@ ALL_PIPELINE_STAGES = [
     "discovery", "qualification", "personalization", "outreach", "daily_report"
 ]
 
-# ── Global serial job queue (shared across all users) ─────────────────────────
-# All manually triggered jobs — from any user — are pushed onto a single
-# shared queue consumed by one background worker. This means at most one
-# pipeline stage runs system-wide at any time. User B can trigger jobs while
-# User A's job is running; B's jobs enter the queue in "queued" state and
-# start only after A's job finishes.
-#
-# Tracking (logs, history, active-stage snapshot) is still scoped per user via
-# pipeline_tracker so User A and User B never see each other's logs.
-
-_job_queue: asyncio.Queue | None = None
-_worker_running = False
-_worker_lock = asyncio.Lock()
-
-
-def _get_queue() -> asyncio.Queue:
-    global _job_queue
-    if _job_queue is None:
-        _job_queue = asyncio.Queue()
-    return _job_queue
-
-
-async def _ensure_worker():
-    """Start the shared queue consumer if it isn't already running."""
-    global _worker_running
-    async with _worker_lock:
-        if _worker_running:
-            return
-        _worker_running = True
-    asyncio.create_task(_queue_worker())
-
-
-import inspect
-
-# Stages that support multi-freelancer (manual + user_id kwargs)
+# Stages that support the multi-freelancer (manual + user_id kwargs) signature.
+# Used to register them with the shared ``job_queue`` consumer.
 _FREELANCER_AWARE_STAGES = {
     "discovery", "qualification", "personalization", "outreach",
     "daily_report", "reply_poll",
@@ -109,63 +75,15 @@ _FREELANCER_AWARE_STAGES = {
     "threads_engagement", "threads_response_check",
 }
 
-
-async def _queue_worker():
-    """Pulls jobs from the shared queue one at a time and runs them serially."""
-    global _worker_running
-    from app.core.job_manager import job_manager
-    from app.config import get_production_status
-
-    q = _get_queue()
-    try:
-        while True:
-            stage_name, stage_func, manual, user_id = await asyncio.wait_for(q.get(), timeout=60.0)
-            try:
-                # Pre-check: if the job or global pipeline is on HOLD, mark the
-                # run as failed instead of silently returning and reporting
-                # "completed". Manual triggers surface the same skip reason so
-                # the Pipeline Log UI clearly shows the paused state.
-                global_status = get_production_status()
-                if global_status == "HOLD":
-                    await mark_running(user_id, stage_name)
-                    await mark_failed(
-                        user_id, stage_name,
-                        "Skipped: global PRODUCTION_STATUS is HOLD"
-                    )
-                    continue
-
-                job_active = await job_manager.is_freelancer_pipeline_active(
-                    stage_name, user_id=user_id, is_manual=manual
-                )
-                if not job_active:
-                    await mark_running(user_id, stage_name)
-                    await mark_failed(
-                        user_id, stage_name,
-                        f"Skipped: {stage_name} is on HOLD"
-                    )
-                    continue
-
-                await mark_running(user_id, stage_name)
-                if stage_name in _FREELANCER_AWARE_STAGES:
-                    await stage_func(manual=manual, user_id=user_id)
-                else:
-                    sig = inspect.signature(stage_func)
-                    if "manual" in sig.parameters:
-                        await stage_func(manual=manual)
-                    else:
-                        await stage_func()
-                await mark_completed(user_id, stage_name, f"{stage_name} completed successfully")
-            except Exception as e:
-                await mark_failed(user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}")
-                logger.exception(f"Tracked stage {stage_name} failed for user {user_id}")
-            finally:
-                q.task_done()
-    except asyncio.TimeoutError:
-        # No jobs for 60s — worker exits; it will restart on the next trigger.
-        pass
-    finally:
-        async with _worker_lock:
-            _worker_running = False
+# Register every stage with the shared queue. Any module (including
+# ``app/api/v1/leads.py``) can now look stages up by name and push jobs onto
+# the same single-worker queue, ensuring system-wide serial execution.
+for _stage_name, _stage_func in STAGE_FUNCTIONS.items():
+    register_stage(
+        _stage_name,
+        _stage_func,
+        freelancer_aware=_stage_name in _FREELANCER_AWARE_STAGES,
+    )
 
 
 @router.post("/pipeline/trigger")
@@ -199,15 +117,12 @@ async def trigger_pipeline(
     else:
         raise HTTPException(status_code=400, detail="Invalid stage specified")
 
-    q = _get_queue()
     triggered = []
     for stage_name in stages_to_run:
         await enqueue_job(current_user.id, stage_name, triggered_by="manual")
         stage_func = STAGE_FUNCTIONS[stage_name]
-        await q.put((stage_name, stage_func, True, current_user.id))
+        await enqueue_queue(stage_name, stage_func, True, current_user.id)
         triggered.append(stage_name)
-
-    await _ensure_worker()
 
     # Return a snapshot of this user's active stages so the UI updates instantly
     active_stages = await get_active_jobs(current_user.id)

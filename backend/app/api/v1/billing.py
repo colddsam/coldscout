@@ -189,6 +189,15 @@ async def verify_payment(
             detail="Payment verification failed. Please contact support.",
         )
 
+    # Plan is the one the user actually paid for — captured at create-order
+    # time when the price was charged. Trusting ``body.plan`` here would
+    # let a caller pay for "pro" (₹100) and then submit verify-payment
+    # with ``plan='enterprise'`` (₹2000) to escalate their tier. The
+    # Razorpay HMAC signature only attests to (order_id, payment_id) and
+    # is silent on which plan was sold, so the DB record is the only
+    # trustworthy source.
+    activated_plan = order.plan
+
     now = _now_utc()
     period_end = now + timedelta(days=30)
 
@@ -204,7 +213,7 @@ async def verify_payment(
     sub = result2.scalars().first()
 
     if sub:
-        sub.plan = body.plan
+        sub.plan = activated_plan
         sub.status = "active"
         sub.current_period_start = now
         sub.current_period_end = period_end
@@ -213,28 +222,28 @@ async def verify_payment(
     else:
         sub = Subscription(
             user_id=current_user.id,
-            plan=body.plan,
+            plan=activated_plan,
             status="active",
             current_period_start=now,
             current_period_end=period_end,
         )
         db.add(sub)
 
-    # Update user.plan and plan_expires_at
-    current_user.plan = body.plan
+    # Update user.plan and plan_expires_at — must match the paid plan
+    current_user.plan = activated_plan
     current_user.plan_expires_at = period_end
 
     await db.commit()
 
     logger.info(
-        f"Subscription activated: user={current_user.email} plan={body.plan} expires={period_end}"
+        f"Subscription activated: user={current_user.email} plan={activated_plan} expires={period_end}"
     )
 
     return VerifyPaymentResponse(
         success=True,
-        plan=body.plan,
+        plan=activated_plan,
         plan_expires_at=period_end,
-        message=f"Successfully subscribed to the {body.plan.title()} plan!",
+        message=f"Successfully subscribed to the {activated_plan.title()} plan!",
     )
 
 

@@ -1,5 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLeads, getLead, updateLead, deleteLead } from '../lib/api';
+import {
+  getLeads,
+  getLead,
+  updateLead,
+  deleteLead,
+  getLeadOutreachState,
+  triggerLeadOutreach,
+  unlockLeadOutreach,
+  getLeadWhatsappLink,
+  type LeadOutreachState,
+} from '../lib/api';
 import toast from 'react-hot-toast';
 
 /**
@@ -99,5 +109,88 @@ export function useDeleteLead() {
     onError: (err: Error) => {
       toast.error(`Deletion failed: ${err.message}`);
     },
+  });
+}
+
+/**
+ * Per-lead manual outreach button state.
+ *
+ * Polls every 4 seconds while a job is queued or running so the UI flips
+ * automatically once the worker finishes. Idle (eligible / locked / etc.)
+ * leads keep a much longer cache to avoid hammering the API from the
+ * Leads list, where dozens of these hooks may mount at once.
+ */
+export function useLeadOutreachState(id: string, enabled: boolean = true) {
+  return useQuery<LeadOutreachState>({
+    queryKey: ['lead-outreach-state', id],
+    queryFn: () => getLeadOutreachState(id),
+    enabled: enabled && !!id,
+    // Match the cadence to the state: keep tabs on jobs currently in
+    // flight, but back off once the lead is settled.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      return data.button_state === 'in_flight' ? 4000 : false;
+    },
+    staleTime: 8000,
+  });
+}
+
+/**
+ * Triggers the single-lead outreach job. Optimistically marks the local
+ * state as ``in_flight`` so the button switches to "Queued…" instantly,
+ * then refetches to settle on the backend's authoritative payload.
+ */
+export function useTriggerLeadOutreach() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => triggerLeadOutreach(id),
+    onSuccess: (data, id) => {
+      qc.setQueryData(['lead-outreach-state', id], data);
+      qc.invalidateQueries({ queryKey: ['lead-outreach-state', id] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['lead', id] });
+      toast.success('Outreach queued — running on the next free slot.');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to trigger outreach');
+    },
+  });
+}
+
+/**
+ * Unlocks a lead so its Run button becomes available again. Server enforces
+ * that no manual job is currently in flight before allowing the reset.
+ */
+export function useUnlockLeadOutreach() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unlockLeadOutreach(id),
+    onSuccess: (data, id) => {
+      qc.setQueryData(['lead-outreach-state', id], data);
+      qc.invalidateQueries({ queryKey: ['lead-outreach-state', id] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['lead', id] });
+      toast.success('Lead unlocked — ready to send again.');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to unlock lead');
+    },
+  });
+}
+
+/**
+ * Lazily fetches a wa.me deep link for a phone-qualified lead.
+ *
+ * The query is left in a manual-only mode (``enabled=false``) so it only
+ * fires when the user actually clicks the WhatsApp button — assembling the
+ * personalized message body is cheap but we don't need to do it for every
+ * row in the table on render.
+ */
+export function useLeadWhatsappLink(id: string) {
+  return useQuery({
+    queryKey: ['lead-whatsapp-link', id],
+    queryFn: () => getLeadWhatsappLink(id),
+    enabled: false,
   });
 }

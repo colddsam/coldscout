@@ -541,6 +541,77 @@ export const exportLeadsCsv = (params?: {
 }) =>
   client.get('/api/v1/leads/export/csv', { params, responseType: 'blob' }).then((r) => r.data);
 
+// ── Per-lead manual outreach ──────────────────────────────────────────────
+
+/**
+ * Possible UI states for the per-lead "Send Now" button. Mirrors the
+ * backend's ``_build_outreach_state_payload`` decision tree.
+ */
+export type LeadOutreachButtonState =
+  | 'eligible'      // qualified email lead — Run button is active
+  | 'in_flight'     // a manual job is queued or running for this lead
+  | 'locked'        // status has moved past qualified — needs Unlock first
+  | 'failed'        // last manual run failed — user can retry directly
+  | 'phone_only'    // phone-qualified — render WhatsApp link instead
+  | 'not_eligible'; // anything else (discovered, qualification_error, …)
+
+export interface LeadOutreachState {
+  lead_id: string;
+  lead_status: string;
+  button_state: LeadOutreachButtonState;
+  manual_status: 'queued' | 'running' | 'completed' | 'failed' | null;
+  manual_error: string | null;
+  queued_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  queue_position: number | null;
+  has_email: boolean;
+  has_phone: boolean;
+}
+
+export interface LeadWhatsappLink {
+  lead_id: string;
+  phone_digits: string;
+  url: string;
+  message: string;
+}
+
+/**
+ * Reads the per-lead outreach button state.
+ */
+export const getLeadOutreachState = (leadId: string) =>
+  client
+    .get<LeadOutreachState>(`/api/v1/leads/${leadId}/outreach-state`)
+    .then((r) => r.data);
+
+/**
+ * Enqueues a single-lead personalization + outreach job behind any other
+ * pipeline jobs already running on the shared serial queue.
+ */
+export const triggerLeadOutreach = (leadId: string) =>
+  client
+    .post<LeadOutreachState>(`/api/v1/leads/${leadId}/trigger-outreach`)
+    .then((r) => r.data);
+
+/**
+ * Resets a lead's status back to ``qualified`` so its outreach button can
+ * be triggered again. Cannot be called while a manual job is in flight.
+ */
+export const unlockLeadOutreach = (leadId: string) =>
+  client
+    .post<LeadOutreachState>(`/api/v1/leads/${leadId}/unlock-outreach`)
+    .then((r) => r.data);
+
+/**
+ * Builds a wa.me deep link with a prefilled message for a phone-qualified
+ * lead. The backend personalizes the message using the lead's signals plus
+ * the freelancer's name.
+ */
+export const getLeadWhatsappLink = (leadId: string) =>
+  client
+    .get<LeadWhatsappLink>(`/api/v1/leads/${leadId}/whatsapp-link`)
+    .then((r) => r.data);
+
 // Campaigns
 /**
  * Lists all historical outreach campaigns and their high-level aggregate performance.

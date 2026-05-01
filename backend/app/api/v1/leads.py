@@ -19,9 +19,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import csv
 import io
 from datetime import date
+from functools import partial
+from urllib.parse import quote
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core import manual_outreach_tracker
+from app.core.job_queue import (
+    enqueue as enqueue_queue,
+    queue_size,
+    register_stage,
+)
+from app.core.pipeline_tracker import enqueue_job
+from app.config import get_settings
 from app.models.lead import Lead
 from app.models.user import User
 from app.schemas.lead import (
@@ -30,8 +40,18 @@ from app.schemas.lead import (
     LeadDetailResponse,
     LeadListResponse
 )
+from app.tasks.single_lead_pipeline import run_single_lead_outreach
 
 router = APIRouter(prefix="/leads")
+
+# Register the per-lead runner with the shared serial queue. Marked
+# freelancer-aware so the queue worker forwards ``manual=`` and ``user_id=``
+# kwargs (the ``lead_id`` is pre-bound via functools.partial when the API
+# endpoint enqueues a job).
+_SINGLE_LEAD_STAGE = "single_lead_outreach"
+register_stage(_SINGLE_LEAD_STAGE, run_single_lead_outreach, freelancer_aware=True)
+
+settings = get_settings()
 
 @router.get("", response_model=LeadListResponse)
 async def list_leads(
@@ -226,6 +246,302 @@ async def update_lead(lead_id: str, update_data: LeadUpdate, current_user: User 
     await db.commit()
     await db.refresh(lead)
     return lead
+
+# ── Manual single-lead outreach ──────────────────────────────────────────────
+
+
+_RUN_OUTREACH_TERMINAL_STATUSES = {
+    # Statuses that indicate the lead has already been (or is being) handled
+    # by a personalization+outreach run. The button is disabled in these
+    # states and the user must press Unlock to retry.
+    "queued_for_send",
+    "email_sent",
+    "opened",
+    "clicked",
+    "replied",
+    "bounced",
+    "unsubscribed",
+    "rejected",
+}
+
+
+def _build_outreach_state_payload(lead: Lead, manual_state: Optional[dict], q_size: int) -> dict:
+    """Compose the response payload for the outreach-state endpoint.
+
+    ``button_state`` is the single value the UI uses to decide which control
+    to render:
+
+    * ``eligible``     — qualified email lead, ready to send.
+    * ``in_flight``    — manual job is queued or running for this lead.
+    * ``locked``       — lead has progressed past qualified; needs Unlock.
+    * ``failed``       — last manual run failed; user can retry directly.
+    * ``phone_only``   — phone_qualified lead → render WhatsApp link instead.
+    * ``not_eligible`` — any other state (e.g. discovered, qualification_error).
+    """
+    status = lead.status or ""
+    manual_status = (manual_state or {}).get("status")
+
+    if status == "phone_qualified":
+        button_state = "phone_only"
+    elif manual_status in ("queued", "running"):
+        button_state = "in_flight"
+    elif status in _RUN_OUTREACH_TERMINAL_STATUSES:
+        # A terminal lead status outranks a stale ``manual_status='failed'``
+        # entry. Otherwise a failed manual run followed by a successful
+        # daily-pipeline send would still surface "Retry Send" — clicking
+        # it would 409 because the lead is no longer ``qualified``.
+        button_state = "locked"
+    elif manual_status == "failed" and status == "qualified" and lead.email:
+        button_state = "failed"
+    elif status == "qualified" and lead.email:
+        button_state = "eligible"
+    else:
+        button_state = "not_eligible"
+
+    return {
+        "lead_id": str(lead.id),
+        "lead_status": status,
+        "button_state": button_state,
+        "manual_status": manual_status,
+        "manual_error": (manual_state or {}).get("error"),
+        "queued_at": (manual_state or {}).get("queued_at"),
+        "started_at": (manual_state or {}).get("started_at"),
+        "ended_at": (manual_state or {}).get("ended_at"),
+        # qsize counts jobs currently waiting in the queue (excluding the
+        # one a worker is executing). Surfaced as a coarse "X jobs ahead"
+        # hint while the lead's manual job is in flight; ``None`` once the
+        # job is actually running so the chip can flip from "Queued…" to
+        # "Sending…" without the misleading number trailing along.
+        "queue_position": q_size if (
+            button_state == "in_flight"
+            and manual_status == "queued"
+            and q_size > 0
+        ) else None,
+        "has_email": bool(lead.email),
+        "has_phone": bool(lead.phone),
+    }
+
+
+async def _load_owned_lead(db: AsyncSession, lead_id: str, user: User) -> Lead:
+    stmt = select(Lead).where(Lead.id == lead_id)
+    if not user.is_superuser:
+        stmt = stmt.where(Lead.user_id == user.id)
+    res = await db.execute(stmt)
+    lead = res.scalars().first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return lead
+
+
+@router.get("/{lead_id}/outreach-state")
+async def get_outreach_state(
+    lead_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns the per-lead outreach button state used by the Leads CRM."""
+    lead = await _load_owned_lead(db, lead_id, current_user)
+    manual_state = await manual_outreach_tracker.get_state(str(lead.id))
+    q_size = await queue_size()
+    return _build_outreach_state_payload(lead, manual_state, q_size)
+
+
+@router.post("/{lead_id}/trigger-outreach")
+async def trigger_outreach(
+    lead_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Enqueues a single-lead personalization + outreach job.
+
+    The job runs on the same shared serial queue used by the manual stage
+    triggers, so it executes one-at-a-time alongside any other queued work
+    (this is the requested "queued behind active jobs" behavior).
+    """
+    lead = await _load_owned_lead(db, lead_id, current_user)
+
+    if lead.status != "qualified":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Lead is no longer in 'qualified' state — press Unlock to "
+                "reset before triggering outreach again."
+            ),
+        )
+    if not lead.email:
+        raise HTTPException(status_code=409, detail="Lead has no email address.")
+
+    # The owning freelancer always drives the campaign attribution. For
+    # superusers acting on a freelancer's lead this preserves multi-tenant
+    # bookkeeping.
+    owner_user_id = lead.user_id or current_user.id
+
+    # Atomic claim — closes the TOCTOU window between two simultaneous
+    # double-clicks. ``mark_queued`` returns False if another request has
+    # already grabbed the slot.
+    claimed = await manual_outreach_tracker.mark_queued(str(lead.id), current_user.id)
+    if not claimed:
+        raise HTTPException(
+            status_code=409,
+            detail="A manual outreach job is already queued or running for this lead.",
+        )
+
+    await enqueue_job(
+        owner_user_id, _SINGLE_LEAD_STAGE, triggered_by=f"manual:lead:{lead.id}"
+    )
+
+    bound_runner = partial(run_single_lead_outreach, lead_id=str(lead.id))
+    await enqueue_queue(_SINGLE_LEAD_STAGE, bound_runner, True, owner_user_id)
+
+    manual_state = await manual_outreach_tracker.get_state(str(lead.id))
+    q_size = await queue_size()
+    return _build_outreach_state_payload(lead, manual_state, q_size)
+
+
+@router.post("/{lead_id}/unlock-outreach")
+async def unlock_outreach(
+    lead_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resets a lead so its outreach button can be triggered again.
+
+    Restores ``status='qualified'``, clears the manual-outreach tracker
+    entry, and deactivates any queued follow-up so the new send doesn't
+    collide with the old sequence. The lead's prior EmailOutreach rows are
+    preserved so analytics history stays intact.
+
+    Cannot be applied while a manual job is in flight — the user must wait
+    for the queue to drain before unlocking.
+    """
+    lead = await _load_owned_lead(db, lead_id, current_user)
+
+    if await manual_outreach_tracker.is_in_flight(str(lead.id)):
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot unlock while a manual outreach job is in flight. "
+                   "Wait for it to finish first.",
+        )
+
+    if not lead.email:
+        raise HTTPException(
+            status_code=409,
+            detail="Lead has no email address — outreach button is not applicable.",
+        )
+
+    lead.status = "qualified"
+    lead.email_sent_at = None
+    lead.followup_sequence_active = False
+    lead.next_followup_at = None
+    lead.follow_up_stage = 0
+    lead.followup_count = 0
+    await db.commit()
+
+    await manual_outreach_tracker.clear(str(lead.id))
+
+    manual_state = await manual_outreach_tracker.get_state(str(lead.id))
+    q_size = await queue_size()
+    return _build_outreach_state_payload(lead, manual_state, q_size)
+
+
+def _digits_only(value: str) -> str:
+    return "".join(ch for ch in value if ch.isdigit())
+
+
+def _build_whatsapp_message(lead: Lead, sender_name: Optional[str]) -> str:
+    """Compose the prefilled WhatsApp message body for phone-qualified leads.
+
+    Mirrors the spirit of the email pipeline: a friendly opener, a couple of
+    benefits derived from public lead signals, plus the freelancer's
+    contact links / demo URL when available. Kept under 1000 chars so
+    wa.me's URL limit isn't exceeded on older clients.
+    """
+    parts: list[str] = []
+
+    salutation_target = lead.business_name or "there"
+    parts.append(f"Hi {salutation_target} team,")
+
+    sender_label = (sender_name or "").strip() or "Cold Scout"
+    intro_bits: list[str] = []
+    if lead.category and lead.city:
+        intro_bits.append(
+            f"I came across your {lead.category} business in {lead.city}"
+        )
+    elif lead.category:
+        intro_bits.append(f"I came across your {lead.category} business")
+    elif lead.city:
+        intro_bits.append(f"I came across your business in {lead.city}")
+    else:
+        intro_bits.append("I came across your business")
+
+    if lead.rating:
+        intro_bits.append(f"and noticed your strong {lead.rating}-star rating")
+    parts.append(f"{', '.join(intro_bits)}.")
+
+    parts.append(
+        f"I'm {sender_label} — I help local businesses like yours grow with "
+        "modern outreach, a polished web presence, and clear conversion paths."
+    )
+
+    bullets: list[str] = []
+    if not lead.has_website:
+        bullets.append("• A custom landing page demo built specifically for you")
+    bullets.append("• A short audit of your current online visibility")
+    bullets.append("• Concrete next steps you can act on this week")
+    parts.append("Quick value I can share:")
+    parts.extend(bullets)
+
+    if (
+        not lead.has_website
+        and (lead.demo_site_status or "") == "generated"
+        and getattr(settings, "FRONTEND_DOMAIN", None)
+    ):
+        parts.append(f"Demo: {settings.FRONTEND_DOMAIN}/demo/{lead.id}")
+
+    parts.append("If this is useful, just reply here — happy to share more.")
+    parts.append(f"— {sender_label}")
+
+    return "\n".join(parts)
+
+
+@router.get("/{lead_id}/whatsapp-link")
+async def get_whatsapp_link(
+    lead_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns a wa.me deep link with a prefilled, lead-specific message.
+
+    Designed for ``phone_qualified`` leads (those that have a phone but no
+    discoverable email). The link opens WhatsApp on mobile or WhatsApp Web
+    on desktop with the message body already drafted.
+    """
+    lead = await _load_owned_lead(db, lead_id, current_user)
+
+    if not lead.phone:
+        raise HTTPException(
+            status_code=409, detail="Lead has no phone number on file."
+        )
+
+    digits = _digits_only(lead.phone)
+    if len(digits) < 7:
+        raise HTTPException(
+            status_code=409,
+            detail="Lead's phone number is too short to build a WhatsApp link.",
+        )
+
+    sender_name = current_user.full_name or current_user.email or None
+    message = _build_whatsapp_message(lead, sender_name)
+    encoded = quote(message, safe="")
+    url = f"https://wa.me/{digits}?text={encoded}"
+
+    return {
+        "lead_id": str(lead.id),
+        "phone_digits": digits,
+        "url": url,
+        "message": message,
+    }
+
 
 @router.get("/{lead_id}/demo-status")
 async def get_demo_status(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
