@@ -68,26 +68,39 @@ jobs:
         working-directory: ./frontend/android
         run: ./gradlew assembleRelease bundleRelease
 
-      - name: Sign Release APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: frontend/android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_CONTENT }}
-          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Sign APK Manually
         env:
-          BUILD_TOOLS_VERSION: "34.0.0"
+          KEYSTORE_CONTENT: ${{ secrets.ANDROID_KEYSTORE_CONTENT }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # 1. Decode keystore to a file
+          echo "$KEYSTORE_CONTENT" | base64 -d > frontend/android/release.keystore
+          
+          # 2. Find apksigner
+          APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name apksigner | sort -r | head -1)
+          ZIPALIGN=$(find $ANDROID_SDK_ROOT/build-tools -name zipalign | sort -r | head -1)
+          
+          # 3. Align the APK
+          $ZIPALIGN -v 4 frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk frontend/android/app/build/outputs/apk/release/app-release-aligned.apk
+          
+          # 4. Sign the APK
+          $APKSIGNER sign --ks frontend/android/release.keystore \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass pass:"$KEYSTORE_PASSWORD" \
+            --key-pass pass:"$KEY_PASSWORD" \
+            --out frontend/android/app/build/outputs/apk/release/ColdScout-Signed-Release.apk \
+            frontend/android/app/build/outputs/apk/release/app-release-aligned.apk
 
       - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
           name: ColdScout-Signed-Release.apk
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          path: frontend/android/app/build/outputs/apk/release/ColdScout-Signed-Release.apk
           retention-days: 7
 
-      - name: Upload Release AAB (App Bundle for Play Store)
+      - name: Upload Release AAB (App Bundle)
         uses: actions/upload-artifact@v4
         with:
           name: ColdScout-Release.aab
