@@ -26,6 +26,25 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
+      - name: Create .env for build
+        working-directory: ./frontend
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_SITE_NAME: ${{ secrets.VITE_SITE_NAME }}
+          VITE_APP_BOOKING_URL: ${{ secrets.VITE_APP_BOOKING_URL }}
+        run: |
+          echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> .env
+          echo "VITE_API_KEY=$VITE_API_KEY" >> .env
+          echo "VITE_SITE_NAME=$VITE_SITE_NAME" >> .env
+          echo "VITE_APP_BOOKING_URL=$VITE_APP_BOOKING_URL" >> .env
+          echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL" >> .env
+          echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY" >> .env
+          echo "VITE_APP_URL=$VITE_APP_URL" >> .env
+
       - name: Build Web App
         working-directory: ./frontend
         run: npm run build
