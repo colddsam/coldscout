@@ -118,8 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthItem('llp_user', JSON.stringify(backendUser));
 
       return backendUser;
-    } catch {
-      // Sync failed
+    } catch (err) {
+      // Log the actual error so it's visible in console/remote debugging
+      console.error('[syncUserToBackend] Failed:', err);
       return null;
     }
   }, [supabaseUser, session]);

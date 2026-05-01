@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.coldscout.app',
   appName: 'Cold Scout',
   webDir: 'dist',
-  bundledWebRuntime: false,
   server: {
     allowNavigation: [
       'checkout.razorpay.com',
@@ -12,7 +11,16 @@ const config: CapacitorConfig = {
       'razorpay.com',
       '*'
     ]
-  }
+  },
+  plugins: {
+    CapacitorHttp: {
+      // Route all HTTP requests through the native layer (OkHttp on Android,
+      // URLSession on iOS) so they bypass WebView CORS restrictions entirely.
+      // Without this, the WebView sends Origin: http://localhost which the
+      // backend CORS middleware rejects.
+      enabled: true,
+    },
+  },
 };
 
 export default config;
