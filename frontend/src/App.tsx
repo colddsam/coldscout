@@ -11,7 +11,7 @@
  * - Protected (Client): Welcome page
  * - Protected (Freelancer): Full dashboard access
  */
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 
@@ -61,10 +61,36 @@ const queryClient = new QueryClient({
   },
 });
 
+import { useEffect } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+
+function DeepLinkHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const subscription = CapacitorApp.addListener('appUrlOpen', (event) => {
+      const url = event.url;
+      const domain = 'com.coldscout.app://';
+      if (url.startsWith(domain)) {
+        // Example: com.coldscout.app://auth/callback#... -> /auth/callback#...
+        const path = url.slice(domain.length - 1);
+        navigate(path);
+      }
+    });
+
+    return () => {
+      subscription.then((sub) => sub.remove());
+    };
+  }, [navigate]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <DeepLinkHandler />
         <AuthProvider>
           <SessionExpiredModal />
           <Routes>

@@ -79,6 +79,9 @@ export type OAuthProvider = 'google' | 'github' | 'facebook' | 'linkedin_oidc';
  */
 export type UserRole = 'client' | 'freelancer';
 
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+
 /**
  * Signs in a user with OAuth provider.
  *
@@ -92,16 +95,23 @@ export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole = 
   // mirror so a full-page navigation doesn't lose it).
   setAuthItem('llp_pending_role', role);
 
+  const isNative = Capacitor.isNativePlatform();
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${APP_URL}/auth/callback`,
+      redirectTo: isNative ? 'com.coldscout.app://auth/callback' : `${APP_URL}/auth/callback`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
       },
+      skipBrowserRedirect: isNative,
     },
   });
+
+  if (isNative && data?.url) {
+    await Browser.open({ url: data.url });
+  }
 
   return { data, error };
 };
