@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.coldscout.app',
-  appName: 'Cold Scout',
+  appName: 'Cold Scout: Smart Outreach',
   webDir: 'dist',
   server: {
     allowNavigation: [
@@ -14,10 +14,9 @@ const config: CapacitorConfig = {
   },
   plugins: {
     CapacitorHttp: {
-      // Route all HTTP requests through the native layer (OkHttp on Android,
-      // URLSession on iOS) so they bypass WebView CORS restrictions entirely.
-      // Without this, the WebView sends Origin: http://localhost which the
-      // backend CORS middleware rejects.
+      enabled: true,
+    },
+    CapacitorCookies: {
       enabled: true,
     },
   },
