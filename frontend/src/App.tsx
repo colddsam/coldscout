@@ -14,8 +14,10 @@
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
+import { useState, useEffect } from 'react';
 
 import Shell from './components/layout/Shell';
+import SplashScreen from './components/SplashScreen';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -61,7 +63,6 @@ const queryClient = new QueryClient({
   },
 });
 
-import { useEffect } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { supabase } from './lib/supabase';
 
@@ -103,8 +104,11 @@ function DeepLinkHandler() {
 }
 
 export default function App() {
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
     <QueryClientProvider client={queryClient}>
+      {!splashDone && <SplashScreen onFinished={() => setSplashDone(true)} />}
       <BrowserRouter>
         <DeepLinkHandler />
         <AuthProvider>
