@@ -63,18 +63,34 @@ const queryClient = new QueryClient({
 
 import { useEffect } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
+import { supabase } from './lib/supabase';
 
 function DeepLinkHandler() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const subscription = CapacitorApp.addListener('appUrlOpen', (event) => {
+    const subscription = CapacitorApp.addListener('appUrlOpen', async (event) => {
       const url = event.url;
       const domain = 'com.coldscout.app://';
       if (url.startsWith(domain)) {
-        // Example: com.coldscout.app://auth/callback#... -> /auth/callback#...
-        const path = url.slice(domain.length - 1);
-        navigate(path);
+        // Example: com.coldscout.app://auth/callback?code=... -> /auth/callback?code=...
+        const pathWithParams = url.slice(domain.length - 1);
+
+        // For PKCE OAuth flow: extract the authorization code and exchange
+        // it for a session. Supabase's detectSessionInUrl won't fire because
+        // window.location in the Capacitor WebView doesn't change when the
+        // system browser triggers a deep link.
+        try {
+          const callbackUrl = new URL(url.replace('com.coldscout.app://', 'https://placeholder/'));
+          const code = callbackUrl.searchParams.get('code');
+          if (code) {
+            await supabase.auth.exchangeCodeForSession(code);
+          }
+        } catch (err) {
+          console.error('Deep link code exchange failed:', err);
+        }
+
+        navigate(pathWithParams);
       }
     });
 

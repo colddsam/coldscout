@@ -110,7 +110,14 @@ export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole = 
   });
 
   if (isNative && data?.url) {
-    await Browser.open({ url: data.url });
+    // Use '_system' to open in the device's default browser (Chrome/Safari)
+    // instead of an in-app Custom Tab / SFSafariViewController.
+    // Google blocks OAuth from embedded/Custom Tab user agents with
+    // "Error 403: disallowed_useragent".
+    await Browser.open({
+      url: data.url,
+      windowName: '_system',
+    });
   }
 
   return { data, error };
