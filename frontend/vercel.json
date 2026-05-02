@@ -75,7 +75,7 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.coldscout.colddsam.com https://api.razorpay.com https://lumberjack.razorpay.com https://bbmvzahgkrmkciiejunt.supabase.co wss://bbmvzahgkrmkciiejunt.supabase.co; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self'; upgrade-insecure-requests" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.coldscout.colddsam.com https://api.razorpay.com https://lumberjack.razorpay.com https://bbmvzahgkrmkciiejunt.supabase.co wss://bbmvzahgkrmkciiejunt.supabase.co https://api.github.com https://objects.githubusercontent.com https://github.com; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self'; upgrade-insecure-requests" }
       ]
     }
   ]

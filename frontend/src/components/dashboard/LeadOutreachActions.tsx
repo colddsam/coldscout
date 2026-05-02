@@ -22,6 +22,7 @@
  * renders a stacked block suitable for the LeadDetail sidebar.
  */
 import type { MouseEvent } from 'react';
+import { useState } from 'react';
 import { Loader2, MessageCircle, Send, Unlock, Lock, AlertTriangle, RefreshCw } from 'lucide-react';
 import Button from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -30,7 +31,7 @@ import {
   useTriggerLeadOutreach,
   useUnlockLeadOutreach,
 } from '../../hooks/useLeads';
-import { getLeadWhatsappLink } from '../../lib/api';
+import { triggerLeadWhatsappOutreach } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 export interface LeadOutreachActionsProps {
@@ -67,35 +68,19 @@ export default function LeadOutreachActions({
 
   const baseClass = compact ? 'flex items-center gap-1.5' : 'flex flex-col gap-2';
 
-  // Phone-qualified leads → WhatsApp button. We fetch the link lazily so
-  // the message body is always assembled with fresh lead signals.
+  // Phone-qualified leads → WhatsApp button. The first click runs personalization
+  // (Groq + enrichment) on the backend; subsequent clicks within 24h reuse the
+  // cached message. We show a loading state during the slow first call so the
+  // user knows the button is doing real work, not stuck.
   if (buttonState === 'phone_only') {
-    const handleWhatsapp = async (e: MouseEvent) => {
-      stop(e);
-      try {
-        const link = await getLeadWhatsappLink(leadId);
-        // Open in a new tab so the Leads page state is preserved.
-        window.open(link.url, '_blank', 'noopener,noreferrer');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to build WhatsApp link';
-        toast.error(msg);
-      }
-    };
     return (
-      <div className={cn(baseClass, className)} onClick={stop}>
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<MessageCircle className="w-3.5 h-3.5" />}
-          onClick={handleWhatsapp}
-          className={cn(
-            'bg-white text-black hover:bg-white/90 border-white/40',
-            compact && 'min-w-[120px]',
-          )}
-        >
-          WhatsApp
-        </Button>
-      </div>
+      <WhatsAppActionButton
+        leadId={leadId}
+        compact={compact}
+        baseClass={baseClass}
+        className={className}
+        stop={stop}
+      />
     );
   }
 
@@ -207,6 +192,82 @@ export default function LeadOutreachActions({
         className={cn(compact ? 'min-w-[120px]' : 'w-full', 'opacity-60')}
       >
         Not eligible
+      </Button>
+    </div>
+  );
+}
+
+interface WhatsAppActionProps {
+  leadId: string;
+  compact: boolean;
+  baseClass: string;
+  className?: string;
+  stop: (e: MouseEvent) => void;
+}
+
+function WhatsAppActionButton({ leadId, compact, baseClass, className, stop }: WhatsAppActionProps) {
+  const [pending, setPending] = useState(false);
+
+  const handleWhatsapp = async (e: MouseEvent) => {
+    stop(e);
+    if (pending) return;
+
+    // Open the popup window synchronously *during the user gesture* so mobile
+    // browsers (and most desktop popup blockers) don't swallow it. We then
+    // navigate the popup once the personalized URL resolves. If Groq is fast
+    // enough this feels instant; if it's slow the user sees a "preparing your
+    // message…" intermediate page rather than nothing at all.
+    const placeholder = window.open('', '_blank', 'noopener,noreferrer');
+    if (placeholder) {
+      try {
+        placeholder.document.write(
+          '<title>Preparing WhatsApp message…</title>'
+          + '<style>body{font-family:system-ui;background:#0a0a0a;color:#fff;'
+          + 'display:flex;align-items:center;justify-content:center;height:100vh;'
+          + 'margin:0;text-align:center;padding:24px;}</style>'
+          + '<div><h2 style="font-weight:600">Preparing your WhatsApp message…</h2>'
+          + '<p style="opacity:.7">This takes a few seconds the first time '
+          + 'we personalize a lead.</p></div>',
+        );
+        placeholder.document.close();
+      } catch {
+        // Cross-origin write block — ignore, the redirect below still works.
+      }
+    }
+
+    setPending(true);
+    try {
+      const link = await triggerLeadWhatsappOutreach(leadId);
+      if (placeholder && !placeholder.closed) {
+        placeholder.location.replace(link.url);
+      } else {
+        // Popup blocked → navigate the current tab as a fallback so the
+        // freelancer never loses the personalization work.
+        window.location.href = link.url;
+      }
+    } catch (err) {
+      placeholder?.close();
+      const msg = err instanceof Error ? err.message : 'Failed to build WhatsApp link';
+      toast.error(msg);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <div className={cn(baseClass, className)} onClick={stop}>
+      <Button
+        size="sm"
+        variant="primary"
+        loading={pending}
+        icon={<MessageCircle className="w-3.5 h-3.5" />}
+        onClick={handleWhatsapp}
+        className={cn(
+          'bg-white text-black hover:bg-white/90 border-white/40',
+          compact && 'min-w-[120px]',
+        )}
+      >
+        {pending ? 'Preparing…' : 'WhatsApp'}
       </Button>
     </div>
   );

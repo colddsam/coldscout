@@ -20,7 +20,6 @@ import csv
 import io
 from datetime import date
 from functools import partial
-from urllib.parse import quote
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
@@ -41,6 +40,11 @@ from app.schemas.lead import (
     LeadListResponse
 )
 from app.tasks.single_lead_pipeline import run_single_lead_outreach
+from app.tasks.single_lead_whatsapp import (
+    WhatsAppOutreachError,
+    build_whatsapp_outreach,
+    invalidate_cache as invalidate_whatsapp_cache,
+)
 
 router = APIRouter(prefix="/leads")
 
@@ -444,103 +448,66 @@ async def unlock_outreach(
     return _build_outreach_state_payload(lead, manual_state, q_size)
 
 
-def _digits_only(value: str) -> str:
-    return "".join(ch for ch in value if ch.isdigit())
-
-
-def _build_whatsapp_message(lead: Lead, sender_name: Optional[str]) -> str:
-    """Compose the prefilled WhatsApp message body for phone-qualified leads.
-
-    Mirrors the spirit of the email pipeline: a friendly opener, a couple of
-    benefits derived from public lead signals, plus the freelancer's
-    contact links / demo URL when available. Kept under 1000 chars so
-    wa.me's URL limit isn't exceeded on older clients.
-    """
-    parts: list[str] = []
-
-    salutation_target = lead.business_name or "there"
-    parts.append(f"Hi {salutation_target} team,")
-
-    sender_label = (sender_name or "").strip() or "Cold Scout"
-    intro_bits: list[str] = []
-    if lead.category and lead.city:
-        intro_bits.append(
-            f"I came across your {lead.category} business in {lead.city}"
-        )
-    elif lead.category:
-        intro_bits.append(f"I came across your {lead.category} business")
-    elif lead.city:
-        intro_bits.append(f"I came across your business in {lead.city}")
-    else:
-        intro_bits.append("I came across your business")
-
-    if lead.rating:
-        intro_bits.append(f"and noticed your strong {lead.rating}-star rating")
-    parts.append(f"{', '.join(intro_bits)}.")
-
-    parts.append(
-        f"I'm {sender_label} — I help local businesses like yours grow with "
-        "modern outreach, a polished web presence, and clear conversion paths."
-    )
-
-    bullets: list[str] = []
-    if not lead.has_website:
-        bullets.append("• A custom landing page demo built specifically for you")
-    bullets.append("• A short audit of your current online visibility")
-    bullets.append("• Concrete next steps you can act on this week")
-    parts.append("Quick value I can share:")
-    parts.extend(bullets)
-
-    if (
-        not lead.has_website
-        and (lead.demo_site_status or "") == "generated"
-        and getattr(settings, "FRONTEND_DOMAIN", None)
-    ):
-        parts.append(f"Demo: {settings.FRONTEND_DOMAIN}/demo/{lead.id}")
-
-    parts.append("If this is useful, just reply here — happy to share more.")
-    parts.append(f"— {sender_label}")
-
-    return "\n".join(parts)
-
-
-@router.get("/{lead_id}/whatsapp-link")
-async def get_whatsapp_link(
+@router.post("/{lead_id}/whatsapp-link")
+async def post_whatsapp_link(
     lead_id: str,
+    regenerate: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Returns a wa.me deep link with a prefilled, lead-specific message.
+    """Run personalization for a phone-qualified lead and return a wa.me deep link.
 
-    Designed for ``phone_qualified`` leads (those that have a phone but no
-    discoverable email). The link opens WhatsApp on mobile or WhatsApp Web
-    on desktop with the message body already drafted.
+    Behaviour:
+    - First click → runs the same enrichment + Groq personalization the email
+      flow uses, generates a short conversational WhatsApp body, normalizes the
+      phone number using the lead's ``country_code`` so the wa.me URL is valid
+      regardless of how the number is stored, and caches the message in Redis
+      for 24h.
+    - Subsequent clicks within 24h → return the cached body (no Groq cost).
+    - Pass ``regenerate=true`` to force a fresh Groq call (bypass the cache).
+
+    The lead's status is intentionally NOT changed — WhatsApp delivery is
+    user-driven (the freelancer presses Send inside WhatsApp), and we have no
+    automated way to confirm it.
     """
     lead = await _load_owned_lead(db, lead_id, current_user)
 
     if not lead.phone:
-        raise HTTPException(
-            status_code=409, detail="Lead has no phone number on file."
-        )
-
-    digits = _digits_only(lead.phone)
-    if len(digits) < 7:
-        raise HTTPException(
-            status_code=409,
-            detail="Lead's phone number is too short to build a WhatsApp link.",
-        )
+        raise HTTPException(status_code=409, detail="Lead has no phone number on file.")
 
     sender_name = current_user.full_name or current_user.email or None
-    message = _build_whatsapp_message(lead, sender_name)
-    encoded = quote(message, safe="")
-    url = f"https://wa.me/{digits}?text={encoded}"
+    owner_user_id = lead.user_id or current_user.id
+
+    try:
+        result = await build_whatsapp_outreach(
+            lead_id=str(lead.id),
+            user_id=owner_user_id,
+            sender_name=sender_name,
+            force_regenerate=bool(regenerate),
+        )
+    except WhatsAppOutreachError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
     return {
         "lead_id": str(lead.id),
-        "phone_digits": digits,
-        "url": url,
-        "message": message,
+        **result,
     }
+
+
+@router.post("/{lead_id}/whatsapp-link/invalidate")
+async def invalidate_whatsapp_message(
+    lead_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Drop the cached WhatsApp message so the next click regenerates it.
+
+    Useful after the freelancer updates their profile / signature and wants
+    the next outreach to reflect the change.
+    """
+    lead = await _load_owned_lead(db, lead_id, current_user)
+    await invalidate_whatsapp_cache(str(lead.id))
+    return {"lead_id": str(lead.id), "invalidated": True}
 
 
 @router.get("/{lead_id}/demo-status")

@@ -16,6 +16,7 @@ Security notes:
 
 import json
 import re
+from typing import Optional
 from loguru import logger
 from groq import AsyncGroq
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -70,7 +71,9 @@ class GroqClient:
         based on the provided lead context and deep enrichment data.
         """
         prompt_template = f"""
-You are a professional business development writer. Write a short, warm outreach email for:
+You are writing a casual, warm outreach email — like a friend who happens to do web work,
+not a marketing agency. The recipient runs a real local business and gets dozens of cold
+emails every week, almost all of them obviously templated. Yours has to feel hand-written.
 
 Business: $business_name
 Category: $category
@@ -82,23 +85,41 @@ Deep Enrichment Context:
 - Website Title: $website_title
 - Services Mentioned: $website_services
 - Copyright Year: $website_year
-- Target Competitor: $competitor_name
+- Local Competitor: $competitor_name
+
+HARD RULES (violating any of these makes the email feel robotic — DO NOT BREAK):
+- NEVER start with "I came across", "I noticed", "I hope this email finds you well",
+  "My name is", "I wanted to reach out", or any other generic cold-email opener.
+- NEVER use the phrase "in today's digital age" or any clichéd marketing prose.
+- NEVER use words like "leverage", "synergy", "robust", "cutting-edge", "solution",
+  "elevate", "empower", or "unlock potential".
+- NEVER over-praise ("amazing reviews!", "fantastic business!"). One specific,
+  earned compliment is enough.
+- Use contractions (it's, you're, I'd) — avoid sounding stiff.
+- Sentences should vary in length. Mix short punchy ones with longer thoughtful ones.
 
 Requirements:
-- Subject line: Compelling, mentions business name, max 60 chars
-- Email body: 3 short paragraphs, conversational but professional (in HTML format)
-- Paragraph 1: Acknowledge their business specifically. Mention something from the Deep Enrichment Context if useful (e.g., complementing their specific services or noting they might need an update compared to a local competitor).
-- Paragraph 2: Explain what a custom platform/website could do for their specific business type
-- Paragraph 3: Soft CTA - ask if they'd like a free consultation
-- Include 3 specific ROI benefits for a $category
-- Tone: Helpful partner, not salesy
-- Length: 150-200 words max
+- Subject line: Specific to their business, max 55 chars, no clickbait, no emojis,
+  no "Quick question" / "Fwd:" / "Re:" tricks.
+- Email body in HTML (<p> tags only). 3 short paragraphs, ~120-180 words total.
+- Paragraph 1 (1-2 sentences): One concrete observation about their specific
+  business — a real signal from the enrichment context (their rating, services
+  they list, an outdated copyright year, a competitor's edge, the city).
+  No fake flattery; just something true that proves you actually looked.
+- Paragraph 2 (2-3 sentences): What you'd actually build/improve, framed
+  around outcomes a $category owner cares about (more bookings, fewer phone
+  tag chains, easier to find on Google, mobile-friendly, etc.). Concrete,
+  not abstract.
+- Paragraph 3 (1 sentence): A soft, low-friction ask — e.g. "Worth a 15-min
+  call this week?" or "Want me to send a quick mockup?" Make it easy to say yes.
+- "benefits": 3 short bullet phrases (≤8 words each), each tying to a real
+  $category outcome, no fluff.
 
 Return ONLY a valid JSON object in the following format:
 {{
   "subject": "...",
-  "body_html": "<p>...</p>",
-  "benefits": ["Benefit 1", "Benefit 2", "Benefit 3"]
+  "body_html": "<p>...</p><p>...</p><p>...</p>",
+  "benefits": ["...", "...", "..."]
 }}
 """
         from app.core.database import get_session_maker
@@ -173,6 +194,141 @@ Return ONLY a valid JSON object in the following format:
                 "body_html": "<p>Hi,</p><p>We help businesses like yours build a strong digital presence.</p><p>Let's chat?</p>",
                 "benefits": ["Increased visibility", "Better customer engagement", "More sales"]
             }
+
+    async def generate_whatsapp_message(
+        self,
+        lead_data: dict,
+        sender_name: Optional[str] = None,
+        demo_url: Optional[str] = None,
+    ) -> dict:
+        """Generate a short, conversational WhatsApp message for a lead.
+
+        WhatsApp is read on phones — the message must be brief, plain-text,
+        warm, and not feel like a marketing blast. Returned as a dict with
+        a single ``message`` key so callers can swap it into the wa.me URL.
+
+        On any Groq failure we fall back to a hand-tuned template so the
+        WhatsApp button is never blocked.
+        """
+        prompt_template = f"""
+You are writing a short, casual WhatsApp message to the owner of a local business
+you'd like to help with their online presence. WhatsApp messages are read on a
+phone in seconds — long, salesy text gets ignored.
+
+Business: $business_name
+Category: $category
+Location: $location
+Rating: $rating stars on Google ($review_count reviews)
+Sender's name: $sender_name
+Demo link (only include in the message if provided and non-empty): $demo_url
+
+HARD RULES (violating any makes the message feel robotic — DO NOT BREAK):
+- NEVER start with "I came across", "I noticed", "Hope this finds you well",
+  "Greetings", or "Dear sir/ma'am". Open like a human would on WhatsApp.
+- NEVER use marketing words: leverage, synergy, robust, solution, elevate,
+  empower, unlock potential, in today's digital age.
+- NO emojis except maybe a single 👋 in the greeting (only if it feels natural).
+- Total length: 35-70 words. Three to five short lines, each under ~15 words.
+- Use line breaks (\\n) between thoughts so it reads like a chat, not a paragraph.
+- One specific, earned compliment OR observation tied to a real signal
+  (rating, location, category) — not generic praise.
+- End with one soft, low-friction question. NEVER ask "are you the owner?" /
+  "is this the right number?" — assume yes and get straight to the point.
+- Sign off with the sender's first name on its own line.
+- If "demo_url" is provided and non-empty, include it on its own line near the
+  end as: "Quick demo I made for you: <url>" — otherwise OMIT entirely.
+
+Return ONLY a valid JSON object:
+{{
+  "message": "Hey ...\\n...\\n— FirstName"
+}}
+"""
+        from app.core.database import get_session_maker
+        from app.models.prompt_config import PromptConfig
+        from sqlalchemy import select
+
+        try:
+            async with get_session_maker()() as db:
+                stmt = select(PromptConfig).where(
+                    PromptConfig.prompt_type == "whatsapp_outreach",
+                    PromptConfig.is_active == True,
+                )
+                res = await db.execute(stmt)
+                db_prompt = res.scalars().first()
+                if db_prompt:
+                    prompt_template = db_prompt.prompt_text
+        except Exception as e:
+            logger.warning(f"Could not load dynamic whatsapp prompt, using fallback: {e}")
+
+        from string import Template
+
+        sender_label = (sender_name or "").strip() or "Cold Scout"
+        first_name = sender_label.split()[0] if sender_label else "there"
+
+        mapping = {
+            "business_name": _sanitize_prompt_value(lead_data.get("business_name", "your business")),
+            "category": _sanitize_prompt_value(lead_data.get("category", "business")),
+            "location": _sanitize_prompt_value(
+                ", ".join(filter(None, [
+                    lead_data.get("sub_area"),
+                    lead_data.get("location") or lead_data.get("city"),
+                    lead_data.get("region"),
+                    lead_data.get("country"),
+                ])) or "your area"
+            ),
+            "rating": _sanitize_prompt_value(str(lead_data.get("rating") or "good")),
+            "review_count": _sanitize_prompt_value(str(lead_data.get("review_count") or "many")),
+            "sender_name": _sanitize_prompt_value(sender_label),
+            "demo_url": _sanitize_prompt_value(demo_url or ""),
+        }
+
+        try:
+            prompt = Template(prompt_template).safe_substitute(mapping)
+        except Exception as e:
+            logger.error(f"Error formatting whatsapp prompt template: {e}")
+            prompt = f"Write a short whatsapp message for {mapping['business_name']}."
+
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=8))
+        async def _call_groq(prompt_text: str):
+            return await self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt_text}],
+                model=self.model,
+                response_format={"type": "json_object"},
+                temperature=0.8,
+            )
+
+        try:
+            chat_completion = await _call_groq(prompt)
+            data = json.loads(chat_completion.choices[0].message.content)
+            message = (data.get("message") or "").strip()
+            if not message:
+                raise ValueError("Groq returned an empty whatsapp message")
+            # Soft length cap so the wa.me URL never overflows on legacy clients.
+            if len(message) > 900:
+                message = message[:880].rstrip() + " …"
+            return {"message": message}
+        except Exception as e:
+            logger.warning(f"Groq whatsapp generation failed, falling back to template: {e}")
+            biz = mapping["business_name"]
+            city = lead_data.get("city") or lead_data.get("location") or ""
+            cat = lead_data.get("category") or "business"
+            rating = lead_data.get("rating")
+            opener_extra = f" — saw the {rating}-star reviews" if rating else ""
+            location_bit = f" in {city}" if city else ""
+            demo_line = (
+                f"\nQuick demo I made for you: {demo_url}"
+                if demo_url
+                else ""
+            )
+            fallback = (
+                f"Hey {biz} team 👋\n"
+                f"Came by your {cat}{location_bit}{opener_extra}.\n"
+                f"I help {cat} owners get more bookings with a sharper site & "
+                f"clearer next-step buttons.{demo_line}\n"
+                f"Worth a 5-min look this week?\n"
+                f"— {first_name}"
+            )
+            return {"message": fallback}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def generate_daily_targets(

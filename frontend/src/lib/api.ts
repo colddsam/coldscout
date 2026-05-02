@@ -637,6 +637,8 @@ export interface LeadWhatsappLink {
   phone_digits: string;
   url: string;
   message: string;
+  cached?: boolean;
+  generated_at?: string;
 }
 
 /**
@@ -666,13 +668,31 @@ export const unlockLeadOutreach = (leadId: string) =>
     .then((r) => r.data);
 
 /**
- * Builds a wa.me deep link with a prefilled message for a phone-qualified
- * lead. The backend personalizes the message using the lead's signals plus
- * the freelancer's name.
+ * Runs personalization for a phone-qualified lead and returns a wa.me deep
+ * link with the generated message body. The backend caches the message in
+ * Redis for 24h; pass ``regenerate=true`` to force a fresh Groq call.
+ *
+ * Slow path: first call per lead can take several seconds (Groq + optional
+ * website enrichment). Frontend should show a loading state while pending.
  */
-export const getLeadWhatsappLink = (leadId: string) =>
+export const triggerLeadWhatsappOutreach = (leadId: string, regenerate = false) =>
   client
-    .get<LeadWhatsappLink>(`/api/v1/leads/${leadId}/whatsapp-link`)
+    .post<LeadWhatsappLink>(
+      `/api/v1/leads/${leadId}/whatsapp-link`,
+      null,
+      { params: { regenerate }, timeout: 90_000 },
+    )
+    .then((r) => r.data);
+
+/** Backwards-compat alias — preferred call site is ``triggerLeadWhatsappOutreach``. */
+export const getLeadWhatsappLink = (leadId: string) =>
+  triggerLeadWhatsappOutreach(leadId, false);
+
+export const invalidateLeadWhatsappCache = (leadId: string) =>
+  client
+    .post<{ lead_id: string; invalidated: boolean }>(
+      `/api/v1/leads/${leadId}/whatsapp-link/invalidate`,
+    )
     .then((r) => r.data);
 
 // Campaigns
