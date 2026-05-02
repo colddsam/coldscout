@@ -15,6 +15,7 @@ import { useRealtimePipelineStatus } from '../../hooks/useRealtimePipelineStatus
 import UpgradeModal from '../dashboard/UpgradeModal';
 import DashboardSkeleton from '../dashboard/DashboardSkeleton';
 import AnimatedBackground from '../ui/AnimatedBackground';
+import UpdateBanner from '../UpdateBanner';
 
 export default function Shell() {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,6 +54,7 @@ export default function Shell() {
         </div>
 
         <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+          <UpdateBanner />
           <Topbar onMenuClick={() => setMobileOpen(true)} />
 
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">

@@ -6,6 +6,7 @@
  */
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 import { cn } from '../../lib/utils';
 import { NAV_ITEMS } from '../../lib/constants';
 import { useHealth } from '../../hooks/useConfig';
@@ -13,12 +14,12 @@ import StatusDot from '../ui/StatusDot';
 import Logo from '../ui/Logo';
 import {
   LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, User, Target,
-  BarChart2, Settings, ChevronLeft, LogOut, Home, Heart, AtSign, CreditCard,
+  BarChart2, Settings, ChevronLeft, LogOut, Home, Heart, AtSign, CreditCard, Smartphone,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User, Target,
+  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User, Target, Smartphone,
 };
 
 interface SidebarProps {
@@ -33,6 +34,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const { logout, user } = useAuth();
   const role = user?.role || 'freelancer';
   const isRunning = health?.production_status === true;
+  const isNativeAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
   return (
     <>
@@ -111,7 +113,11 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
           <div className="border-b border-white/[0.06] my-1.5 mx-1" />
 
-          {NAV_ITEMS.filter((item) => (item.roles as readonly string[]).includes(role)).map((item) => {
+          {NAV_ITEMS.filter((item) => {
+            if (!(item.roles as readonly string[]).includes(role)) return false;
+            if (isNativeAndroid && 'hideOnNative' in item && item.hideOnNative) return false;
+            return true;
+          }).map((item) => {
             const Icon = ICON_MAP[item.icon];
             return (
               <NavLink

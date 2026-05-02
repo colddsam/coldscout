@@ -50,6 +50,7 @@ import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
 import LeadDemoViewer from './pages/LeadDemoViewer';
 import BookingPage from './pages/BookingPage';
+import DownloadApp from './pages/Download';
 
 /**
  * Shared QueryClient instance with optimized development defaults.
@@ -130,6 +131,7 @@ export default function App() {
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/demo/:leadId" element={<LeadDemoViewer />} />
             <Route path="/book/:username" element={<BookingPage />} />
+            <Route path="/download" element={<DownloadApp />} />
 
             {/* Protected: Client Welcome (clients only — freelancers redirected to /overview) */}
             <Route element={<ClientRoute />}>

@@ -67,6 +67,7 @@ export const NAV_ITEMS = [
   { path: '/billing', label: 'Billing', icon: 'CreditCard', roles: ['freelancer'] },
   { path: '/profile', label: 'Profile', icon: 'User', roles: ['freelancer', 'client'] },
   { path: '/settings', label: 'Settings', icon: 'Settings', roles: ['freelancer'] },
+  { path: '/download', label: 'Download App', icon: 'Smartphone', roles: ['freelancer'], hideOnNative: true },
 ] as const;
 
 /**
