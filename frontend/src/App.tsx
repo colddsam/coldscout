@@ -36,6 +36,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Threads from './pages/Threads';
 import Billing from './pages/Billing';
+import DiscoveryTargets from './pages/DiscoveryTargets';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute, { FreelancerRoute, ClientRoute } from './components/auth/ProtectedRoute';
@@ -141,6 +142,7 @@ export default function App() {
                 <Route path="/overview" element={<Overview />} />
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/scheduler" element={<Scheduler />} />
+                <Route path="/discovery-targets" element={<DiscoveryTargets />} />
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/leads/:id" element={<LeadDetail />} />
                 <Route path="/threads" element={<Threads />} />

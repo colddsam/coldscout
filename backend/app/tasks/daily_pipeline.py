@@ -33,6 +33,7 @@ settings = get_settings()
 from app.modules.notifications.telegram_bot import send_telegram_alert
 from app.modules.discovery.google_places import GooglePlacesClient
 from app.modules.discovery.scraper import scrape_contact_email
+from app.models.freelancer_discovery_config import FreelancerDiscoveryConfig
 from app.modules.qualification.scorer import qualify_lead
 from app.modules.personalization.groq_client import GroqClient
 from app.modules.personalization.email_generator import render_email_html
@@ -59,10 +60,28 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
     freelancers whose production_status is RUN and executes the stage
     function with their user_id.
 
+    Each per-freelancer run is recorded in the per-user pipeline tracker
+    (queued → running → completed / failed / skipped) so the Pipeline Log
+    UI shows scheduled runs alongside manual ones, with the trigger
+    source tagged as ``scheduler``.
+
     Args:
         stage_func: The async stage function to call (e.g., run_discovery_stage).
         stage_name: The job ID for status checking (e.g., 'discovery').
     """
+    # Local imports keep the module-level import graph minimal and avoid
+    # circulars between daily_pipeline and pipeline_tracker on cold boot.
+    from app.core.pipeline_tracker import (
+        enqueue_job,
+        mark_running,
+        mark_completed,
+        mark_failed,
+        mark_skipped,
+        is_stage_busy,
+        record_skipped_run,
+        TRIGGER_SCHEDULER,
+    )
+
     # Global HOLD blocks everything
     if get_production_status() == "HOLD":
         logger.warning(f"🚨 Global PRODUCTION_STATUS is HOLD. Skipping {stage_name} for all freelancers.")
@@ -77,24 +96,76 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
     logger.info(f"Dispatching {stage_name} for {len(active_freelancer_ids)} freelancer(s).")
 
     for user_id in active_freelancer_ids:
+        # Per-iteration try/except so a failure on one freelancer doesn't
+        # break the dispatch for the rest.
         try:
             is_active = await job_manager.is_freelancer_pipeline_active(
                 stage_name, user_id=user_id, is_manual=False
             )
             if not is_active:
+                # Record the skip in the freelancer's log so they know
+                # exactly why their scheduled run didn't fire.
+                await enqueue_job(user_id, stage_name, triggered_by=TRIGGER_SCHEDULER)
+                await mark_skipped(
+                    user_id,
+                    stage_name,
+                    f"Skipped: {stage_name} is on HOLD for this freelancer",
+                )
                 logger.info(f"⏸️ {stage_name} skipped for freelancer {user_id} (HOLD).")
                 continue
 
+            # Don't stomp on a manual run that's currently queued or
+            # running for the same (user, stage). Archive a synthetic
+            # "skipped" history row so the freelancer can see why their
+            # scheduled run was a no-op, then move on without touching
+            # the in-flight job's active-map entry.
+            if await is_stage_busy(user_id, stage_name):
+                await record_skipped_run(
+                    user_id,
+                    stage_name,
+                    f"Skipped: previous {stage_name} run is still in progress",
+                    triggered_by=TRIGGER_SCHEDULER,
+                )
+                logger.info(
+                    f"⏭️ {stage_name} skipped for freelancer {user_id} "
+                    f"(previous run still in progress)."
+                )
+                continue
+
             logger.info(f"▶️ Running {stage_name} for freelancer {user_id}.")
-            await stage_func(manual=False, user_id=user_id)
+            await enqueue_job(user_id, stage_name, triggered_by=TRIGGER_SCHEDULER)
+            await mark_running(user_id, stage_name)
+            try:
+                await stage_func(manual=False, user_id=user_id)
+                await mark_completed(
+                    user_id, stage_name, f"{stage_name} completed successfully"
+                )
+            except asyncio.CancelledError:
+                # Re-raise after best-effort marking. The active-map TTL
+                # (24 h) sweeps the orphan if marking itself fails.
+                try:
+                    await mark_failed(
+                        user_id, stage_name, "Cancelled during process shutdown"
+                    )
+                except Exception:
+                    pass
+                raise
+            except Exception as e:
+                await mark_failed(
+                    user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}"
+                )
+                logger.exception(
+                    f"Error running {stage_name} for freelancer {user_id}: {e}"
+                )
         except asyncio.CancelledError:
-            # Shutdown initiated while a job was in flight. This is expected
-            # during redeployments or restarts and should be silent.
             logger.info(f"🛑 {stage_name} cancelled for freelancer {user_id} during shutdown.")
             raise
-        except Exception as e:
-            logger.exception(f"Error running {stage_name} for freelancer {user_id}: {e}")
-            # Continue with other freelancers even if one fails
+        except Exception:
+            # Catch-all so the for-loop keeps dispatching; tracker errors
+            # already get a logger.exception inside the inner block.
+            logger.exception(
+                f"Outer dispatcher error for {stage_name} (user={user_id})"
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -151,38 +222,126 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
 
     # 2. Fetch exclusion data and generate targets in a brief, locked session
     try:
+        # Per-target lead cap. Populated only in manual mode; in auto mode
+        # the global DISCOVERY_BATCH_LIMIT remains the only ceiling.
+        per_target_caps: dict[tuple, int] = {}
+        # Per-target running counts so the inner loop can honor
+        # per_target_caps without piling all bookkeeping into one global int.
+        per_target_counts: dict[tuple, int] = {}
+
         async with advisory_lock("pipeline_discovery_targets"):
             async with session_maker() as db:
-                sixty_days_ago = datetime.now(timezone.utc) - timedelta(days=60)
-                hist_query = select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
+                # ── Load this freelancer's discovery config first ─────────
+                # Decides whether we use AI-picked targets (auto) or the
+                # freelancer's hand-curated list (manual).
+                discovery_cfg = None
                 if user_id is not None:
-                    hist_query = hist_query.where(SearchHistory.user_id == user_id)
-                hist_res = await db.execute(hist_query)
-                recent_searches = hist_res.scalars().all()
-                exclude_locations = [
-                    {
-                        "country_code": h.country_code,
-                        "city": h.city,
-                        "sub_area": h.sub_area,
-                    }
-                    for h in recent_searches
-                ]
-                exclude_categories = list({h.category for h in recent_searches})
+                    cfg_res = await db.execute(
+                        select(FreelancerDiscoveryConfig).where(
+                            FreelancerDiscoveryConfig.user_id == user_id
+                        )
+                    )
+                    discovery_cfg = cfg_res.scalars().first()
 
-                country_focus = [
-                    c.strip()
-                    for c in settings.DISCOVERY_COUNTRY_FOCUS.split(",")
-                    if c.strip()
-                ] or None
+                manual_targets_raw: list[dict] = []
+                if (
+                    discovery_cfg is not None
+                    and not discovery_cfg.auto_mode_enabled
+                    and isinstance(discovery_cfg.pinned_targets, list)
+                ):
+                    manual_targets_raw = [
+                        t for t in discovery_cfg.pinned_targets
+                        if isinstance(t, dict)
+                        and t.get("city")
+                        and t.get("category")
+                    ]
 
-                targets = await groq_client.generate_daily_targets(
-                    exclude_locations,
-                    exclude_categories,
-                    country_focus=country_focus,
-                    depth=settings.DISCOVERY_DEPTH,
-                    target_count=settings.DISCOVERY_TARGET_COUNT,
-                )
-                logger.info(f"Generated targets for today: {targets}")
+                if manual_targets_raw:
+                    # ── Manual mode ──────────────────────────────────────
+                    # The freelancer explicitly chose these areas. We
+                    # bypass the 60-day SearchHistory dedup (per product
+                    # decision) so re-search of recent areas is honored;
+                    # Lead.place_id UNIQUE still prevents duplicate rows.
+                    targets = []
+                    for t in manual_targets_raw:
+                        target = {
+                            "country":      t.get("country"),
+                            "country_code": t.get("country_code"),
+                            "region":       t.get("region"),
+                            "city":         t.get("city"),
+                            "sub_area":     t.get("sub_area"),
+                            "category":     t.get("category"),
+                            # Carry the freelancer's chosen depth so the
+                            # search radius reflects intent, not the
+                            # global DISCOVERY_DEPTH default.
+                            "_depth":       t.get("location_depth", "city"),
+                            "_max_results": int(t.get("max_results") or 0),
+                        }
+                        targets.append(target)
+                        # Build cap lookup keyed on the same tuple we'll
+                        # use during the inner loop to attribute discoveries.
+                        cap_key = (
+                            target["city"],
+                            target["sub_area"],
+                            target["category"],
+                        )
+                        per_target_caps[cap_key] = max(
+                            per_target_caps.get(cap_key, 0),
+                            target["_max_results"],
+                        )
+                        per_target_counts.setdefault(cap_key, 0)
+                    logger.info(
+                        f"Discovery user_id={user_id}: MANUAL mode, "
+                        f"{len(targets)} pinned target(s)."
+                    )
+                else:
+                    # ── Auto mode (existing behavior) ─────────────────────
+                    if (
+                        discovery_cfg is not None
+                        and not discovery_cfg.auto_mode_enabled
+                    ):
+                        # Manual ON but no targets — fall back to auto
+                        # rather than block discovery, and warn so the
+                        # freelancer notices in logs / pipeline tracker.
+                        logger.warning(
+                            f"Discovery user_id={user_id}: manual mode is on "
+                            f"but no pinned targets configured — falling back "
+                            f"to auto for this run."
+                        )
+
+                    sixty_days_ago = datetime.now(timezone.utc) - timedelta(days=60)
+                    hist_query = select(SearchHistory).where(SearchHistory.created_at >= sixty_days_ago)
+                    if user_id is not None:
+                        hist_query = hist_query.where(SearchHistory.user_id == user_id)
+                    hist_res = await db.execute(hist_query)
+                    recent_searches = hist_res.scalars().all()
+                    exclude_locations = [
+                        {
+                            "country_code": h.country_code,
+                            "city": h.city,
+                            "sub_area": h.sub_area,
+                        }
+                        for h in recent_searches
+                    ]
+                    exclude_categories = list({h.category for h in recent_searches})
+
+                    country_focus = [
+                        c.strip()
+                        for c in settings.DISCOVERY_COUNTRY_FOCUS.split(",")
+                        if c.strip()
+                    ] or None
+
+                    targets = await groq_client.generate_daily_targets(
+                        exclude_locations,
+                        exclude_categories,
+                        country_focus=country_focus,
+                        depth=settings.DISCOVERY_DEPTH,
+                        target_count=settings.DISCOVERY_TARGET_COUNT,
+                    )
+                    logger.info(
+                        f"Discovery user_id={user_id}: AUTO mode, "
+                        f"generated targets: {targets}"
+                    )
 
         # 3. Process each target individually
         for target in targets:
@@ -198,7 +357,17 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
 
             location_parts = [sub_area, city, region, country]
             location_str = ", ".join([p for p in location_parts if p])
-            radius = get_radius_for_depth(sub_area, city, region)
+            # In manual mode the freelancer picked the search depth
+            # explicitly per-target; honor it. In auto mode we fall back
+            # to the existing radius-by-presence helper.
+            manual_depth = target.get("_depth")
+            if manual_depth in ("sub_area", "city", "region", "country"):
+                from app.modules.discovery.google_places import RADIUS_BY_DEPTH
+                radius = RADIUS_BY_DEPTH.get(manual_depth, get_radius_for_depth(sub_area, city, region))
+            else:
+                radius = get_radius_for_depth(sub_area, city, region)
+            cap_key = (city, sub_area, category)
+            target_cap = per_target_caps.get(cap_key)  # None in auto mode
 
             # BRIEF LOCK: Only for the Google Search + History Record
             async with advisory_lock(f"discovery_search_{city}_{category}"):
@@ -211,7 +380,15 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
                     max_pages=settings.DISCOVERY_MAX_PAGES,
                 )
 
-                # Record search history immediately
+                # Record search history immediately. ``location_depth`` now
+                # reflects the per-target depth in manual mode (so the
+                # SearchHistory row is faithful to what was actually
+                # searched), with the global default in auto mode.
+                effective_depth = (
+                    target.get("_depth")
+                    if target.get("_depth") in ("sub_area", "city", "region", "country")
+                    else settings.DISCOVERY_DEPTH
+                )
                 async with session_maker() as db:
                     db.add(SearchHistory(
                         user_id=user_id,
@@ -221,7 +398,7 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
                         city=city,
                         sub_area=sub_area,
                         category=category,
-                        location_depth=settings.DISCOVERY_DEPTH,
+                        location_depth=effective_depth,
                         results_count=len(places),
                     ))
                     await db.commit()
@@ -231,7 +408,23 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
 
             # NO LOCK during scraping phase (the long part)
             for place in places:
-                # BREAK if discovery batch limit reached
+                # Per-target slider cap (manual mode only). Hit the cap
+                # for THIS pinned target → break to the next target,
+                # don't end the whole run.
+                if (
+                    target_cap is not None
+                    and per_target_counts.get(cap_key, 0) >= target_cap
+                ):
+                    logger.info(
+                        f"Per-target cap reached for {cap_key} "
+                        f"({target_cap} leads). Moving to next target."
+                    )
+                    break
+
+                # Global batch limit (defense-in-depth: API validation
+                # already keeps the slider total ≤ this cap, but we still
+                # enforce it at runtime in case env was lowered between
+                # config save and the pipeline run).
                 if discovered_count >= settings.DISCOVERY_BATCH_LIMIT:
                     logger.info(f"Discovery batch limit reached ({settings.DISCOVERY_BATCH_LIMIT}). Stopping current run.")
                     break
@@ -295,6 +488,10 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
                     db.add(lead)
                     await db.commit()
                     discovered_count += 1
+                    # Per-target counter — only meaningful in manual mode,
+                    # but always bumped so the dict stays consistent.
+                    if cap_key in per_target_counts:
+                        per_target_counts[cap_key] = per_target_counts.get(cap_key, 0) + 1
 
             # Outer break if batch limit reached
             if discovered_count >= settings.DISCOVERY_BATCH_LIMIT:

@@ -86,9 +86,28 @@ def _safe_get_redis():
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+# ── Normalized trigger sources ────────────────────────────────────────────────
+# We pin these labels so the frontend can switch on them without doing
+# fuzzy string comparisons. Anything outside this set is coerced to
+# "system" by ``_coerce_triggered_by`` to avoid leaking ad-hoc labels
+# (e.g. caller bugs) into the UI.
+TRIGGER_MANUAL = "manual"
+TRIGGER_SCHEDULER = "scheduler"
+TRIGGER_SYSTEM = "system"
+_KNOWN_TRIGGERS = {TRIGGER_MANUAL, TRIGGER_SCHEDULER, TRIGGER_SYSTEM}
+
+
+def _coerce_triggered_by(value: str | None) -> str:
+    if not value:
+        return TRIGGER_SYSTEM
+    v = str(value).strip().lower()
+    return v if v in _KNOWN_TRIGGERS else TRIGGER_SYSTEM
+
+
 async def enqueue_job(user_id: int | str, stage: str, triggered_by: str = "manual") -> dict:
     """Mark a stage as queued for a specific user. Returns the job record."""
     now = datetime.now(timezone.utc)
+    triggered_by = _coerce_triggered_by(triggered_by)
     job = {
         "stage": stage,
         "user_id": user_id,
@@ -97,6 +116,9 @@ async def enqueue_job(user_id: int | str, stage: str, triggered_by: str = "manua
         "queued_at": now.isoformat(),
         "started_at": None,
         "ended_at": None,
+        # Populated only when status flips to "failed" or "skipped"; the
+        # frontend reads this directly instead of grepping logs.
+        "error_message": None,
         "logs": [f"[{now.strftime('%H:%M:%S')}] Job queued ({triggered_by})"],
     }
     r = _safe_get_redis()
@@ -105,7 +127,7 @@ async def enqueue_job(user_id: int | str, stage: str, triggered_by: str = "manua
     active_map = await _load_map(r, user_id)
     active_map[stage] = job
     await _save_map(r, user_id, active_map)
-    logger.info(f"Pipeline tracker: user={user_id} {stage} queued")
+    logger.info(f"Pipeline tracker: user={user_id} {stage} queued ({triggered_by})")
     return job
 
 
@@ -122,11 +144,12 @@ async def mark_running(user_id: int | str, stage: str) -> None:
             "stage": stage,
             "user_id": user_id,
             "status": "queued",
-            "triggered_by": "scheduler",
+            "triggered_by": TRIGGER_SCHEDULER,
             "queued_at": now.isoformat(),
             "started_at": None,
             "ended_at": None,
-            "logs": [f"[{now.strftime('%H:%M:%S')}] Job queued (scheduler)"],
+            "error_message": None,
+            "logs": [f"[{now.strftime('%H:%M:%S')}] Job queued ({TRIGGER_SCHEDULER})"],
         }
 
     job = active_map[stage]
@@ -161,6 +184,62 @@ async def mark_completed(user_id: int | str, stage: str, message: str = "Complet
 
 async def mark_failed(user_id: int | str, stage: str, error: str = "Unknown error") -> None:
     await _finalize(user_id, stage, "failed", error)
+
+
+async def mark_skipped(user_id: int | str, stage: str, reason: str = "Skipped") -> None:
+    """Finalize a job as ``skipped`` (job didn't run because something is on HOLD).
+
+    Distinguished from ``failed`` so HOLD-driven no-ops don't pollute the
+    failed metric and so the UI can render them in a calmer color than a
+    real exception.
+    """
+    await _finalize(user_id, stage, "skipped", reason)
+
+
+async def record_skipped_run(
+    user_id: int | str,
+    stage: str,
+    reason: str,
+    triggered_by: str = TRIGGER_SCHEDULER,
+) -> None:
+    """Archive a one-off "didn't run" entry directly into the history zset.
+
+    Used when a scheduled run is skipped because another run for the same
+    (user, stage) is still in flight: we want the freelancer to see why
+    nothing happened, but we MUST NOT touch the active-map entry that
+    belongs to the in-flight job — overwriting it would corrupt the live
+    tracker state and cause the running job to surface as "system".
+
+    Unlike ``mark_skipped``, this never reads or mutates ``active_map``;
+    it just writes a synthetic history row with the supplied reason and
+    trigger source.
+    """
+    r = _safe_get_redis()
+    if r is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    job = {
+        "stage": stage,
+        "user_id": user_id,
+        "status": "skipped",
+        "triggered_by": _coerce_triggered_by(triggered_by),
+        "queued_at": now.isoformat(),
+        "started_at": None,
+        "ended_at": now.isoformat(),
+        "error_message": reason,
+        "logs": [f"[{now.strftime('%H:%M:%S')}] {reason}"],
+    }
+
+    try:
+        score = time.time()
+        hist_key = _history_key(user_id)
+        await r.zadd(hist_key, {json.dumps(job): score})
+        total = await r.zcard(hist_key)
+        if total > MAX_HISTORY:
+            await r.zremrangebyrank(hist_key, 0, total - MAX_HISTORY - 1)
+    except Exception as e:
+        logger.warning(f"Pipeline tracker: failed to archive skipped run: {e}")
 
 
 async def get_active_jobs(user_id: int | str) -> dict:
@@ -281,15 +360,26 @@ async def _finalize(user_id: int | str, stage: str, status: str, message: str) -
             "stage": stage,
             "user_id": user_id,
             "status": status,
-            "triggered_by": "unknown",
+            "triggered_by": TRIGGER_SYSTEM,
             "queued_at": now.isoformat(),
             "started_at": now.isoformat(),
+            "error_message": None,
             "logs": [],
         }
+
+    # Backfill the structured error_message slot for older job records
+    # that were enqueued before this field existed.
+    job.setdefault("error_message", None)
 
     job["status"] = status
     job["ended_at"] = now.isoformat()
     job["logs"].append(f"[{now.strftime('%H:%M:%S')}] {message}")
+    # Surface the failure / skip reason as a first-class field so the UI
+    # can show it next to the status badge instead of grepping logs.
+    if status in ("failed", "skipped"):
+        job["error_message"] = message
+    else:
+        job["error_message"] = None
 
     try:
         score = time.time()

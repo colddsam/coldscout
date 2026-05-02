@@ -12,13 +12,13 @@ import { useHealth } from '../../hooks/useConfig';
 import StatusDot from '../ui/StatusDot';
 import Logo from '../ui/Logo';
 import {
-  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, User,
+  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, User, Target,
   BarChart2, Settings, ChevronLeft, LogOut, Home, Heart, AtSign, CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User,
+  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User, Target,
 };
 
 interface SidebarProps {

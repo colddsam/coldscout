@@ -58,6 +58,7 @@ export const NAV_ITEMS = [
   { path: '/overview', label: 'Overview', icon: 'LayoutDashboard', roles: ['freelancer'] },
   { path: '/pipeline', label: 'Pipeline', icon: 'GitBranch', roles: ['freelancer'] },
   { path: '/scheduler', label: 'Scheduler', icon: 'Clock', roles: ['freelancer'] },
+  { path: '/discovery-targets', label: 'Discovery', icon: 'Target', roles: ['freelancer'] },
   { path: '/leads', label: 'Leads CRM', icon: 'Users', roles: ['freelancer'] },
   { path: '/threads', label: 'Threads', icon: 'AtSign', roles: ['freelancer'] },
   { path: '/campaigns', label: 'Campaigns', icon: 'Send', roles: ['freelancer'] },

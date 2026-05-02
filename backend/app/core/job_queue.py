@@ -28,7 +28,12 @@ from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
 
-from app.core.pipeline_tracker import mark_completed, mark_failed, mark_running
+from app.core.pipeline_tracker import (
+    mark_completed,
+    mark_failed,
+    mark_running,
+    mark_skipped,
+)
 
 # ── Stage registry ───────────────────────────────────────────────────────────
 
@@ -126,10 +131,12 @@ async def _queue_worker() -> None:
                 # paused state.
                 global_status = get_production_status()
                 if global_status == "HOLD":
+                    # Surface as 'skipped' (not 'failed') — the pipeline
+                    # is intentionally paused, this isn't an exception.
                     await mark_running(user_id, stage_name)
-                    await mark_failed(
+                    await mark_skipped(
                         user_id, stage_name,
-                        "Skipped: global PRODUCTION_STATUS is HOLD",
+                        "Skipped: global production status is HOLD",
                     )
                     continue
 
@@ -138,9 +145,9 @@ async def _queue_worker() -> None:
                 )
                 if not job_active:
                     await mark_running(user_id, stage_name)
-                    await mark_failed(
+                    await mark_skipped(
                         user_id, stage_name,
-                        f"Skipped: {stage_name} is on HOLD",
+                        f"Skipped: {stage_name} is on HOLD for this user",
                     )
                     continue
 

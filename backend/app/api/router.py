@@ -18,6 +18,7 @@ from app.api.v1.threads import public_router as threads_public, router as thread
 from app.api.v1.public_demos import router as public_demos_router
 from app.api.v1.booking import router as booking_router
 from app.api.v1.seo import router as seo_router
+from app.api.v1.discovery_config import router as discovery_config_router
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -48,6 +49,7 @@ private_router.include_router(campaigns.router, tags=["campaigns"])
 private_router.include_router(reports.router, tags=["reports"])
 private_router.include_router(threads_private, tags=["threads"])
 private_router.include_router(billing.router, tags=["billing"])
+private_router.include_router(discovery_config_router, tags=["discovery-config"])
 
 # Aggregated versioned router
 api_router = APIRouter()

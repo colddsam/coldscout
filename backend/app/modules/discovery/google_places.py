@@ -200,7 +200,15 @@ class GooglePlacesClient:
                 return data.get("places", [])
 
             except httpx.HTTPStatusError as e:
-                logger.error(f"Google API returned error status: {e.response.status_code}")
+                body_excerpt = ""
+                try:
+                    body_excerpt = e.response.text[:400]
+                except Exception:
+                    pass
+                logger.error(
+                    f"Google API error: {e.response.status_code} for query={query!r} "
+                    f"regionCode={country_code!r} | body: {body_excerpt}"
+                )
                 return []
             except Exception as e:
                 logger.exception(f"Unexpected error during Google Places discovery for: {query}")
@@ -260,11 +268,22 @@ class GooglePlacesClient:
                     await asyncio.sleep(0.5)
 
                 except httpx.HTTPStatusError as e:
+                    # Surface Google's actual error reason (e.g. "Invalid
+                    # value at 'region_code'", "Quota exceeded") instead
+                    # of just the status code, which is essential for
+                    # diagnosing per-target failures in manual mode.
+                    body_excerpt = ""
+                    try:
+                        body_excerpt = e.response.text[:400]
+                    except Exception:
+                        pass
                     logger.error(
-                        f"Google API page {page + 1} error: {e.response.status_code}"
+                        f"Google API page {page + 1} error: "
+                        f"{e.response.status_code} for query={query!r} "
+                        f"regionCode={country_code!r} | body: {body_excerpt}"
                     )
                     break
-                except Exception as e:
+                except Exception:
                     logger.exception(
                         f"Unexpected error on page {page + 1} for: {query}"
                     )

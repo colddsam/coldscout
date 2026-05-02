@@ -174,13 +174,45 @@ export interface HealthResponse {
   production_status: boolean;
 }
 
+/**
+ * How a pipeline run was kicked off.
+ *
+ * - 'manual'    — user clicked Run Stage / Run Full Pipeline.
+ * - 'scheduler' — APScheduler fired the cron / interval trigger.
+ * - 'system'    — fallback for jobs whose origin couldn't be determined
+ *   (e.g. legacy entries, or a stage finalized without a prior enqueue).
+ */
+export type JobTriggerSource = 'manual' | 'scheduler' | 'system';
+
+/**
+ * Status values surfaced by the pipeline tracker.
+ *
+ * 'skipped' is distinct from 'failed' — it means the run did not execute
+ * because the pipeline is intentionally paused (global or per-freelancer
+ * HOLD). The UI renders these in a calmer color than real failures.
+ */
+export type PipelineJobStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'skipped';
+
 export interface ActiveStageJob {
   stage: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
-  triggered_by: string;
+  status: PipelineJobStatus;
+  triggered_by: JobTriggerSource | string;
   queued_at: string;
   started_at: string | null;
   ended_at: string | null;
+  /** Populated when status is 'failed' or 'skipped'; null otherwise. */
+  error_message: string | null;
+  /**
+   * Owner of the run. Returned by the superuser cross-user endpoints
+   * (history-all + active-all). Plain freelancer queries always show
+   * the caller's own runs, so this can be missing/null in that case.
+   */
+  user_id?: number | string | null;
   logs: string[];
 }
 
@@ -200,11 +232,18 @@ export interface PipelineStatusResponse {
 
 export interface PipelineHistoryEntry {
   stage: string;
-  status: 'completed' | 'failed';
-  triggered_by: string;
+  status: PipelineJobStatus;
+  triggered_by: JobTriggerSource | string;
   queued_at: string;
   started_at: string | null;
   ended_at: string | null;
+  /** Populated when status is 'failed' or 'skipped'; null otherwise. */
+  error_message: string | null;
+  /**
+   * Owner of the run. Set by the cross-user superuser history view; for
+   * a freelancer's own ?user_id=me view this can be missing/null.
+   */
+  user_id?: number | string | null;
   logs: string[];
 }
 
@@ -1087,3 +1126,101 @@ export const verifyProfileFields = (fields: string[]) =>
 
 export const getVerificationStatus = () =>
   client.get<VerificationStatusResponse>('/api/v1/profile/me/verification-status').then((r) => r.data);
+
+// ── Discovery Targets (per-freelancer manual override) ──────────
+
+export type DiscoveryDepth = 'sub_area' | 'city' | 'region' | 'country';
+
+export interface DiscoveryTarget {
+  country?: string | null;
+  country_code?: string | null;
+  region?: string | null;
+  city: string;
+  sub_area?: string | null;
+  category: string;
+  location_depth: DiscoveryDepth;
+  max_results: number;
+}
+
+export interface DiscoveryConfig {
+  auto_mode_enabled: boolean;
+  pinned_targets: DiscoveryTarget[];
+  total_max_results: number;
+  batch_limit: number;
+  max_targets: number;
+  updated_at: string | null;
+}
+
+export interface DiscoveryConfigUpdate {
+  auto_mode_enabled: boolean;
+  pinned_targets: DiscoveryTarget[];
+}
+
+export interface DiscoveryLimits {
+  batch_limit: number;
+  max_targets: number;
+  min_results_per_target: number;
+  allowed_depths: DiscoveryDepth[];
+  depth_radius_km: Record<DiscoveryDepth, number>;
+}
+
+export interface DiscoveryHistoryEntry {
+  id: string;
+  country: string | null;
+  country_code: string | null;
+  region: string | null;
+  city: string;
+  sub_area: string | null;
+  category: string;
+  location_depth: string;
+  results_count: number;
+  created_at: string;
+}
+
+export type DiscoveryPreviewMode = 'auto' | 'manual' | 'auto_fallback';
+
+export interface DiscoveryPreviewTarget {
+  source: 'manual' | 'auto';
+  city: string;
+  category: string;
+  sub_area?: string | null;
+  region?: string | null;
+  country?: string | null;
+  country_code?: string | null;
+  location_depth: string;
+  max_results?: number | null;
+}
+
+export interface DiscoveryPreview {
+  mode: DiscoveryPreviewMode;
+  note?: string | null;
+  targets: DiscoveryPreviewTarget[];
+}
+
+export const getDiscoveryConfig = () =>
+  client.get<DiscoveryConfig>('/api/v1/discovery-config').then((r) => r.data);
+
+export const updateDiscoveryConfig = (payload: DiscoveryConfigUpdate) =>
+  client.put<DiscoveryConfig>('/api/v1/discovery-config', payload).then((r) => r.data);
+
+export const getDiscoveryLimits = () =>
+  client.get<DiscoveryLimits>('/api/v1/discovery-config/limits').then((r) => r.data);
+
+export const getDiscoveryCategories = () =>
+  client
+    .get<{ categories: string[] }>('/api/v1/discovery-config/categories')
+    .then((r) => r.data.categories);
+
+export const getDiscoveryHistory = (days = 60) =>
+  client
+    .get<DiscoveryHistoryEntry[]>('/api/v1/discovery-config/history', { params: { days } })
+    .then((r) => r.data);
+
+export const deleteDiscoveryHistoryEntry = (id: string) =>
+  client.delete(`/api/v1/discovery-config/history/${id}`).then((r) => r.data);
+
+export const clearAllDiscoveryHistory = () =>
+  client.delete<{ deleted: number }>('/api/v1/discovery-config/history').then((r) => r.data);
+
+export const previewDiscoveryRun = () =>
+  client.get<DiscoveryPreview>('/api/v1/discovery-config/preview').then((r) => r.data);
