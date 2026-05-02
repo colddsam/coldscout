@@ -79,7 +79,15 @@ async def advisory_lock(lock_name: str, timeout: int = 5, raise_on_fail: bool = 
         finally:
             if locked:
                 try:
-                    await session.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": lock_id})
+                    # ``asyncio.shield`` keeps the unlock from being aborted
+                    # mid-flight if the surrounding task was cancelled (e.g.
+                    # uvicorn shutdown). Postgres also releases session-level
+                    # locks when the connection closes, so even if shield
+                    # fails the lock is not leaked beyond the lifetime of
+                    # the SQLAlchemy connection.
+                    await asyncio.shield(
+                        session.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": lock_id})
+                    )
                     logger.debug(f"Released advisory lock: {lock_name}")
                 except Exception as e:
                     # If the connection is closed, the lock is already released by Postgres.

@@ -14,6 +14,9 @@ via ``get_current_user``. The OAuth callback is the only exception — it uses
 state-token cookies to bind the incoming redirect to the user who initiated
 the flow (see oauth_callback docstring).
 """
+import base64
+import hashlib
+import hmac
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
@@ -33,6 +36,59 @@ from app.modules.threads.rate_limiter import ThreadsRateLimiter
 from app.modules.threads.discovery import run_threads_discovery
 from app.modules.threads.qualifier import run_threads_qualification
 from app.modules.threads.engagement import run_threads_engagement, check_engagement_responses
+
+
+# ── OAuth state signing ──────────────────────────────────────────
+#
+# The Threads OAuth callback is unauthenticated by design (Meta redirects
+# straight to it after the user approves the app). To bind the incoming
+# code to the freelancer who *initiated* the flow we sign the state value
+# with the application's SECURITY_SALT. An attacker who tries to forge a
+# callback URL with a chosen ``state`` won't have the secret, so the HMAC
+# check fails and we reject the request rather than silently writing the
+# token under the wrong user.
+
+def _build_threads_oauth_state(user_id: int) -> str:
+    """Return ``"{user_id}.{base64-hmac}"`` — bind the OAuth flow to a user."""
+    payload = str(int(user_id)).encode("utf-8")
+    sig = hmac.new(
+        settings.SECURITY_SALT.encode("utf-8"),
+        payload,
+        hashlib.sha256,
+    ).digest()
+    return f"{payload.decode()}.{base64.urlsafe_b64encode(sig).rstrip(b'=').decode()}"
+
+
+def _parse_threads_oauth_state(state: str | None) -> int | None:
+    """Validate the signed state token from the OAuth callback.
+
+    Returns the user_id when the signature matches; otherwise None.
+    Returning None — rather than raising — keeps the legacy
+    "no state-bound user" path intact: callers may still proceed in
+    single-tenant mode, but a *forged* state will never resolve to a
+    user_id and cannot redirect tokens to a victim's account.
+    """
+    if not state or "." not in state:
+        return None
+    payload, b64_sig = state.split(".", 1)
+    try:
+        # Re-pad URL-safe base64 before decoding
+        padded = b64_sig + "=" * (-len(b64_sig) % 4)
+        provided_sig = base64.urlsafe_b64decode(padded.encode("utf-8"))
+    except Exception:
+        return None
+
+    expected = hmac.new(
+        settings.SECURITY_SALT.encode("utf-8"),
+        payload.encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    if not hmac.compare_digest(provided_sig, expected):
+        return None
+    try:
+        return int(payload)
+    except ValueError:
+        return None
 
 settings = get_settings()
 
@@ -66,20 +122,23 @@ async def oauth_callback(code: str, state: str | None = None):
     Handles the OAuth redirect from Meta after the user authorizes the app.
     Exchanges the auth code for tokens and stores them.
 
-    NOTE: The originating freelancer's ``user_id`` must be encoded into
-    ``state`` when the OAuth flow is initiated; the token is then persisted
-    against that user. Without a state-bound user_id the token is stored
-    with user_id=NULL (global/legacy), which is only useful in single-tenant
-    deployments.
+    NOTE: The originating freelancer's ``user_id`` is bound to the flow via
+    a signed ``state`` parameter (HMAC over user_id with SECURITY_SALT).
+    A forged or unsigned state resolves to ``None`` and the token is stored
+    with ``user_id=NULL`` rather than under an attacker-chosen user id —
+    this prevents an OAuth-confused-deputy attack where a victim's account
+    would otherwise be linked to the attacker's Threads identity.
     """
     try:
-        # Decode the user_id from the state token (set when the flow started)
-        initiating_user_id: int | None = None
-        if state:
-            try:
-                initiating_user_id = int(state)
-            except ValueError:
-                initiating_user_id = None
+        # Validate the signed state token. ``None`` is acceptable for
+        # single-tenant / legacy callers; only a *valid signature* maps the
+        # incoming code to a specific freelancer.
+        initiating_user_id: int | None = _parse_threads_oauth_state(state)
+        if state and initiating_user_id is None:
+            logger.warning(
+                "Threads OAuth callback received with invalid state signature; "
+                "storing token without user binding."
+            )
 
         short_lived = await ThreadsAPIClient.exchange_code_for_short_lived_token(code)
         short_token = short_lived.get("access_token")
@@ -110,6 +169,22 @@ async def oauth_callback(code: str, state: str | None = None):
     except Exception as e:
         logger.exception("Threads OAuth callback failed")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── OAuth Initiation (PRIVATE — provides a signed state) ──────────
+
+@router.get("/oauth/start")
+async def threads_oauth_start(current_user: User = Depends(get_current_user)):
+    """Returns a signed OAuth ``state`` parameter for the authenticated user.
+
+    The frontend uses this value when constructing the Meta OAuth URL so
+    that, on callback, the server can prove which freelancer initiated
+    the flow and bind the token to their account.
+    """
+    return {
+        "user_id": current_user.id,
+        "state": _build_threads_oauth_state(current_user.id),
+    }
 
 
 # ── Search Config Management (PRIVATE) ──────────────────────────

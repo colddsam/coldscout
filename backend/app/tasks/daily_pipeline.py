@@ -462,27 +462,42 @@ async def run_qualification_stage(manual: bool = False, user_id: Optional[int] =
 
 import hmac
 import hashlib
+import secrets
 
 def _generate_tracking_token(lead_id, campaign_id) -> str:
     """
     Generates a secure, URL-safe base64 token for tracking email engagement.
     Includes an HMAC signature for integrity and to prevent IDOR attacks.
+
+    A short random nonce is appended to the payload so two EmailOutreach
+    rows for the same (lead, campaign) — produced when a freelancer
+    retries a manual send the same day (Unlock + Send), or when the daily
+    outreach stage retries after an SMTP failure — receive different
+    tokens. EmailOutreach.tracking_token has a UNIQUE constraint, so
+    without the nonce the second INSERT would raise IntegrityError and
+    strand the lead.
+
+    Token format: ``base64(lead_id_campaign_id_nonce).base64(hmac_sig)``.
+    Downstream consumers that only need ``lead_id`` (unsubscribe.py) split
+    the payload on the first underscore, so the extra nonce segment is
+    transparent to them.
     """
-    payload = f"{lead_id}_{campaign_id}"
+    nonce = secrets.token_urlsafe(6)
+    payload = f"{lead_id}_{campaign_id}_{nonce}"
     secret = settings.SECURITY_SALT.encode()
-    
+
     # Calculate signature
     signature = hmac.new(
         secret,
         payload.encode(),
         hashlib.sha256
     ).digest()
-    
+
     # Bundle payload + signature
     # Format: base64(payload) . base64(signature)
     b64_payload = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
     b64_sig = base64.urlsafe_b64encode(signature).decode().rstrip("=")
-    
+
     return f"{b64_payload}.{b64_sig}"
 
 
@@ -778,7 +793,34 @@ async def run_outreach_stage(manual: bool = False, user_id: Optional[int] = None
 
                 except Exception as e:
                     logger.error(f"Error during email dispatch or DB update for task {email_task.id}: {e}")
+                    # Reset both the EmailOutreach AND the parent Lead so the
+                    # send is retryable. Without this the Lead stays at
+                    # ``queued_for_send`` and the EmailOutreach stays at
+                    # ``failed`` — neither the next personalization run
+                    # (which queries ``qualified``) nor the next outreach
+                    # run (which queries ``queued``) would ever pick it
+                    # up again, leaving the lead permanently stranded.
                     email_task.status = "failed"
+                    try:
+                        l_res = await db.execute(
+                            select(Lead).where(Lead.id == email_task.lead_id)
+                        )
+                        failed_lead = l_res.scalars().first()
+                        if failed_lead and failed_lead.status == "queued_for_send":
+                            failed_lead.status = "qualified"
+                            failed_lead.email_sent_at = None
+                            failed_lead.followup_sequence_active = False
+                            failed_lead.next_followup_at = None
+                        await db.commit()
+                    except Exception as rollback_err:
+                        logger.warning(
+                            f"Failed to reset lead state after SMTP failure for "
+                            f"task {email_task.id}: {rollback_err}"
+                        )
+                        try:
+                            await db.rollback()
+                        except Exception:
+                            pass
                 finally:
                     # Clean up temp PDF/XLSX regardless of DB/SMTP outcome
                     if attachments:

@@ -55,6 +55,23 @@ def _apply_job_config(job_id: str, func, cfg: dict, misfire_grace_time_default: 
         scheduler.pause_job(job_id)
 
 
+def _trigger_signature(trigger) -> tuple:
+    """Return a hashable, version-stable representation of an APScheduler trigger.
+
+    APScheduler's ``__str__`` is informational and varies across versions
+    and even between equivalent triggers (different field ordering, units).
+    We compare structured fields instead so the heartbeat doesn't either
+    (a) keep rescheduling every 60 s because the formatted strings differ
+    or (b) miss a real config change because the strings happen to match.
+    """
+    if isinstance(trigger, CronTrigger):
+        # Each CronTrigger.field has a stable repr we can stringify safely.
+        return ("cron", tuple((f.name, str(f)) for f in trigger.fields))
+    if isinstance(trigger, IntervalTrigger):
+        return ("interval", trigger.interval.total_seconds())
+    return ("other", repr(trigger))
+
+
 async def sync_scheduler_config():
     """Heartbeat: refresh DB cache, then reconcile live APScheduler state."""
     config = await job_manager.refresh_global_cache()
@@ -74,7 +91,7 @@ async def sync_scheduler_config():
             logger.info(f"⏸️ Paused Job: {job_id}")
 
         new_trigger = _build_trigger(cfg)
-        if new_trigger and str(new_trigger) != str(job.trigger):
+        if new_trigger and _trigger_signature(new_trigger) != _trigger_signature(job.trigger):
             scheduler.reschedule_job(job_id, trigger=new_trigger)
             logger.info(f"🔄 Rescheduled {job_id} -> {new_trigger}")
 

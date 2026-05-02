@@ -101,7 +101,31 @@ client.interceptors.response.use(
       }
     }
 
-    const msg = err.response?.data?.detail || err.message || 'Unknown error';
+    // Normalize the error message so toast() / .message reads cleanly.
+    // FastAPI/Pydantic returns either a string ("Lead not found"), a list
+    // of validation issues ([{loc, msg, type}, ...]), or rarely a nested
+    // object. Coerce all three into a single human-readable string so we
+    // never display "[object Object]" or comma-joined garbage.
+    const detail = err.response?.data?.detail;
+    let msg: string;
+    if (typeof detail === 'string') {
+      msg = detail;
+    } else if (Array.isArray(detail)) {
+      msg = detail
+        .map((d: unknown) => {
+          if (typeof d === 'string') return d;
+          if (d && typeof d === 'object' && 'msg' in d) {
+            return String((d as { msg?: unknown }).msg ?? '');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join('; ') || 'Validation error';
+    } else if (detail && typeof detail === 'object') {
+      msg = JSON.stringify(detail);
+    } else {
+      msg = err.message || 'Unknown error';
+    }
     return Promise.reject(new Error(msg));
   }
 );

@@ -178,10 +178,10 @@ export default function App() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
           },
           success: {
-            iconTheme: { primary: '#33CC66', secondary: '#1C1C1C' },
+            iconTheme: { primary: '#FFFFFF', secondary: '#1C1C1C' },
           },
           error: {
-            iconTheme: { primary: '#FF4444', secondary: '#1C1C1C' },
+            iconTheme: { primary: '#E0E0E0', secondary: '#1C1C1C' },
           },
         }}
       />

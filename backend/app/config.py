@@ -557,8 +557,16 @@ def set_env_variable(key: str, value: str):
     """
     Updates a given key-value pair in both os.environ (for immediate in-process effect)
     and the .env file (for best-effort persistence across restarts).
+
+    The .env update is atomic: it writes to a sibling temp file and
+    ``os.replace``s it over the original, so a process crash mid-write
+    cannot leave a truncated .env that fails Pydantic validation on next
+    boot. Errors are logged rather than swallowed silently so the
+    operator notices a misconfigured filesystem.
     """
     import re
+    import tempfile
+
     # Validate key to prevent injection into .env files
     if not re.match(r'^[A-Z][A-Z0-9_]*$', key):
         raise ValueError(f"Invalid environment variable name: {key}")
@@ -566,26 +574,55 @@ def set_env_variable(key: str, value: str):
     # Update in-process environment so all runtime reads see the change immediately
     os.environ[key] = value
 
-    # Best-effort .env file persistence (useful for local dev, no-op effect on Render)
+    # Best-effort .env file persistence (useful for local dev, no-op effect on Render).
     env_file = ".env"
     try:
-        if not os.path.exists(env_file):
-            with open(env_file, "w") as f:
-                f.write(f"{key}={value}\n")
-            return
-
-        with open(env_file, "r") as f:
-            lines = f.readlines()
+        existing_lines: list[str] = []
+        if os.path.exists(env_file):
+            with open(env_file, "r", encoding="utf-8") as f:
+                existing_lines = f.readlines()
 
         key_found = False
-        with open(env_file, "w") as f:
-            for line in lines:
-                if line.startswith(f"{key}="):
-                    f.write(f"{key}={value}\n")
-                    key_found = True
-                else:
-                    f.write(line)
-            if not key_found:
-                f.write(f"{key}={value}\n")
-    except OSError:
-        pass  # .env write is best-effort; os.environ update above is what matters
+        new_lines: list[str] = []
+        for line in existing_lines:
+            if line.startswith(f"{key}="):
+                new_lines.append(f"{key}={value}\n")
+                key_found = True
+            else:
+                new_lines.append(line)
+        if not key_found:
+            new_lines.append(f"{key}={value}\n")
+
+        # Write to a temp file in the same directory, fsync, then atomic
+        # rename. Same-directory placement keeps os.replace atomic on the
+        # underlying filesystem.
+        target_dir = os.path.dirname(os.path.abspath(env_file)) or "."
+        fd, tmp_path = tempfile.mkstemp(prefix=".env.", dir=target_dir)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+                tmp.writelines(new_lines)
+                tmp.flush()
+                try:
+                    os.fsync(tmp.fileno())
+                except OSError:
+                    # fsync isn't supported on every filesystem (e.g. some
+                    # network mounts); the replace is still atomic on the
+                    # underlying inode swap.
+                    pass
+            os.replace(tmp_path, env_file)
+        except Exception:
+            # Clean up temp file so we don't litter the directory on failure.
+            if os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            raise
+    except OSError as e:
+        # .env write is best-effort; os.environ update above is what matters.
+        # Logged (rather than silently swallowed) so a broken FS is visible.
+        try:
+            from loguru import logger
+            logger.warning(f"set_env_variable: failed to persist {key} to .env: {e}")
+        except Exception:
+            pass

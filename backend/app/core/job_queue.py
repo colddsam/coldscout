@@ -87,7 +87,20 @@ async def _ensure_worker() -> None:
 
 
 async def _queue_worker() -> None:
-    """Pulls jobs from the shared queue one at a time and runs them serially."""
+    """Pulls jobs from the shared queue one at a time and runs them serially.
+
+    Liveness contract: the worker exits ONLY when the queue has been idle
+    for 60 s. Any exception inside an iteration — including failures in
+    the tracker (mark_running / mark_failed / mark_completed) — is logged
+    and the loop continues, so a transient Redis blip can never kill the
+    consumer.
+
+    Exit-race protection: when the loop exits we re-check the queue under
+    the worker lock. If a job arrived during our shutdown window and a
+    concurrent ``_ensure_worker`` short-circuited because it saw
+    ``_worker_running == True``, we re-spawn ourselves so the job is not
+    stranded forever.
+    """
     global _worker_running
     from app.core.job_manager import job_manager
     from app.config import get_production_status
@@ -95,9 +108,16 @@ async def _queue_worker() -> None:
     q = _get_queue()
     try:
         while True:
-            stage_name, stage_func, manual, user_id = await asyncio.wait_for(
-                q.get(), timeout=60.0
-            )
+            try:
+                stage_name, stage_func, manual, user_id = await asyncio.wait_for(
+                    q.get(), timeout=60.0
+                )
+            except asyncio.TimeoutError:
+                # Idle — break out of the loop so the finally clause can
+                # decide whether to re-spawn (queue may have grown after
+                # the timeout fired but before we acquired the lock).
+                break
+
             try:
                 # Pre-check: if the job or global pipeline is on HOLD, mark
                 # the run as failed instead of silently returning and
@@ -139,20 +159,41 @@ async def _queue_worker() -> None:
                     user_id, stage_name, f"{stage_name} completed successfully"
                 )
             except Exception as e:
-                await mark_failed(
-                    user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}"
-                )
+                # Best-effort failure mark. Wrapped because mark_failed
+                # itself could raise (e.g. Redis is down) — we must NOT
+                # let that kill the worker for every subsequent job.
+                try:
+                    await mark_failed(
+                        user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}"
+                    )
+                except Exception as mark_err:
+                    logger.warning(
+                        f"Tracker mark_failed itself raised for {stage_name}: {mark_err}"
+                    )
                 logger.exception(
                     f"Tracked stage {stage_name} failed for user {user_id}"
                 )
             finally:
                 q.task_done()
-    except asyncio.TimeoutError:
-        # No jobs for 60s — worker exits; it will restart on the next trigger.
-        pass
+    except asyncio.CancelledError:
+        # Process shutdown — let the cancellation propagate after cleanup.
+        raise
+    except Exception:
+        # Any other unexpected error in the loop scaffolding (not a job
+        # iteration) — log it but treat it as worker exit.
+        logger.exception("Queue worker loop crashed; will be re-spawned on next enqueue.")
     finally:
+        # Atomic swap: under the worker lock, decide whether to re-spawn or
+        # genuinely release the running flag.
         async with _worker_lock:
-            _worker_running = False
+            if _get_queue().qsize() > 0:
+                # Producer enqueued during our shutdown window. Spawn a
+                # fresh worker and keep ``_worker_running`` True so no one
+                # races us in.
+                logger.debug("Queue worker re-spawning: jobs arrived during exit.")
+                asyncio.create_task(_queue_worker())
+            else:
+                _worker_running = False
 
 
 # ── Public enqueue API ───────────────────────────────────────────────────────

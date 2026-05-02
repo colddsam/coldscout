@@ -58,11 +58,17 @@ async def _load_map(r, user_id: int | str) -> dict:
 
 
 async def _save_map(r, user_id: int | str, active_map: dict) -> None:
-    """Persist the user's active-stages map to Redis (single SET)."""
+    """Persist the user's active-stages map to Redis (single SET).
+
+    A 24 h TTL is attached so a worker crash mid-stage cannot leave a
+    "running" entry visible in the Pipeline Log forever. The TTL is well
+    over the longest legitimate stage duration; in healthy operation
+    ``_finalize`` empties the map and we DELETE it before the TTL fires.
+    """
     key = _active_map_key(user_id)
     try:
         if active_map:
-            await r.set(key, json.dumps(active_map))
+            await r.set(key, json.dumps(active_map), ex=86400)
         else:
             await r.delete(key)
     except Exception as e:
@@ -187,53 +193,58 @@ async def get_active_jobs_all_users() -> dict:
 
     Returns a flat dict keyed by ``"{user_id}:{stage}"`` so the caller can
     render a single combined view across all freelancers.
+
+    Uses ``SCAN`` (non-blocking, cursor-based) instead of ``KEYS`` so this
+    can't stall the Redis server as the user count grows.
     """
     r = _safe_get_redis()
     if r is None:
         return {}
-    try:
-        keys = await r.keys(f"{_ACTIVE_MAP_PREFIX}:*")
-    except Exception as e:
-        logger.warning(f"Pipeline tracker: failed to scan active-map keys: {e}")
-        return {}
 
     combined: dict = {}
-    for k in keys:
-        key = k.decode() if isinstance(k, (bytes, bytearray)) else k
-        uid = key.rsplit(":", 1)[-1]
-        try:
-            raw = await r.get(key)
-            data = json.loads(raw) if raw else {}
-        except Exception:
-            continue
-        for stage, job in data.items():
-            combined[f"{uid}:{stage}"] = job
+    try:
+        async for k in r.scan_iter(match=f"{_ACTIVE_MAP_PREFIX}:*", count=100):
+            key = k.decode() if isinstance(k, (bytes, bytearray)) else k
+            uid = key.rsplit(":", 1)[-1]
+            try:
+                raw = await r.get(key)
+                data = json.loads(raw) if raw else {}
+            except Exception:
+                continue
+            for stage, job in data.items():
+                combined[f"{uid}:{stage}"] = job
+    except Exception as e:
+        logger.warning(f"Pipeline tracker: failed to scan active-map keys: {e}")
+        return combined
     return combined
 
 
 async def get_job_history_all_users(limit: int = 50, offset: int = 0) -> list:
-    """Aggregate recent job history across all users (newest first). Superuser-only."""
+    """Aggregate recent job history across all users (newest first). Superuser-only.
+
+    Uses ``SCAN`` instead of ``KEYS`` for the same reason as
+    ``get_active_jobs_all_users``.
+    """
     r = _safe_get_redis()
     if r is None:
         return []
+
+    all_entries: list[tuple[float, dict]] = []
     try:
-        keys = await r.keys(f"{_HISTORY_PREFIX}:*")
+        async for k in r.scan_iter(match=f"{_HISTORY_PREFIX}:*", count=100):
+            key = k.decode() if isinstance(k, (bytes, bytearray)) else k
+            try:
+                entries = await r.zrevrangebyscore(key, "+inf", "-inf", withscores=True)
+            except Exception:
+                continue
+            for raw, score in entries:
+                try:
+                    all_entries.append((score, json.loads(raw)))
+                except (json.JSONDecodeError, TypeError):
+                    continue
     except Exception as e:
         logger.warning(f"Pipeline tracker: failed to scan history keys: {e}")
         return []
-
-    all_entries: list[tuple[float, dict]] = []
-    for k in keys:
-        key = k.decode() if isinstance(k, (bytes, bytearray)) else k
-        try:
-            entries = await r.zrevrangebyscore(key, "+inf", "-inf", withscores=True)
-        except Exception:
-            continue
-        for raw, score in entries:
-            try:
-                all_entries.append((score, json.loads(raw)))
-            except (json.JSONDecodeError, TypeError):
-                continue
 
     all_entries.sort(key=lambda x: x[0], reverse=True)
     sliced = all_entries[offset: offset + limit]

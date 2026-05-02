@@ -89,7 +89,7 @@ export default function LeadOutreachActions({
           icon={<MessageCircle className="w-3.5 h-3.5" />}
           onClick={handleWhatsapp}
           className={cn(
-            'bg-emerald-500 text-white hover:bg-emerald-400 border-emerald-400/60',
+            'bg-white text-black hover:bg-white/90 border-white/40',
             compact && 'min-w-[120px]',
           )}
         >
@@ -127,7 +127,7 @@ export default function LeadOutreachActions({
           {isRetry ? 'Retry Send' : 'Send Now'}
         </Button>
         {isRetry && data?.manual_error && !compact && (
-          <p className="text-[11px] text-red-400/80 flex items-start gap-1">
+          <p className="text-[11px] text-white/60 flex items-start gap-1">
             <AlertTriangle className="w-3 h-3 mt-[1px] flex-shrink-0" />
             <span className="truncate" title={data.manual_error}>
               {data.manual_error}

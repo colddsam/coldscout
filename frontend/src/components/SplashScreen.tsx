@@ -76,7 +76,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           width: '340px',
           height: '340px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124,122,237,0.18) 0%, rgba(124,122,237,0.04) 50%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 50%, transparent 70%)',
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'scale(1)' : 'scale(0.5)',
           transition: 'opacity 1s ease 0.2s, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s',
@@ -92,7 +92,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           width: '180px',
           height: '180px',
           borderRadius: '50%',
-          border: '1px solid rgba(124,122,237,0.12)',
+          border: '1px solid rgba(255,255,255,0.08)',
           opacity: isVisible ? 1 : 0,
           transition: 'opacity 0.8s ease 0.6s',
           animation: isVisible ? 'splash-orbit-spin 8s linear infinite' : 'none',
@@ -108,8 +108,8 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: '#7C7AED',
-            boxShadow: '0 0 12px 3px rgba(124,122,237,0.5)',
+            background: '#FFFFFF',
+            boxShadow: '0 0 12px 2px rgba(255,255,255,0.3)',
           }}
         />
       </div>
@@ -126,7 +126,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.7) translateY(16px)',
           transition: 'opacity 0.6s ease 0.1s, transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s',
-          filter: 'drop-shadow(0 0 24px rgba(124,122,237,0.25))',
+          filter: 'grayscale(1) brightness(1.2) drop-shadow(0 0 24px rgba(255,255,255,0.15))',
         }}
       />
 
@@ -173,7 +173,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           fontFamily: "'Almarai', sans-serif",
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          color: 'rgba(176, 176, 176, 0.8)',
+          color: 'rgba(255, 255, 255, 0.4)',
           opacity: isVisible ? 1 : 0,
           transform: isVisible ? 'translateY(0)' : 'translateY(10px)',
           transition: 'opacity 0.5s ease 1.1s, transform 0.5s ease 1.1s',
@@ -202,7 +202,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
           style={{
             height: '100%',
             borderRadius: '2px',
-            background: 'linear-gradient(90deg, #7C7AED, #9794F1)',
+            background: 'linear-gradient(90deg, #FFFFFF, #666666)',
             animation: isVisible ? 'splash-progress 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s forwards' : 'none',
             width: '0%',
           }}
@@ -220,7 +220,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
               width: '2px',
               height: '2px',
               borderRadius: '50%',
-              background: 'rgba(124,122,237,0.4)',
+              background: 'rgba(255,255,255,0.2)',
               left: `${15 + i * 14}%`,
               bottom: '-4px',
               opacity: isVisible ? 1 : 0,

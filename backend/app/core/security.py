@@ -7,6 +7,7 @@ backbone of the administrative authentication layer.
 
 Supports both legacy JWT tokens and Supabase Auth tokens.
 """
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union, Optional, Dict
 from jose import jwt
@@ -19,26 +20,58 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# Cache for Supabase JWKS (public keys for ES256 verification)
+# Cache for Supabase JWKS (public keys for ES256 verification).
+# Refreshes are coalesced behind a single asyncio.Lock so a kid-rotation
+# storm doesn't fire N concurrent network calls.
 _jwks_cache: Optional[Dict] = None
+_jwks_lock: Optional[asyncio.Lock] = None
+
+
+def _get_jwks_lock() -> asyncio.Lock:
+    """Lazy-init the JWKS refresh lock so it binds to the running event loop."""
+    global _jwks_lock
+    if _jwks_lock is None:
+        _jwks_lock = asyncio.Lock()
+    return _jwks_lock
+
+
+async def _fetch_supabase_jwks(force: bool = False) -> Optional[Dict]:
+    """Fetch and cache Supabase JWKS without blocking the event loop.
+
+    Args:
+        force: When True, bypass the cached entry — used after a kid miss to
+            force a single re-fetch on rotation.
+    """
+    global _jwks_cache
+    if _jwks_cache is not None and not force:
+        return _jwks_cache
+
+    async with _get_jwks_lock():
+        # Re-check inside the critical section — another caller may have
+        # populated the cache while we were waiting on the lock.
+        if _jwks_cache is not None and not force:
+            return _jwks_cache
+        try:
+            url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                _jwks_cache = response.json()
+            logger.info("Successfully fetched and cached Supabase JWKS.")
+            return _jwks_cache
+        except Exception as e:
+            logger.error(f"Failed to fetch Supabase JWKS: {e}")
+            return None
 
 
 def _get_supabase_jwks() -> Optional[Dict]:
-    """Fetch and cache Supabase JWKS (JSON Web Key Set) for ES256 token verification."""
-    global _jwks_cache
-    if _jwks_cache is not None:
-        return _jwks_cache
+    """Sync compatibility wrapper.
 
-    try:
-        url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
-        response = httpx.get(url, timeout=10.0)
-        response.raise_for_status()
-        _jwks_cache = response.json()
-        logger.info("Successfully fetched and cached Supabase JWKS.")
-        return _jwks_cache
-    except Exception as e:
-        logger.error(f"Failed to fetch Supabase JWKS: {e}")
-        return None
+    Prefer ``_fetch_supabase_jwks`` from async contexts. This shim exists
+    only for any rare sync caller; it returns the cache if populated and
+    None otherwise, never blocking the event loop with a sync HTTP call.
+    """
+    return _jwks_cache
 
 ALGORITHM = "HS256"
 
@@ -68,7 +101,7 @@ def create_access_token(subject: Union[str, Any], expires_delta: timedelta = Non
     return encoded_jwt
 
 
-def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
+async def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
     """
     Verifies a Supabase Auth JWT token.
 
@@ -106,8 +139,10 @@ def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
         logger.debug(f"Verifying Supabase token with alg: {alg}, kid: {kid}")
 
         if alg == "ES256":
-            # Supabase now uses ES256 (asymmetric ECDSA) — verify via JWKS public key
-            jwks = _get_supabase_jwks()
+            # Supabase now uses ES256 (asymmetric ECDSA) — verify via JWKS public key.
+            # Use the async fetcher so a JWKS cache miss never blocks the
+            # event loop with a sync HTTP request.
+            jwks = await _fetch_supabase_jwks()
             if not jwks:
                 logger.error("Cannot verify ES256 token: failed to fetch Supabase JWKS.")
                 return None
@@ -117,10 +152,8 @@ def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
                 None
             )
             if not matching_key:
-                # kid not found — invalidate cache and retry once
-                global _jwks_cache
-                _jwks_cache = None
-                jwks = _get_supabase_jwks()
+                # kid not found — force a single re-fetch in case Supabase rotated keys.
+                jwks = await _fetch_supabase_jwks(force=True)
                 matching_key = next(
                     (k for k in (jwks or {}).get("keys", []) if k.get("kid") == kid),
                     None
@@ -143,17 +176,24 @@ def verify_supabase_token(token: str) -> Optional[Dict[str, Any]]:
             )
             return payload
         else:
-            # Legacy HS256/RS256 — verify with the project JWT secret
+            # Legacy HS256 — verify with the project JWT secret.
+            #
+            # ``algorithms`` MUST NOT include any asymmetric algorithm here.
+            # If RS256 (or any *-256-with-public-key variant) were allowed
+            # alongside a symmetric secret, an attacker who knows the
+            # corresponding public key could craft an HS256 token that uses
+            # that public key as the HMAC secret and pyjwt would accept it
+            # — the classic "JWT algorithm confusion" CVE class.
             if not settings.SUPABASE_JWT_SECRET:
                 logger.warning(
-                    "No SUPABASE_JWT_SECRET configured — HS256/RS256 Supabase tokens "
+                    "No SUPABASE_JWT_SECRET configured — HS256 Supabase tokens "
                     "cannot be verified. Set SUPABASE_JWT_SECRET for full auth coverage."
                 )
                 return None
             payload = pyjwt.decode(
                 token,
                 settings.SUPABASE_JWT_SECRET,
-                algorithms=["HS256", "RS256"],
+                algorithms=["HS256"],
                 options={"verify_aud": False},
                 leeway=60,
             )
@@ -201,10 +241,20 @@ def verify_legacy_token(token: str) -> Optional[Dict[str, Any]]:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifies a plaintext password against a hashed representation.
+
+    Catches ``ValueError`` from ``bcrypt.checkpw`` (raised on malformed
+    or empty hashes) so a corrupted DB row surfaces as a clean 401 from
+    the auth layer rather than a 500 with a traceback.
     """
-    password_byte_enc = plain_password.encode('utf-8')
-    hashed_password_byte_enc = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(password_byte_enc, hashed_password_byte_enc)
+    if not plain_password or not hashed_password:
+        return False
+    try:
+        password_byte_enc = plain_password.encode('utf-8')
+        hashed_password_byte_enc = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_byte_enc, hashed_password_byte_enc)
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Password verification failed due to malformed hash: {e}")
+        return False
 
 
 def get_password_hash(password: str) -> str:

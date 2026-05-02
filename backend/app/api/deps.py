@@ -7,6 +7,7 @@ authentication verification, and RBAC (Role-Based Access Control) checks.
 Supports both legacy JWT authentication and Supabase Auth.
 """
 
+import hmac
 from typing import Optional
 from loguru import logger
 from fastapi import Depends, HTTPException, status, Security
@@ -70,7 +71,11 @@ async def get_api_key(
     Returns:
         str: The validated API key.
     """
-    if api_key_header != settings.API_KEY:
+    # Constant-time compare so the request-handling time can't be used to
+    # learn how many leading characters of the configured key matched.
+    expected = settings.API_KEY or ""
+    received = api_key_header or ""
+    if not hmac.compare_digest(received.encode("utf-8"), expected.encode("utf-8")):
         # Do NOT log any portion of the received or expected key — even a prefix
         # is an information leak that aids brute-force enumeration attacks.
         logger.error("API key validation failed: provided key does not match the configured secret.")
@@ -197,7 +202,7 @@ async def get_current_user(
     )
 
     # Try Supabase JWT verification first
-    supabase_payload = verify_supabase_token(token)
+    supabase_payload = await verify_supabase_token(token)
 
     if supabase_payload:
         # Supabase JWT - extract user info

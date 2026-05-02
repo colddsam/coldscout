@@ -45,10 +45,10 @@ function isoDate(iso?: string | null): string {
 }
 
 const AVAILABILITY_MAP: Record<string, { label: string; dot: string; cls: string }> = {
-  available: { label: 'Open to work', dot: 'bg-green-500', cls: 'bg-green-50 text-green-700 border-green-200' },
-  busy: { label: 'Busy', dot: 'bg-amber-500', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  not_available: { label: 'Not Available', dot: 'bg-red-500', cls: 'bg-red-50 text-red-600 border-red-200' },
-  open_to_offers: { label: 'Open to offers', dot: 'bg-blue-500', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  available: { label: 'Open to work', dot: 'bg-white', cls: 'bg-white/5 text-white border-white/20' },
+  busy: { label: 'Busy', dot: 'bg-white/40', cls: 'bg-white/5 text-white/70 border-white/10' },
+  not_available: { label: 'Not Available', dot: 'bg-white/20', cls: 'bg-white/5 text-white/50 border-white/10' },
+  open_to_offers: { label: 'Open to offers', dot: 'bg-white/60', cls: 'bg-white/5 text-white/80 border-white/10' },
 };
 
 // ── Section Card wrapper ────────────────────────────────────────────────────
@@ -573,7 +573,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                 >
                   {profile.full_name || profile.username}
                   {profile.verifications && profile.verifications.length > 0 && (
-                    <span className="inline-flex items-center gap-1 text-blue-600" title={`${profile.verifications.length} verified field${profile.verifications.length > 1 ? 's' : ''}`}>
+                    <span className="inline-flex items-center gap-1 text-white" title={`${profile.verifications.length} verified field${profile.verifications.length > 1 ? 's' : ''}`}>
                       <BadgeCheck className="w-6 h-6" />
                     </span>
                   )}
@@ -610,7 +610,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                   </span>
                 )}
                 {profile.verifications && profile.verifications.length >= 3 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-xs font-medium text-blue-700 border border-blue-200">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 text-xs font-medium text-white border border-white/20">
                     <BadgeCheck className="w-3 h-3" /> Verified Profile
                   </span>
                 )}
@@ -640,7 +640,7 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                         <Icon className="w-4 h-4" />
                         {i === 0 && link.icon === Mail ? 'Contact' : link.label}
                         {link.field && verifiedFields.has(link.field) && (
-                          <BadgeCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          <BadgeCheck className="w-3.5 h-3.5 text-white shrink-0" />
                         )}
                       </motion.a>
                     );

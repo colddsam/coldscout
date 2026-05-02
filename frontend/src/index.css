@@ -27,12 +27,12 @@
   --text-tertiary:  #8A8A8A;
   --text-muted:     #7A7A7A;
 
-  /* Brand accent — strategic indigo for primary CTAs, links, focus */
-  --accent:        #7C7AED;
-  --accent-hover:  #9794F1;
-  --accent-dim:    #5E5CD9;
-  --accent-ring:   rgba(124,122,237,0.35);
-  --accent-subtle: rgba(124,122,237,0.10);
+  /* Brand accent — strictly monochromatic */
+  --accent:        #FFFFFF;
+  --accent-hover:  #E0E0E0;
+  --accent-dim:    #A0A0A0;
+  --accent-ring:   rgba(255,255,255,0.25);
+  --accent-subtle: rgba(255,255,255,0.06);
 
   /* Semantic */
   --success: #34D399;
@@ -346,7 +346,7 @@ select:focus-visible {
   position: absolute;
   bottom: 0;
   height: 2px;
-  background: var(--accent);
+  background: var(--text-primary);
   transition: left 0.3s ease, width 0.3s ease;
 }
 

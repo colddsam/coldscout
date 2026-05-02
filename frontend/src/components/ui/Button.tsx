@@ -23,11 +23,11 @@ const variants: Record<string, string> = {
   primary:
     'bg-white text-black hover:bg-[#E5E5E5] font-medium border border-white shadow-[0_1px_0_rgba(255,255,255,0.4)_inset,0_4px_12px_rgba(0,0,0,0.4)]',
   accent:
-    'bg-accent text-white hover:bg-accent-hover font-medium border border-accent/40 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_4px_16px_rgba(124,122,237,0.3)]',
+    'bg-accent text-black hover:bg-accent-hover font-medium border border-accent/40 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_4px_16px_rgba(255,255,255,0.1)]',
   secondary:
     'bg-[#121212] text-white border border-white/10 hover:border-white/22 hover:bg-white/[0.06] font-medium',
   danger:
-    'bg-[#121212] text-white/90 border border-red-500/25 hover:bg-red-500/10 hover:border-red-500/45 hover:text-red-300 font-medium',
+    'bg-[#121212] text-white/90 border border-white/25 hover:bg-white/10 hover:border-white/45 font-medium',
   ghost:
     'bg-transparent text-[#B0B0B0] hover:text-white hover:bg-white/[0.06]',
   outline:

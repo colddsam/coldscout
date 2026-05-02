@@ -29,30 +29,30 @@ export default {
         'accents-6': '#7A7A7A',
         'accents-7': '#A8A8A8',
         'accents-8': '#D0D0D0',
-        /* ── Brand Accent (subtle indigo for CTAs, focus, links) ── */
+        /* ── Brand Accent (strictly monochromatic) ── */
         accent: {
-          DEFAULT: '#7C7AED',
-          hover:   '#9794F1',
-          dim:     '#5E5CD9',
-          subtle:  'rgba(124,122,237,0.10)',
-          ring:    'rgba(124,122,237,0.35)',
+          DEFAULT: '#FFFFFF',
+          hover:   '#E0E0E0',
+          dim:     '#A0A0A0',
+          subtle:  'rgba(255,255,255,0.06)',
+          ring:    'rgba(255,255,255,0.25)',
         },
-        /* ── Semantic Colors ── */
+        /* ── Semantic Colors (monochromatic variants) ── */
         success: {
-          DEFAULT: '#34D399',
-          subtle: 'rgba(52,211,153,0.10)',
+          DEFAULT: '#FFFFFF',
+          subtle: 'rgba(255,255,255,0.10)',
         },
         warning: {
-          DEFAULT: '#FBBF24',
-          subtle: 'rgba(251,191,36,0.10)',
+          DEFAULT: '#A0A0A0',
+          subtle: 'rgba(160,160,160,0.10)',
         },
         danger: {
-          DEFAULT: '#F87171',
-          subtle: 'rgba(248,113,113,0.10)',
+          DEFAULT: '#FFFFFF',
+          subtle: 'rgba(255,255,255,0.15)',
         },
         info: {
-          DEFAULT: '#60A5FA',
-          subtle: 'rgba(96,165,250,0.10)',
+          DEFAULT: '#E0E0E0',
+          subtle: 'rgba(224,224,224,0.10)',
         },
       },
       fontFamily: {

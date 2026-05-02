@@ -55,8 +55,24 @@ def _safe_attachment_path(filepath: str) -> Path:
     """
     resolved = Path(filepath).resolve()
 
-    # Guard against directory traversal (e.g. "../../etc/passwd")
-    if not str(resolved).startswith(str(_ALLOWED_ATTACHMENT_DIR)):
+    # Guard against directory traversal (e.g. "../../etc/passwd").
+    #
+    # We use ``Path.is_relative_to`` (3.9+) which compares path components,
+    # not raw string prefixes. The string-prefix check would have a
+    # "/var/data" vs "/var/data2/evil.pdf" false-positive — the second
+    # path is not actually inside ``/var/data`` but its string starts
+    # with the same prefix.
+    try:
+        is_inside = resolved.is_relative_to(_ALLOWED_ATTACHMENT_DIR)
+    except AttributeError:
+        # Python < 3.9 fallback — append a separator so we compare full
+        # path components rather than prefix substrings.
+        allowed = str(_ALLOWED_ATTACHMENT_DIR).rstrip(os.sep) + os.sep
+        is_inside = (
+            str(resolved) == str(_ALLOWED_ATTACHMENT_DIR)
+            or str(resolved).startswith(allowed)
+        )
+    if not is_inside:
         raise ValueError(
             f"Attachment path '{filepath}' is outside the allowed directory "
             f"'{_ALLOWED_ATTACHMENT_DIR}'."
