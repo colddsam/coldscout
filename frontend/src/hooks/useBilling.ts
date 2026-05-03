@@ -86,7 +86,7 @@ function registerBackButtonGuard(onBack: () => void): () => void {
     return () => {};
   }
 
-  const handle = App.addListener('backButton', (ev) => {
+  const handle = App.addListener('backButton', () => {
     // Always intercept when a modal is open.
     // ev.canGoBack is true when the WebView has history, but we don't
     // want to navigate — we want to close the payment modal.
