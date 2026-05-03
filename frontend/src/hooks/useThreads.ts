@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { client } from '../lib/api';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -119,31 +120,39 @@ const threadsApi = {
 // ── Query Hooks ────────────────────────────────────────────
 
 export function useThreadsStats() {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['threads', 'stats'],
+    queryKey: ['threads', scope, 'stats'],
     queryFn: threadsApi.getStats,
+    enabled: scope !== 'anon',
     refetchInterval: 60_000,
   });
 }
 
 export function useThreadsProfiles(params: { status?: string; limit?: number; offset?: number } = {}) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['threads', 'profiles', params],
+    queryKey: ['threads', scope, 'profiles', params],
     queryFn: () => threadsApi.getProfiles(params),
+    enabled: scope !== 'anon',
   });
 }
 
 export function useThreadsEngagements(params: { status?: string; limit?: number } = {}) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['threads', 'engagements', params],
+    queryKey: ['threads', scope, 'engagements', params],
     queryFn: () => threadsApi.getEngagements(params),
+    enabled: scope !== 'anon',
   });
 }
 
 export function useThreadsSearchConfigs() {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['threads', 'search-configs'],
+    queryKey: ['threads', scope, 'search-configs'],
     queryFn: threadsApi.getSearchConfigs,
+    enabled: scope !== 'anon',
   });
 }
 
@@ -151,11 +160,12 @@ export function useThreadsSearchConfigs() {
 
 export function useCreateSearchConfig() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: threadsApi.createSearchConfig,
     onSuccess: () => {
       toast.success('Search config created');
-      qc.invalidateQueries({ queryKey: ['threads', 'search-configs'] });
+      qc.invalidateQueries({ queryKey: ['threads', scope, 'search-configs'] });
     },
     onError: (err: Error) => toast.error(`Failed: ${err.message}`),
   });
@@ -163,12 +173,13 @@ export function useCreateSearchConfig() {
 
 export function useUpdateSearchConfig() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof threadsApi.updateSearchConfig>[1] }) =>
       threadsApi.updateSearchConfig(id, payload),
     onSuccess: () => {
       toast.success('Search config updated');
-      qc.invalidateQueries({ queryKey: ['threads', 'search-configs'] });
+      qc.invalidateQueries({ queryKey: ['threads', scope, 'search-configs'] });
     },
     onError: (err: Error) => toast.error(`Failed: ${err.message}`),
   });
@@ -176,11 +187,12 @@ export function useUpdateSearchConfig() {
 
 export function useDeleteSearchConfig() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: threadsApi.deleteSearchConfig,
     onSuccess: () => {
       toast.success('Search config deleted');
-      qc.invalidateQueries({ queryKey: ['threads', 'search-configs'] });
+      qc.invalidateQueries({ queryKey: ['threads', scope, 'search-configs'] });
     },
     onError: (err: Error) => toast.error(`Failed: ${err.message}`),
   });
@@ -188,6 +200,7 @@ export function useDeleteSearchConfig() {
 
 export function useThreadsTrigger(stage: 'discovery' | 'qualification' | 'engagement' | 'response-check') {
   const qc = useQueryClient();
+  const scope = useUserScope();
   const fnMap = {
     discovery: threadsApi.triggerDiscovery,
     qualification: threadsApi.triggerQualification,
@@ -198,7 +211,7 @@ export function useThreadsTrigger(stage: 'discovery' | 'qualification' | 'engage
     mutationFn: fnMap[stage],
     onSuccess: () => {
       toast.success(`${stage} triggered successfully`);
-      qc.invalidateQueries({ queryKey: ['threads'] });
+      qc.invalidateQueries({ queryKey: ['threads', scope] });
     },
     onError: (err: Error) => toast.error(`Trigger failed: ${err.message}`),
   });

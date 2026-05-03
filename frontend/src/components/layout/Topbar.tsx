@@ -15,6 +15,7 @@ import { NAV_ITEMS } from '../../lib/constants';
 import { timeAgo } from '../../lib/utils';
 import { Menu } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import NotificationBell from '../notifications/NotificationBell';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -78,6 +79,8 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               className="hidden xs:flex"
             />
           )}
+
+          <NotificationBell />
 
           {role !== 'client' && (
             <Button

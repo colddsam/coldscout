@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Session, User as SupabaseUser, AuthChangeEvent } from '@supabase/supabase-js';
 import {
   signInWithOAuth as supabaseSignInWithOAuth,
@@ -75,8 +76,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Tracks the last access_token we synced against so we re-sync once per
   // session (including after a token refresh) but never on every re-render.
   const lastSyncedTokenRef = useRef<string | null>(null);
+  // Tracks the Supabase auth-user ID currently bound to this client. Used to
+  // detect when a different user signs in on the same SPA instance so we can
+  // wipe React Query cache before any new data is fetched — without that, a
+  // freelancer briefly sees the previous user's leads/discovery/etc. because
+  // the cache key (e.g. ``['discovery-config']``) collides across users.
+  const currentAuthUidRef = useRef<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+
+  /**
+   * Cancels in-flight queries and wipes every cached entry. Called whenever
+   * the authenticated user changes (login, logout, login-as-different-user)
+   * so user A's data can never surface inside user B's session.
+   */
+  const purgeUserCaches = useCallback(() => {
+    try {
+      queryClient.cancelQueries();
+    } catch {
+      // cancelQueries can throw on race conditions during teardown — non-fatal.
+    }
+    queryClient.removeQueries();
+    queryClient.clear();
+  }, [queryClient]);
 
   /**
    * Syncs the Supabase user to the backend database.
@@ -139,34 +162,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSupabaseUser(existingSession.user);
           setToken(existingSession.access_token);
           setUserRole(getUserRole(existingSession.user));
+          currentAuthUidRef.current = existingSession.user.id;
 
-          // Try to restore user from localStorage first for quick UI
+          // Try to restore user from localStorage first for quick UI — but
+          // ONLY when the saved record is bound to this exact Supabase user.
+          // Otherwise a previous freelancer's cached profile would briefly
+          // render in the new user's tab (the bug we're fixing here).
           const savedUserData = getAuthItem('llp_user');
           if (savedUserData && savedUserData !== 'undefined') {
+            let savedUser: User | null = null;
             try {
-              const savedUser = JSON.parse(savedUserData);
-              if (savedUser && typeof savedUser === 'object' && savedUser.id && savedUser.email) {
-                setUser(savedUser);
-                setUserRole(savedUser.role || 'freelancer');
-              } else {
-                console.warn('Invalid user data in localStorage, discarding');
-                removeAuthItem('llp_user');
-              }
+              savedUser = JSON.parse(savedUserData) as User;
             } catch {
+              savedUser = null;
+            }
+            const isValidShape =
+              !!savedUser
+              && typeof savedUser === 'object'
+              && typeof savedUser.id === 'number'
+              && typeof savedUser.email === 'string';
+            const ownsSession =
+              isValidShape
+              && !!savedUser?.supabase_uid
+              && savedUser.supabase_uid === existingSession.user.id;
+
+            if (isValidShape && ownsSession && savedUser) {
+              setUser(savedUser);
+              setUserRole(savedUser.role || 'freelancer');
+            } else {
+              // Stale / mismatched / corrupt — drop it so the user sees a
+              // clean loading state instead of someone else's profile while
+              // the backend sync runs.
               removeAuthItem('llp_user');
+              // Belt-and-braces: nuke any in-memory cache that may have been
+              // hydrated against the wrong identity before this hook ran.
+              purgeUserCaches();
             }
           }
         } else {
-          // Check for legacy token
+          // Check for legacy token (pre-Supabase auth path).
           const savedToken = getAuthItem('llp_token');
           const savedUserData = getAuthItem('llp_user');
 
           if (savedToken && savedUserData) {
             try {
               setToken(savedToken);
-              const savedUser = JSON.parse(savedUserData);
+              const savedUser = JSON.parse(savedUserData) as User;
               setUser(savedUser);
               setUserRole(savedUser.role || 'freelancer');
+              currentAuthUidRef.current = savedUser.supabase_uid || `legacy:${savedUser.id}`;
             } catch {
               // Legacy restore failed
               removeAuthItem('llp_token');
@@ -183,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
-  }, []);
+  }, [purgeUserCaches]);
 
   /**
    * Listen for Supabase auth state changes.
@@ -193,6 +237,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event: AuthChangeEvent, newSession: Session | null) => {
 
         if (event === 'SIGNED_IN' && newSession) {
+          // Detect login-as-different-user. If the previous session belonged
+          // to someone else, wipe React Query so user A's cached leads /
+          // discovery / profile etc. cannot leak into user B's first render.
+          const previousUid = currentAuthUidRef.current;
+          const newUid = newSession.user.id;
+          if (previousUid && previousUid !== newUid) {
+            purgeUserCaches();
+          }
+          currentAuthUidRef.current = newUid;
+
           setSession(newSession);
           setSupabaseUser(newSession.user);
           setToken(newSession.access_token);
@@ -204,19 +258,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const savedUserData = getAuthItem('llp_user');
           if (savedUserData && savedUserData !== 'undefined') {
             try {
-              const savedUser = JSON.parse(savedUserData);
-              if (savedUser.supabase_uid === newSession.user.id) {
+              const savedUser = JSON.parse(savedUserData) as User;
+              if (savedUser.supabase_uid === newUid) {
                 setUser(savedUser);
                 setUserRole(savedUser.role || getUserRole(newSession.user));
               } else {
-                // Stale data from a different user — discard it
+                // Stale data from a different user — discard it AND clear
+                // any cached query data hydrated against the wrong identity.
                 removeAuthItem('llp_user');
+                setUser(null);
                 setUserRole(getUserRole(newSession.user));
+                purgeUserCaches();
               }
             } catch {
+              setUser(null);
               setUserRole(getUserRole(newSession.user));
             }
           } else {
+            // No saved user — make sure we don't carry forward an in-memory
+            // ``user`` object from the prior identity.
+            setUser(null);
             setUserRole(getUserRole(newSession.user));
           }
         } else if (event === 'SIGNED_OUT') {
@@ -227,9 +288,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserRole('freelancer');
           removeAuthItem('llp_token');
           removeAuthItem('llp_user');
+          currentAuthUidRef.current = null;
+          // Wipe every query cache so a "Sign out → Sign in as someone else"
+          // flow on the same device cannot show the prior user's data.
+          purgeUserCaches();
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
           setToken(newSession.access_token);
+          // Same logical user — token rotation. No cache wipe.
         } else if (event === 'USER_UPDATED' && newSession) {
           setSupabaseUser(newSession.user);
           setUserRole(getUserRole(newSession.user));
@@ -240,7 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [purgeUserCaches]);
 
   // Listen for global session expiration events (from api.ts interceptor)
   useEffect(() => {
@@ -282,18 +348,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Kept for backward compatibility.
    */
   const login = useCallback((newToken: string, newUser: User) => {
+    // If a different user was previously bound to this client, drop their
+    // cached query data first so it can't surface in the new session.
+    const previousUid = currentAuthUidRef.current;
+    const newUid = newUser.supabase_uid || `legacy:${newUser.id}`;
+    if (previousUid && previousUid !== newUid) {
+      purgeUserCaches();
+    }
+    currentAuthUidRef.current = newUid;
+
     setToken(newToken);
     setUser(newUser);
     setUserRole(newUser.role || 'freelancer');
     setIsSessionExpired(false);
     setAuthItem('llp_token', newToken);
     setAuthItem('llp_user', JSON.stringify(newUser));
-  }, []);
+  }, [purgeUserCaches]);
 
   /**
    * Signs out the user from both Supabase and local session.
    */
   const logout = useCallback(async () => {
+    // Cancel + wipe every cache entry FIRST so any in-flight query that
+    // resolves after we tear down auth state can't write user A's data
+    // back into the cache.
+    purgeUserCaches();
+
+    // Reset the synced-token guard so the next login is forced to re-sync
+    // with the backend rather than reusing whatever state was last cached.
+    lastSyncedTokenRef.current = null;
+    currentAuthUidRef.current = null;
+
     // Sign out from Supabase
     await supabaseSignOut();
 
@@ -306,9 +391,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSessionExpired(false);
     removeAuthItem('llp_token');
     removeAuthItem('llp_user');
+    removeAuthItem('llp_pending_role');
+
+    // One final wipe after Supabase teardown so any cache writes triggered
+    // by the SIGNED_OUT event chain are also cleared.
+    purgeUserCaches();
 
     navigate('/login');
-  }, [navigate]);
+  }, [navigate, purgeUserCaches]);
 
   /**
    * Signs in with OAuth provider (Google, GitHub, Facebook, LinkedIn).

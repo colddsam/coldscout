@@ -7,15 +7,21 @@ import {
 } from '../lib/api';
 import { broadcastPipelineStatusChange } from '../lib/realtime';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 /**
  * Fetches the current freelancer's pipeline production status.
  * Superusers also receive the full list of all freelancer statuses.
+ *
+ * Cache key is namespaced per-user — the calling user's status is the
+ * primary payload, so user A's HOLD/RUN flag must not bleed into user B.
  */
 export function useFreelancerStatus(refetchInterval?: number) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['freelancer-status'],
+    queryKey: ['freelancer-status', scope],
     queryFn: getFreelancerStatus,
+    enabled: scope !== 'anon',
     refetchInterval: refetchInterval ?? 30000,
   });
 }
@@ -25,13 +31,14 @@ export function useFreelancerStatus(refetchInterval?: number) {
  */
 export function useUpdateFreelancerStatus() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (status: FreelancerProductionStatus) =>
       updateFreelancerStatus({ production_status: status }),
     onSuccess: (data) => {
       const label = data.production_status === 'HOLD' ? 'paused' : 'resumed';
       toast.success(`Your pipeline has been ${label}`);
-      qc.invalidateQueries({ queryKey: ['freelancer-status'] });
+      qc.invalidateQueries({ queryKey: ['freelancer-status', scope] });
       broadcastPipelineStatusChange({ scope: 'freelancer', user_id: data.user_id });
     },
     onError: (err: Error) => {
@@ -45,13 +52,14 @@ export function useUpdateFreelancerStatus() {
  */
 export function useUpdateFreelancerStatusAdmin() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: ({ userId, status }: { userId: number; status: FreelancerProductionStatus }) =>
       updateFreelancerStatusAdmin(userId, { production_status: status }),
     onSuccess: (data) => {
       const label = data.production_status === 'HOLD' ? 'paused' : 'resumed';
       toast.success(`Freelancer ${data.user_id} pipeline ${label}`);
-      qc.invalidateQueries({ queryKey: ['freelancer-status'] });
+      qc.invalidateQueries({ queryKey: ['freelancer-status', scope] });
       broadcastPipelineStatusChange({ scope: 'freelancer', user_id: data.user_id });
     },
     onError: (err: Error) => {

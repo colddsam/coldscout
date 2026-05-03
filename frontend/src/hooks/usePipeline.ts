@@ -7,15 +7,22 @@ import {
   type PipelineStatusResponse,
 } from '../lib/api';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 /**
  * Polls the backend for real-time pipeline status.
  * Includes per-stage active_stages map for granular UI locking.
+ *
+ * Pipeline status surfaces the calling user's per-stage state (admins also
+ * receive aggregated info), so the cache key is per-user — otherwise a
+ * previous user's stage map could flash for the new user on login.
  */
 export function usePipelineStatus(refetchInterval?: number) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['pipeline-status'],
+    queryKey: ['pipeline-status', scope],
     queryFn: getPipelineStatus,
+    enabled: scope !== 'anon',
     refetchInterval: refetchInterval ?? 30000,
   });
 }
@@ -24,9 +31,11 @@ export function usePipelineStatus(refetchInterval?: number) {
  * Fetches persistent pipeline job history for the log panel.
  */
 export function usePipelineHistory(refetchInterval?: number) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['pipeline-history'],
+    queryKey: ['pipeline-history', scope],
     queryFn: () => getPipelineHistory(50),
+    enabled: scope !== 'anon',
     refetchInterval: refetchInterval ?? 10000,
   });
 }
@@ -40,6 +49,7 @@ export function usePipelineHistory(refetchInterval?: number) {
  */
 export function useTriggerPipeline() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (stage: PipelineStage) => triggerPipeline(stage),
     onSuccess: (data, stage) => {
@@ -49,15 +59,15 @@ export function useTriggerPipeline() {
       // Optimistic update: merge the active_stages from the trigger response
       // into the cached pipeline-status so the UI shows "queued" immediately.
       if (data?.active_stages) {
-        qc.setQueryData<PipelineStatusResponse>(['pipeline-status'], (old) => {
+        qc.setQueryData<PipelineStatusResponse>(['pipeline-status', scope], (old) => {
           if (!old) return old;
           return { ...old, active_stages: data.active_stages };
         });
       }
 
       // Also refetch to pick up any server-side changes we might have missed
-      qc.invalidateQueries({ queryKey: ['pipeline-status'] });
-      qc.invalidateQueries({ queryKey: ['pipeline-history'] });
+      qc.invalidateQueries({ queryKey: ['pipeline-status', scope] });
+      qc.invalidateQueries({ queryKey: ['pipeline-history', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Pipeline trigger failed: ${err.message}`);

@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { Shield, Save, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem } from '../lib/motion';
+import NotificationsSettings from '../components/notifications/NotificationsSettings';
 
 /**
  * The Settings page provides global system administration capabilities.
@@ -172,6 +173,11 @@ export default function Settings() {
               />
             </div>
           </Card>
+          </motion.div>
+
+          {/* Notifications */}
+          <motion.div variants={staggerItem}>
+            <NotificationsSettings />
           </motion.div>
 
           {/* Health Info */}

@@ -25,7 +25,13 @@
     <meta name="application-name" content="Cold Scout" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!--
+      black-translucent removes Safari's opaque status bar so the dark UI extends
+      edge-to-edge when installed as an iOS PWA. Layout uses ``viewport-fit=cover``
+      + ``env(safe-area-inset-*)`` so content stays clear of the notch / Dynamic
+      Island.
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Cold Scout" />
     <meta name="format-detection" content="telephone=no" />
 

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getInbox, respondToThread, updateThreadIntent, type IntentLabel } from '../lib/api';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 /**
  * Fetches the AI-classified inbox of prospect reply threads.
@@ -10,7 +11,8 @@ import toast from 'react-hot-toast';
  * filtering controls, helping operators triage high-priority conversations first.
  *
  * The query is retried 0 times to surface IMAP connection failures immediately
- * rather than silently retrying and masking the error.
+ * rather than silently retrying and masking the error. The cache key is
+ * namespaced by ``useUserScope`` so user A's inbox cannot bleed into user B's.
  *
  * @param params - Optional filters: `intent` and `responded` flag.
  * @returns TanStack Query result with an array of inbox thread objects.
@@ -19,9 +21,11 @@ import toast from 'react-hot-toast';
  * const { data } = useInbox({ intent: 'interested', responded: false });
  */
 export function useInbox(params?: { intent?: IntentLabel; responded?: boolean }) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['inbox', params],
+    queryKey: ['inbox', scope, params],
     queryFn: () => getInbox(params),
+    enabled: scope !== 'anon',
     // Don't retry on failure — IMAP errors should surface immediately to the user
     retry: false,
   });
@@ -41,11 +45,12 @@ export function useInbox(params?: { intent?: IntentLabel; responded?: boolean })
  */
 export function useRespondToThread() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: string }) => respondToThread(id, body),
     onSuccess: () => {
       toast.success('Response sent successfully');
-      qc.invalidateQueries({ queryKey: ['inbox'] });
+      qc.invalidateQueries({ queryKey: ['inbox', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Send failed: ${err.message}`);
@@ -65,11 +70,12 @@ export function useRespondToThread() {
  */
 export function useUpdateThreadIntent() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: ({ id, intent }: { id: string; intent: IntentLabel }) => updateThreadIntent(id, intent),
     onSuccess: () => {
       toast.success('Intent updated');
-      qc.invalidateQueries({ queryKey: ['inbox'] });
+      qc.invalidateQueries({ queryKey: ['inbox', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Intent update failed: ${err.message}`);

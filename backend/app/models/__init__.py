@@ -48,3 +48,7 @@ from app.models.global_job_config import GlobalJobConfig
 
 # ── Billing models (depend on User) ───────────────────────────────────────────
 from app.models.subscription import Subscription, PaymentOrder
+
+# ── Notifications & push subscriptions (depend on User) ───────────────────────
+from app.models.notification import Notification
+from app.models.push_subscription import PushSubscription

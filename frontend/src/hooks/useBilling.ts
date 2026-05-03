@@ -15,6 +15,7 @@ import {
   type BillingPlan,
 } from '../lib/api';
 import { useAuth } from './useAuth';
+import { useUserScope } from './useUserScope';
 
 // ── Razorpay script loader ─────────────────────────────────────────────────
 
@@ -43,17 +44,21 @@ function loadRazorpayScript(): Promise<boolean> {
 // ── Query hooks ────────────────────────────────────────────────────────────
 
 export function useSubscription() {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['subscription'],
+    queryKey: ['subscription', scope],
     queryFn: getSubscription,
+    enabled: scope !== 'anon',
     staleTime: 60_000,
   });
 }
 
 export function useTransactions() {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['billing-transactions'],
+    queryKey: ['billing-transactions', scope],
     queryFn: getTransactions,
+    enabled: scope !== 'anon',
     staleTime: 60_000,
   });
 }
@@ -81,6 +86,7 @@ interface CheckoutOptions {
 export function useCheckout() {
   const queryClient = useQueryClient();
   const { syncUserToBackend } = useAuth();
+  const scope = useUserScope();
 
   const checkout = async ({ plan, userEmail, userName, onSuccess }: CheckoutOptions) => {
     // Step 1 — create server-side order
@@ -139,8 +145,8 @@ export function useCheckout() {
             // Step 5 — refresh subscription cache and auth user state so
             // hasPaidPlan updates immediately without requiring a re-login
             await Promise.all([
-              queryClient.invalidateQueries({ queryKey: ['subscription'] }),
-              queryClient.invalidateQueries({ queryKey: ['billing-transactions'] }),
+              queryClient.invalidateQueries({ queryKey: ['subscription', scope] }),
+              queryClient.invalidateQueries({ queryKey: ['billing-transactions', scope] }),
               syncUserToBackend(),
             ]);
 
@@ -164,11 +170,12 @@ export function useCheckout() {
 
 export function useCancelSubscription() {
   const queryClient = useQueryClient();
+  const scope = useUserScope();
 
   return useMutation({
     mutationFn: (reason?: string) => cancelSubscription(reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription', scope] });
       toast.success('Subscription cancelled. Access continues until the period ends.');
     },
     onError: () => {

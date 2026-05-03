@@ -11,6 +11,7 @@ import {
   type LeadOutreachState,
 } from '../lib/api';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 /**
  * Fetches a paginated, filtered list of leads from the backend.
@@ -18,6 +19,9 @@ import toast from 'react-hot-toast';
  * Uses TanStack Query to automatically cache results by the full set of filter
  * parameters. Any change to `page`, `status`, `city`, or `category` triggers a
  * fresh network request, keeping the table view always in sync.
+ *
+ * Cache key is namespaced by the current user via ``useUserScope`` so the
+ * leads list of user A can never surface inside user B's session.
  *
  * @param params - Filter and pagination options forwarded to the API.
  * @returns TanStack Query result containing `data.leads`, `data.total`, `data.pages`, and loading state.
@@ -35,9 +39,11 @@ export function useLeads(params: {
   city?: string;
   category?: string;
 }) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['leads', params],
+    queryKey: ['leads', scope, params],
     queryFn: () => getLeads(params),
+    enabled: scope !== 'anon',
   });
 }
 
@@ -51,11 +57,12 @@ export function useLeads(params: {
  * @returns TanStack Query result with the full `Lead` object.
  */
 export function useLead(id: string) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['lead', id],
+    queryKey: ['lead', scope, id],
     queryFn: () => getLead(id),
     // Guard: only fire the request once a valid lead ID is available
-    enabled: !!id,
+    enabled: !!id && scope !== 'anon',
   });
 }
 
@@ -74,14 +81,15 @@ export function useLead(id: string) {
  */
 export function useUpdateLead() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: { status?: string; notes?: string } }) =>
       updateLead(id, payload),
     onSuccess: () => {
       toast.success('Lead updated successfully');
       // Bust both the list and detail caches so all views are fresh
-      qc.invalidateQueries({ queryKey: ['leads'] });
-      qc.invalidateQueries({ queryKey: ['lead'] });
+      qc.invalidateQueries({ queryKey: ['leads', scope] });
+      qc.invalidateQueries({ queryKey: ['lead', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Update failed: ${err.message}`);
@@ -100,11 +108,12 @@ export function useUpdateLead() {
  */
 export function useDeleteLead() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (id: string) => deleteLead(id),
     onSuccess: () => {
       toast.success('Lead deleted successfully');
-      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['leads', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Deletion failed: ${err.message}`);
@@ -121,10 +130,11 @@ export function useDeleteLead() {
  * Leads list, where dozens of these hooks may mount at once.
  */
 export function useLeadOutreachState(id: string, enabled: boolean = true) {
+  const scope = useUserScope();
   return useQuery<LeadOutreachState>({
-    queryKey: ['lead-outreach-state', id],
+    queryKey: ['lead-outreach-state', scope, id],
     queryFn: () => getLeadOutreachState(id),
-    enabled: enabled && !!id,
+    enabled: enabled && !!id && scope !== 'anon',
     // Match the cadence to the state: keep tabs on jobs currently in
     // flight, but back off once the lead is settled.
     refetchInterval: (query) => {
@@ -143,13 +153,14 @@ export function useLeadOutreachState(id: string, enabled: boolean = true) {
  */
 export function useTriggerLeadOutreach() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (id: string) => triggerLeadOutreach(id),
     onSuccess: (data, id) => {
-      qc.setQueryData(['lead-outreach-state', id], data);
-      qc.invalidateQueries({ queryKey: ['lead-outreach-state', id] });
-      qc.invalidateQueries({ queryKey: ['leads'] });
-      qc.invalidateQueries({ queryKey: ['lead', id] });
+      qc.setQueryData(['lead-outreach-state', scope, id], data);
+      qc.invalidateQueries({ queryKey: ['lead-outreach-state', scope, id] });
+      qc.invalidateQueries({ queryKey: ['leads', scope] });
+      qc.invalidateQueries({ queryKey: ['lead', scope, id] });
       toast.success('Outreach queued — running on the next free slot.');
     },
     onError: (err: Error) => {
@@ -164,13 +175,14 @@ export function useTriggerLeadOutreach() {
  */
 export function useUnlockLeadOutreach() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (id: string) => unlockLeadOutreach(id),
     onSuccess: (data, id) => {
-      qc.setQueryData(['lead-outreach-state', id], data);
-      qc.invalidateQueries({ queryKey: ['lead-outreach-state', id] });
-      qc.invalidateQueries({ queryKey: ['leads'] });
-      qc.invalidateQueries({ queryKey: ['lead', id] });
+      qc.setQueryData(['lead-outreach-state', scope, id], data);
+      qc.invalidateQueries({ queryKey: ['lead-outreach-state', scope, id] });
+      qc.invalidateQueries({ queryKey: ['leads', scope] });
+      qc.invalidateQueries({ queryKey: ['lead', scope, id] });
       toast.success('Lead unlocked — ready to send again.');
     },
     onError: (err: Error) => {
@@ -188,8 +200,9 @@ export function useUnlockLeadOutreach() {
  * row in the table on render.
  */
 export function useLeadWhatsappLink(id: string) {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['lead-whatsapp-link', id],
+    queryKey: ['lead-whatsapp-link', scope, id],
     queryFn: () => getLeadWhatsappLink(id),
     enabled: false,
   });

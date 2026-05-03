@@ -507,6 +507,30 @@ class Settings(BaseSettings):
             )
         return v
 
+    # ── Push Notifications (Web Push + FCM) ───────────────────────────────────
+    # When VAPID keys are blank the backend gracefully degrades: in-app
+    # notifications still write to the feed, but no Web Push is dispatched
+    # (frontend will surface this via the "enable notifications" prompt).
+    # Generate a keypair with: ``python -m app.scripts.generate_vapid``
+    VAPID_PUBLIC_KEY: str = ""
+    """Base64url-encoded uncompressed P-256 public key handed to the browser."""
+
+    VAPID_PRIVATE_KEY: str = ""
+    """Base64url-encoded P-256 private key. Treat as a secret."""
+
+    VAPID_SUBJECT: str = "mailto:admin@coldscout.colddsam.com"
+    """``mailto:`` or ``https://`` identifier required by the Web Push spec."""
+
+    # FCM service-account JSON for native Android shell. When empty, FCM is
+    # skipped and Android-only subscribers won't receive OS-level push (in-app
+    # notifications still work). Path to a JSON file OR the JSON string itself.
+    FCM_SERVICE_ACCOUNT_JSON: str = ""
+    """Either an absolute filesystem path or the raw JSON content of the
+    Firebase service-account key. Loaded lazily on first dispatch."""
+
+    FCM_PROJECT_ID: str = ""
+    """Firebase project ID. Required only when FCM_SERVICE_ACCOUNT_JSON is set."""
+
     # Branding and Redirects
     BOOKING_LINK: str = ""
     """

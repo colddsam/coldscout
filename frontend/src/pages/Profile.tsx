@@ -22,6 +22,7 @@ import {
   RefreshCw, Clock,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserScope } from '../hooks/useUserScope';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import {
@@ -325,14 +326,18 @@ function SetupModal({ onComplete }: { onComplete: () => void }) {
 export default function Profile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const scope = useUserScope();
   const role = user?.role || 'freelancer';
 
   const [activeTab, setActiveTab] = useState<TabId>('basic');
 
-  // Core profile
+  // Every query key is namespaced by ``scope`` so a previous user's profile
+  // can't surface inside a freshly-logged-in user's tab on the same device.
+  // Invalidations use the ``['profile']`` prefix which matches every scope.
   const profileQuery = useQuery({
-    queryKey: ['profile', 'me'],
+    queryKey: ['profile', scope, 'me'],
     queryFn: getMyProfile,
+    enabled: scope !== 'anon',
     retry: false,
   });
 
@@ -340,60 +345,60 @@ export default function Profile() {
 
   const profileMutation = useMutation({
     mutationFn: (data: UserProfileUpdate) => updateMyProfile(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile'] }); toast.success('Profile updated'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', scope] }); toast.success('Profile updated'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   // Business profile
   const businessQuery = useQuery({
-    queryKey: ['profile', 'business'],
+    queryKey: ['profile', scope, 'business'],
     queryFn: getMyBusinessProfile,
-    enabled: role === 'client',
+    enabled: role === 'client' && scope !== 'anon',
     retry: false,
   });
 
   const businessMutation = useMutation({
     mutationFn: (data: BusinessProfileUpdate) => updateMyBusinessProfile(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', 'business'] }); toast.success('Business profile updated'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', scope, 'business'] }); toast.success('Business profile updated'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   // Freelancer profile
   const freelancerQuery = useQuery({
-    queryKey: ['profile', 'freelancer'],
+    queryKey: ['profile', scope, 'freelancer'],
     queryFn: getMyFreelancerProfile,
-    enabled: role === 'freelancer',
+    enabled: role === 'freelancer' && scope !== 'anon',
     retry: false,
   });
 
   const freelancerMutation = useMutation({
     mutationFn: (data: FreelancerProfileUpdate) => updateMyFreelancerProfile(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', 'freelancer'] }); toast.success('Professional profile updated'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', scope, 'freelancer'] }); toast.success('Professional profile updated'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   // Portfolio
   const portfolioQuery = useQuery({
-    queryKey: ['profile', 'portfolio'],
+    queryKey: ['profile', scope, 'portfolio'],
     queryFn: getMyPortfolio,
-    enabled: role === 'freelancer',
+    enabled: role === 'freelancer' && scope !== 'anon',
   });
 
   // Photo/banner upload
   const photoMutation = useMutation({
     mutationFn: uploadProfilePhoto,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile'] }); toast.success('Photo uploaded'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', scope] }); toast.success('Photo uploaded'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const bannerMutation = useMutation({
     mutationFn: uploadProfileBanner,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile'] }); toast.success('Banner uploaded'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', scope] }); toast.success('Banner uploaded'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   if (needsSetup) {
-    return <SetupModal onComplete={() => queryClient.invalidateQueries({ queryKey: ['profile'] })} />;
+    return <SetupModal onComplete={() => queryClient.invalidateQueries({ queryKey: ['profile', scope] })} />;
   }
 
   if (profileQuery.isLoading) {
@@ -917,7 +922,7 @@ function PortfolioTab({
 
   const deleteMut = useMutation({
     mutationFn: deletePortfolioItem,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile', 'portfolio'] }); toast.success('Item deleted'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['profile'] }); toast.success('Item deleted'); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -1008,7 +1013,7 @@ function PortfolioTab({
           item={editingItem}
           onClose={() => { setShowAdd(false); setEditingItem(null); }}
           onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ['profile', 'portfolio'] });
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
             setShowAdd(false);
             setEditingItem(null);
           }}
@@ -1094,18 +1099,20 @@ function VerificationStatusIcon({ status }: { status: string }) {
 
 function VerificationTab() {
   const queryClient = useQueryClient();
+  const scope = useUserScope();
   const [verifying, setVerifying] = useState<Set<string>>(new Set());
 
   const { data: statusData, isLoading } = useQuery({
-    queryKey: ['verification-status'],
+    queryKey: ['verification-status', scope],
     queryFn: getVerificationStatus,
+    enabled: scope !== 'anon',
   });
 
   const verifyMutation = useMutation({
     mutationFn: (fields: string[]) => verifyProfileFields(fields),
     onSuccess: (data) => {
       toast.success(data.message);
-      queryClient.invalidateQueries({ queryKey: ['verification-status'] });
+      queryClient.invalidateQueries({ queryKey: ['verification-status', scope] });
       setVerifying(new Set());
     },
     onError: (err: Error) => {

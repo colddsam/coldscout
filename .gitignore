@@ -93,3 +93,5 @@ backend/scripts/test_demo_full.py
 temp.txt
 coldscout.keystore
 keystore_base64.txt
+FUTURE_FEATURES*.md
+BUG_REPORT*.md

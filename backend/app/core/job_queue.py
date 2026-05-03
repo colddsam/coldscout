@@ -109,6 +109,19 @@ async def _queue_worker() -> None:
     global _worker_running
     from app.core.job_manager import job_manager
     from app.config import get_production_status
+    from app.core.database import get_session_maker
+    from app.modules.notifications import events as notif_events
+
+    async def _emit(event_fn, **kwargs) -> None:
+        """Best-effort notification emit. NEVER lets a notification failure
+        affect stage outcome — opens its own short-lived session and swallows
+        anything that goes wrong (notifications are observability, not
+        correctness)."""
+        try:
+            async with get_session_maker()() as ndb:
+                await event_fn(ndb, **kwargs)
+        except Exception as e:
+            logger.debug(f"notify emit failed (non-fatal): {e}")
 
     q = _get_queue()
     try:
@@ -153,6 +166,18 @@ async def _queue_worker() -> None:
 
                 await mark_running(user_id, stage_name)
 
+                # Live notification — fires before the stage starts so the
+                # user sees an instant "Stage X running…" card. ``user_id``
+                # is the freelancer who triggered the work (manual) OR who
+                # the scheduled run is operating on. Never broadcast.
+                if isinstance(user_id, int):
+                    await _emit(
+                        notif_events.stage_started,
+                        user_id=user_id,
+                        stage=stage_name,
+                        trigger="manual" if manual else "scheduled",
+                    )
+
                 if is_freelancer_aware(stage_name):
                     await stage_func(manual=manual, user_id=user_id)
                 else:
@@ -165,6 +190,14 @@ async def _queue_worker() -> None:
                 await mark_completed(
                     user_id, stage_name, f"{stage_name} completed successfully"
                 )
+
+                if isinstance(user_id, int):
+                    await _emit(
+                        notif_events.stage_finished,
+                        user_id=user_id,
+                        stage=stage_name,
+                        summary=f"{stage_name.replace('_', ' ').title()} finished successfully.",
+                    )
             except Exception as e:
                 # Best-effort failure mark. Wrapped because mark_failed
                 # itself could raise (e.g. Redis is down) — we must NOT
@@ -176,6 +209,13 @@ async def _queue_worker() -> None:
                 except Exception as mark_err:
                     logger.warning(
                         f"Tracker mark_failed itself raised for {stage_name}: {mark_err}"
+                    )
+                if isinstance(user_id, int):
+                    await _emit(
+                        notif_events.stage_failed,
+                        user_id=user_id,
+                        stage=stage_name,
+                        error=f"{type(e).__name__}: {str(e)[:200]}",
                     )
                 logger.exception(
                     f"Tracked stage {stage_name} failed for user {user_id}"

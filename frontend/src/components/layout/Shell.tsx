@@ -4,7 +4,7 @@
  * Dashboard frame with animated page transitions, smooth sidebar
  * collapse/expand, and plan gating for free-tier users.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
@@ -12,6 +12,8 @@ import Topbar from './Topbar';
 import { useSEO } from '../../hooks/useSEO';
 import { useAuth } from '../../hooks/useAuth';
 import { useRealtimePipelineStatus } from '../../hooks/useRealtimePipelineStatus';
+import { useLiveNotificationBridge } from '../../hooks/useNotifications';
+import { ensureServiceWorker } from '../../lib/push';
 import UpgradeModal from '../dashboard/UpgradeModal';
 import DashboardSkeleton from '../dashboard/DashboardSkeleton';
 import AnimatedBackground from '../ui/AnimatedBackground';
@@ -31,6 +33,18 @@ export default function Shell() {
   // toggles production state, so the topbar pill and pipeline controls flip
   // without the user needing to refresh.
   useRealtimePipelineStatus();
+
+  // Bridge SW / Capacitor push events into the React Query cache so the bell
+  // badge updates instantly when a notification arrives.
+  useLiveNotificationBridge();
+
+  // Register the SW once per authenticated session — push permission is asked
+  // for separately from the Settings page, but the SW must be live before the
+  // browser will deliver any push events.
+  useEffect(() => {
+    if (!user) return;
+    ensureServiceWorker().catch(() => undefined);
+  }, [user]);
 
   useSEO({
     title: 'Dashboard | Cold Scout',

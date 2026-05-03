@@ -13,6 +13,7 @@ import {
 } from '../lib/api';
 import { broadcastPipelineStatusChange } from '../lib/realtime';
 import toast from 'react-hot-toast';
+import { useUserScope } from './useUserScope';
 
 /**
  * Polls the `/health` endpoint to check backend connectivity and system status.
@@ -92,12 +93,13 @@ export function useConfigJobs() {
  */
 export function useUpdateConfig() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (config: Record<string, unknown>) => updateJobsConfig(config),
     onSuccess: () => {
       toast.success('Config saved');
       qc.invalidateQueries({ queryKey: ['jobs-config'] });
-      qc.invalidateQueries({ queryKey: ['my-job-config'] });
+      qc.invalidateQueries({ queryKey: ['my-job-config', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Config save failed: ${err.message}`);
@@ -108,11 +110,16 @@ export function useUpdateConfig() {
 /**
  * Fetches the per-freelancer effective job configuration
  * (global merged with personal overrides).
+ *
+ * Cache key is per-user — the response is the calling user's effective
+ * config, which mixes their personal overrides with the global defaults.
  */
 export function useMyJobConfig() {
+  const scope = useUserScope();
   return useQuery({
-    queryKey: ['my-job-config'],
+    queryKey: ['my-job-config', scope],
     queryFn: getMyJobConfig,
+    enabled: scope !== 'anon',
   });
 }
 
@@ -121,11 +128,12 @@ export function useMyJobConfig() {
  */
 export function useUpdateMyJobConfig() {
   const qc = useQueryClient();
+  const scope = useUserScope();
   return useMutation({
     mutationFn: (updates: Record<string, JobEffectiveStatus>) => updateMyJobConfig(updates),
     onSuccess: () => {
       toast.success('Personal job preferences saved');
-      qc.invalidateQueries({ queryKey: ['my-job-config'] });
+      qc.invalidateQueries({ queryKey: ['my-job-config', scope] });
     },
     onError: (err: Error) => {
       toast.error(`Save failed: ${err.message}`);

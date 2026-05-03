@@ -1244,3 +1244,99 @@ export const clearAllDiscoveryHistory = () =>
 
 export const previewDiscoveryRun = () =>
   client.get<DiscoveryPreview>('/api/v1/discovery-config/preview').then((r) => r.data);
+
+// ── Notifications (in-app feed + Web Push / FCM subscriptions) ──
+
+export type NotificationKind =
+  | 'stage_started'
+  | 'stage_progress'
+  | 'stage_finished'
+  | 'stage_failed'
+  | 'app_update'
+  | 'system';
+
+export interface NotificationItem {
+  id: number;
+  kind: NotificationKind | string;
+  title: string;
+  body?: string | null;
+  url?: string | null;
+  icon?: string | null;
+  payload?: Record<string, unknown> | null;
+  group_key?: string | null;
+  created_at: string;
+  read_at?: string | null;
+}
+
+export interface NotificationFeed {
+  items: NotificationItem[];
+  unread_count: number;
+  server_time: string;
+}
+
+export interface NotificationsConfig {
+  vapid_public_key: string;
+  web_push_enabled: boolean;
+  fcm_enabled: boolean;
+}
+
+export interface PushSubscriptionRead {
+  id: number;
+  platform: 'web' | 'android';
+  endpoint_preview: string;
+  label?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+  last_used_at: string;
+}
+
+export interface SubscribeRequest {
+  platform: 'web' | 'android';
+  endpoint: string;
+  keys?: { p256dh: string; auth: string };
+  user_agent?: string;
+  label?: string;
+}
+
+export const getNotificationsConfig = () =>
+  client.get<NotificationsConfig>('/api/v1/notifications/config').then((r) => r.data);
+
+export const getNotifications = (params?: {
+  limit?: number;
+  only_unread?: boolean;
+  since_id?: number;
+}) =>
+  client
+    .get<NotificationFeed>('/api/v1/notifications', { params })
+    .then((r) => r.data);
+
+export const markNotificationRead = (id: number) =>
+  client.post(`/api/v1/notifications/${id}/read`).then(() => undefined);
+
+export const markAllNotificationsRead = () =>
+  client.post('/api/v1/notifications/read-all').then(() => undefined);
+
+export const deleteNotification = (id: number) =>
+  client.delete(`/api/v1/notifications/${id}`).then(() => undefined);
+
+export const clearAllNotifications = () =>
+  client.delete('/api/v1/notifications').then(() => undefined);
+
+export const sendTestNotification = (payload?: { title?: string; body?: string }) =>
+  client
+    .post<NotificationItem>('/api/v1/notifications/test', payload || {})
+    .then((r) => r.data);
+
+export const listPushSubscriptions = () =>
+  client.get<PushSubscriptionRead[]>('/api/v1/notifications/subscriptions').then((r) => r.data);
+
+export const subscribePush = (payload: SubscribeRequest) =>
+  client.post<PushSubscriptionRead>('/api/v1/notifications/subscribe', payload).then((r) => r.data);
+
+export const unsubscribePushByEndpoint = (endpoint: string) =>
+  client
+    .delete('/api/v1/notifications/subscribe', { params: { endpoint } })
+    .then(() => undefined);
+
+export const deletePushSubscription = (id: number) =>
+  client.delete(`/api/v1/notifications/subscriptions/${id}`).then(() => undefined);

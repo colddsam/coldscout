@@ -47,6 +47,14 @@ matplotlib==3.9.2
 
 # Notifications
 python-telegram-bot==21.6
+# Web Push (VAPID) — sends notifications to browser & installed PWA service
+# workers on every platform. iOS 16.4+ delivers these via APNs internally with
+# zero developer setup on our side, which is why this also covers iPhone/iPad
+# without an Apple Developer account.
+pywebpush==2.0.0
+# FCM v1 push for the native Android shell (Capacitor). Imported lazily so the
+# server still boots when no Firebase service account is configured.
+firebase-admin==6.5.0
 
 # Utilities
 loguru==0.7.2
