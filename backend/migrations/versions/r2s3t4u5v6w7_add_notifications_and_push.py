@@ -1,7 +1,7 @@
 """Add notifications + push_subscriptions tables
 
-Revision ID: n8o9p0q1r2s3
-Revises: m7n8o9p0q1r2
+ Revision ID: r2s3t4u5v6w7
+ Revises: q1r2s3t4u5v6
 Create Date: 2026-05-03
 
 Backs the new live notification system. Two tables, both per-user with
@@ -21,8 +21,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "n8o9p0q1r2s3"
-down_revision = "m7n8o9p0q1r2"
+revision = "r2s3t4u5v6w7"
+down_revision = "q1r2s3t4u5v6"
 branch_labels = None
 depends_on = None
 
