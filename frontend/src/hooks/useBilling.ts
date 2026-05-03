@@ -3,9 +3,29 @@
  *
  * Provides React Query hooks for subscription data and payment mutations.
  * Handles loading Razorpay checkout.js and opening the payment modal.
+ *
+ * Platform Awareness:
+ *   On web/PWA, the standard checkout.js modal is used.
+ *   On native Capacitor builds (Android/iOS), the checkout is opened in an
+ *   external system browser via @capacitor/browser to avoid WebView
+ *   restrictions that block UPI intent switching (Google Pay, PhonePe, etc.).
+ *
+ * Back-Button Handling (Bug #4):
+ *   When a payment modal is open on Android, the hardware back-button is
+ *   intercepted via @capacitor/app to dismiss the modal instead of navigating
+ *   backward or closing the app entirely.
+ *
+ * TODO (Production):
+ *   - For production-grade native UPI support, integrate the Razorpay Capacitor
+ *     Plugin (com.razorpay.cordova) which handles native intent switching.
+ *   - For iOS App Store compliance with digital goods (policy 3.1.1), implement
+ *     Native In-App Purchases (IAP) via RevenueCat or Capacitor IAP plugin.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import {
   createPaymentOrder,
   verifyPayment,
@@ -41,6 +61,43 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
+// ── Platform Detection ─────────────────────────────────────────────────────
+
+/**
+ * Returns true when running inside a Capacitor native shell (Android/iOS).
+ * Web and PWA builds return false — they use the standard checkout.js modal.
+ */
+function isNativeMobile(): boolean {
+  return Capacitor.isNativePlatform();
+}
+
+// ── Back-Button Guard ──────────────────────────────────────────────────────
+
+/**
+ * Registers an Android hardware back-button interceptor that calls the
+ * provided `onBack` callback instead of letting the system close the app
+ * or navigate backward through the React Router history.
+ *
+ * Returns a cleanup function that removes the listener.
+ */
+function registerBackButtonGuard(onBack: () => void): () => void {
+  if (!isNativeMobile()) {
+    // No-op on web — hardware back-button doesn't exist.
+    return () => {};
+  }
+
+  const handle = App.addListener('backButton', (ev) => {
+    // Always intercept when a modal is open.
+    // ev.canGoBack is true when the WebView has history, but we don't
+    // want to navigate — we want to close the payment modal.
+    onBack();
+  });
+
+  return () => {
+    handle.then((h) => h.remove());
+  };
+}
+
 // ── Query hooks ────────────────────────────────────────────────────────────
 
 export function useSubscription() {
@@ -74,14 +131,21 @@ interface CheckoutOptions {
 }
 
 /**
- * Opens the Razorpay checkout modal for the given plan.
+ * Opens the Razorpay checkout for the given plan.
  *
- * Flow:
+ * Flow (Web / PWA):
  *   1. Calls POST /billing/create-order → gets order_id + key_id
  *   2. Loads Razorpay checkout.js if not already loaded
- *   3. Opens modal
+ *   3. Opens modal with Android back-button guard
  *   4. On success, calls POST /billing/verify-payment
  *   5. Invalidates subscription cache + calls onSuccess callback
+ *
+ * Flow (Native Android / iOS):
+ *   1. Same server-side order creation
+ *   2. Opens Razorpay hosted checkout in external system browser via
+ *      @capacitor/browser — this avoids WebView UPI intent restrictions
+ *   3. Payment verification is handled server-side via Razorpay webhooks
+ *   4. Refreshes subscription cache when user returns to the app
  */
 export function useCheckout() {
   const queryClient = useQueryClient();
@@ -98,6 +162,52 @@ export function useCheckout() {
       return;
     }
 
+    // ── Native path: external browser checkout ─────────────────────────
+    if (isNativeMobile()) {
+      try {
+        // Construct Razorpay hosted checkout URL with order params.
+        // The external browser handles UPI intent switching natively.
+        const checkoutUrl = new URL('https://api.razorpay.com/v1/checkout/embedded');
+        checkoutUrl.searchParams.set('key_id', orderData.key_id);
+        checkoutUrl.searchParams.set('order_id', orderData.order_id);
+        checkoutUrl.searchParams.set('name', 'Cold Scout');
+        checkoutUrl.searchParams.set('prefill[email]', userEmail);
+        if (userName) {
+          checkoutUrl.searchParams.set('prefill[name]', userName);
+        }
+
+        // Open in external system browser (not in-app WebView)
+        await Browser.open({ url: checkoutUrl.toString() });
+
+        toast('Payment opened in browser. Return here when done.', { icon: '🔗' });
+
+        // When the user returns to the app, refresh subscription state.
+        // The Razorpay webhook will have updated the backend by then.
+        const resumeListener = App.addListener('appStateChange', async (state) => {
+          if (state.isActive) {
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['subscription', scope] }),
+              queryClient.invalidateQueries({ queryKey: ['billing-transactions', scope] }),
+              syncUserToBackend(),
+            ]);
+            // Check if the plan was activated via webhook
+            const sub = queryClient.getQueryData<{ plan?: string }>(['subscription', scope]);
+            if (sub?.plan === plan) {
+              const planLabel = plan === 'pro' ? 'Pro Plan' : 'Enterprise Plan';
+              toast.success(`${planLabel} activated!`);
+              onSuccess?.(plan, '');
+            }
+            resumeListener.then((h) => h.remove());
+          }
+        });
+      } catch {
+        toast.error('Could not open payment page. Please try again.');
+      }
+      return;
+    }
+
+    // ── Web / PWA path: standard checkout.js modal ─────────────────────
+
     // Step 2 — load Razorpay script
     const loaded = await loadRazorpayScript();
     if (!loaded || !window.Razorpay) {
@@ -105,9 +215,20 @@ export function useCheckout() {
       return;
     }
 
-    // Step 3 — open modal
+    // Step 3 — open modal with back-button guard
     return new Promise<void>((resolve) => {
       const planLabel = plan === 'pro' ? 'Pro Plan' : 'Enterprise Plan';
+
+      // Register back-button guard before opening the modal.
+      // On web this is a no-op; on native it prevents app exit.
+      let removeBackGuard: (() => void) | null = null;
+
+      const cleanup = () => {
+        if (removeBackGuard) {
+          removeBackGuard();
+          removeBackGuard = null;
+        }
+      };
 
       const rzp = new window.Razorpay({
         key: orderData.key_id,
@@ -124,6 +245,7 @@ export function useCheckout() {
         theme: { color: '#000000' },
         modal: {
           ondismiss: () => {
+            cleanup();
             toast('Payment cancelled.', { icon: '↩' });
             resolve();
           },
@@ -133,6 +255,7 @@ export function useCheckout() {
           razorpay_order_id: string;
           razorpay_signature: string;
         }) => {
+          cleanup();
           // Step 4 — verify with backend
           try {
             const result = await verifyPayment({
@@ -157,6 +280,13 @@ export function useCheckout() {
           }
           resolve();
         },
+      });
+
+      // Wire up back-button guard: pressing Android back closes the modal
+      // instead of navigating away or closing the app.
+      removeBackGuard = registerBackButtonGuard(() => {
+        rzp.close();
+        // The ondismiss handler above will run, calling cleanup() and resolve().
       });
 
       rzp.open();

@@ -32,6 +32,7 @@ settings = get_settings()
 
 from app.modules.notifications.telegram_bot import send_telegram_alert
 from app.modules.discovery.google_places import GooglePlacesClient
+from app.core.exceptions import QuotaExceededException
 from app.modules.discovery.scraper import scrape_contact_email
 from app.models.freelancer_discovery_config import FreelancerDiscoveryConfig
 from app.modules.qualification.scorer import qualify_lead
@@ -372,13 +373,32 @@ async def run_discovery_stage(manual: bool = False, user_id: Optional[int] = Non
             # BRIEF LOCK: Only for the Google Search + History Record
             async with advisory_lock(f"discovery_search_{city}_{category}"):
                 # Fetch from Google Places (Network call)
-                places = await client.search_places_paginated(
-                    location=location_str,
-                    category=category,
-                    country_code=country_code,
-                    radius=radius,
-                    max_pages=settings.DISCOVERY_MAX_PAGES,
-                )
+                # QuotaExceededException bubbles up from the client when the
+                # API returns 429/401/403 — we catch it here to halt the
+                # entire discovery run and alert the admin.
+                try:
+                    places = await client.search_places_paginated(
+                        location=location_str,
+                        category=category,
+                        country_code=country_code,
+                        radius=radius,
+                        max_pages=settings.DISCOVERY_MAX_PAGES,
+                    )
+                except QuotaExceededException as qe:
+                    logger.critical(
+                        f"🚨 Google Places API quota/auth failure — "
+                        f"pausing discovery for user_id={user_id}. {qe}"
+                    )
+                    await send_telegram_alert(
+                        f"🚨 DISCOVERY PAUSED — Google Places API error "
+                        f"(HTTP {qe.status_code}).\n"
+                        f"User: {user_id}\n"
+                        f"Details: {qe.message[:300]}\n"
+                        f"Action: Check API key or quota in Google Cloud Console."
+                    )
+                    # Break from the outer target loop — no point sending
+                    # further requests when the quota is exhausted.
+                    break
 
                 # Record search history immediately. ``location_depth`` now
                 # reflects the per-target depth in manual mode (so the

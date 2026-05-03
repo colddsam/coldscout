@@ -37,22 +37,22 @@ export default {
           subtle:  'rgba(255,255,255,0.06)',
           ring:    'rgba(255,255,255,0.25)',
         },
-        /* ── Semantic Colors (monochromatic variants) ── */
+        /* ── Semantic Colors (Mapped to index.css variables for accessibility) ── */
         success: {
-          DEFAULT: '#FFFFFF',
-          subtle: 'rgba(255,255,255,0.10)',
+          DEFAULT: 'var(--success)',
+          subtle: 'rgba(52, 211, 153, 0.10)',
         },
         warning: {
-          DEFAULT: '#A0A0A0',
-          subtle: 'rgba(160,160,160,0.10)',
+          DEFAULT: 'var(--warning)',
+          subtle: 'rgba(251, 191, 36, 0.10)',
         },
         danger: {
-          DEFAULT: '#FFFFFF',
-          subtle: 'rgba(255,255,255,0.15)',
+          DEFAULT: 'var(--danger)',
+          subtle: 'rgba(248, 113, 113, 0.15)',
         },
         info: {
-          DEFAULT: '#E0E0E0',
-          subtle: 'rgba(224,224,224,0.10)',
+          DEFAULT: 'var(--info)',
+          subtle: 'rgba(96, 165, 250, 0.10)',
         },
       },
       fontFamily: {

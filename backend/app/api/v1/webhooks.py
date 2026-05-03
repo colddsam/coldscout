@@ -99,30 +99,46 @@ async def brevo_webhook(
         logger.info("Received Brevo webhook: event=%s for email=%s", event, email)
 
         if event == "delivered" and message_id:
-            stmt = (
-                update(EmailOutreach)
-                .where(EmailOutreach.brevo_message_id == message_id)
-                .values(status="delivered")
-            )
-            await db.execute(stmt)
-            await db.commit()
+            try:
+                stmt = (
+                    update(EmailOutreach)
+                    .where(EmailOutreach.brevo_message_id == message_id)
+                    .values(status="delivered")
+                )
+                await db.execute(stmt)
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                logger.error("Brevo webhook DB transaction failed (delivered): %s", e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Database transaction failed.",
+                )
 
         elif (
             event in ["bounced", "hard_bounce", "soft_bounce", "spam", "blocked"]
             and message_id
         ):
-            stmt = (
-                update(EmailOutreach)
-                .where(EmailOutreach.brevo_message_id == message_id)
-                .values(status="bounced", bounce_reason=payload.get("reason", event))
-            )
-            await db.execute(stmt)
-            await db.commit()
+            try:
+                stmt = (
+                    update(EmailOutreach)
+                    .where(EmailOutreach.brevo_message_id == message_id)
+                    .values(status="bounced", bounce_reason=payload.get("reason", event))
+                )
+                await db.execute(stmt)
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                logger.error("Brevo webhook DB transaction failed (bounce): %s", e)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Database transaction failed.",
+                )
 
         return {"status": "ok"}
 
     except HTTPException:
-        raise  # Re-raise auth errors unchanged
+        raise  # Re-raise auth errors and DB errors unchanged
     except Exception as e:
         logger.error("Error processing Brevo webhook: %s", e)
         return {"status": "error"}
@@ -207,68 +223,87 @@ async def razorpay_webhook(
         return {"status": "ignored", "reason": "no order_id in payload"}
 
     if event == "payment.captured":
-        # Locate order
-        result = await db.execute(
-            select(PaymentOrder).where(PaymentOrder.razorpay_order_id == razorpay_order_id)
-        )
-        order = result.scalars().first()
-
-        if not order:
-            logger.warning("Razorpay webhook: order %s not found in DB.", razorpay_order_id)
-            return {"status": "ignored", "reason": "order not found"}
-
-        if order.status == "paid":
-            return {"status": "ok", "reason": "already processed"}
-
-        # Update order
-        order.razorpay_payment_id = entity.get("id")
-        order.status = "paid"
-
-        now = datetime.now(timezone.utc)
-        period_end = now + timedelta(days=30)
-
-        # Upsert subscription
-        result2 = await db.execute(
-            select(Subscription).where(Subscription.user_id == order.user_id)
-        )
-        sub = result2.scalars().first()
-
-        if sub:
-            sub.plan = order.plan
-            sub.status = "active"
-            sub.current_period_start = now
-            sub.current_period_end = period_end
-            sub.cancelled_at = None
-            sub.updated_at = now
-        else:
-            sub = Subscription(
-                user_id=order.user_id,
-                plan=order.plan,
-                status="active",
-                current_period_start=now,
-                current_period_end=period_end,
+        try:
+            # Locate order
+            result = await db.execute(
+                select(PaymentOrder).where(PaymentOrder.razorpay_order_id == razorpay_order_id)
             )
-            db.add(sub)
+            order = result.scalars().first()
 
-        # Update user.plan
-        await db.execute(
-            update(User)
-            .where(User.id == order.user_id)
-            .values(plan=order.plan, plan_expires_at=period_end)
-        )
+            if not order:
+                logger.warning("Razorpay webhook: order %s not found in DB.", razorpay_order_id)
+                return {"status": "ignored", "reason": "order not found"}
 
-        await db.commit()
-        logger.info("Razorpay payment.captured: activated plan=%s for user_id=%s", order.plan, order.user_id)
-        return {"status": "ok"}
+            if order.status == "paid":
+                return {"status": "ok", "reason": "already processed"}
+
+            # Update order
+            order.razorpay_payment_id = entity.get("id")
+            order.status = "paid"
+
+            now = datetime.now(timezone.utc)
+            period_end = now + timedelta(days=30)
+
+            # Upsert subscription
+            result2 = await db.execute(
+                select(Subscription).where(Subscription.user_id == order.user_id)
+            )
+            sub = result2.scalars().first()
+
+            if sub:
+                sub.plan = order.plan
+                sub.status = "active"
+                sub.current_period_start = now
+                sub.current_period_end = period_end
+                sub.cancelled_at = None
+                sub.updated_at = now
+            else:
+                sub = Subscription(
+                    user_id=order.user_id,
+                    plan=order.plan,
+                    status="active",
+                    current_period_start=now,
+                    current_period_end=period_end,
+                )
+                db.add(sub)
+
+            # Update user.plan
+            await db.execute(
+                update(User)
+                .where(User.id == order.user_id)
+                .values(plan=order.plan, plan_expires_at=period_end)
+            )
+
+            await db.commit()
+            logger.info("Razorpay payment.captured: activated plan=%s for user_id=%s", order.plan, order.user_id)
+            return {"status": "ok"}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error("Razorpay webhook DB transaction failed (payment.captured): %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database transaction failed.",
+            )
 
     elif event == "payment.failed":
-        await db.execute(
-            update(PaymentOrder)
-            .where(PaymentOrder.razorpay_order_id == razorpay_order_id)
-            .values(status="failed")
-        )
-        await db.commit()
-        logger.info("Razorpay payment.failed: order %s marked failed.", razorpay_order_id)
-        return {"status": "ok"}
+        try:
+            await db.execute(
+                update(PaymentOrder)
+                .where(PaymentOrder.razorpay_order_id == razorpay_order_id)
+                .values(status="failed")
+            )
+            await db.commit()
+            logger.info("Razorpay payment.failed: order %s marked failed.", razorpay_order_id)
+            return {"status": "ok"}
+        except Exception as e:
+            await db.rollback()
+            logger.error("Razorpay webhook DB transaction failed (payment.failed): %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database transaction failed.",
+            )
 
     return {"status": "ignored", "reason": f"unhandled event: {event}"}

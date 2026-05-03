@@ -220,17 +220,22 @@ async def create_search_config(
 ):
     """Create a new keyword search configuration owned by the current freelancer."""
     async with get_session_maker()() as db:
-        config = ThreadsSearchConfig(
-            user_id=current_user.id,
-            keyword=data.keyword,
-            category=data.category,
-            search_type=data.search_type,
-            max_results_per_search=data.max_results_per_search,
-        )
-        db.add(config)
-        await db.commit()
-        await db.refresh(config)
-        return {"id": str(config.id), "keyword": config.keyword, "status": "created"}
+        try:
+            config = ThreadsSearchConfig(
+                user_id=current_user.id,
+                keyword=data.keyword,
+                category=data.category,
+                search_type=data.search_type,
+                max_results_per_search=data.max_results_per_search,
+            )
+            db.add(config)
+            await db.commit()
+            await db.refresh(config)
+            return {"id": str(config.id), "keyword": config.keyword, "status": "created"}
+        except Exception as e:
+            await db.rollback()
+            logger.error("Failed to create search config: %s", e)
+            raise HTTPException(status_code=500, detail="Database transaction failed.")
 
 
 @router.put("/search-configs/{config_id}")
@@ -263,8 +268,13 @@ async def update_search_config(
         if data.max_results_per_search is not None:
             config.max_results_per_search = data.max_results_per_search
 
-        await db.commit()
-        return {"id": str(config.id), "status": "updated"}
+        try:
+            await db.commit()
+            return {"id": str(config.id), "status": "updated"}
+        except Exception as e:
+            await db.rollback()
+            logger.error("Failed to update search config: %s", e)
+            raise HTTPException(status_code=500, detail="Database transaction failed.")
 
 
 @router.delete("/search-configs/{config_id}")
@@ -284,9 +294,15 @@ async def delete_search_config(
         config = result.scalars().first()
         if not config:
             raise HTTPException(status_code=404, detail="Search config not found.")
-        await db.delete(config)
-        await db.commit()
-        return {"status": "deleted"}
+        
+        try:
+            await db.delete(config)
+            await db.commit()
+            return {"status": "deleted"}
+        except Exception as e:
+            await db.rollback()
+            logger.error("Failed to delete search config: %s", e)
+            raise HTTPException(status_code=500, detail="Database transaction failed.")
 
 
 # ── Manual Pipeline Triggers (PRIVATE) ──────────────────────────

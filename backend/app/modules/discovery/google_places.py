@@ -20,6 +20,7 @@ import httpx
 from typing import List, Dict, Any, Optional
 from loguru import logger
 from app.config import get_settings
+from app.core.exceptions import QuotaExceededException
 
 
 # Adaptive radius mapping by location depth
@@ -209,6 +210,13 @@ class GooglePlacesClient:
                     f"Google API error: {e.response.status_code} for query={query!r} "
                     f"regionCode={country_code!r} | body: {body_excerpt}"
                 )
+                # Quota/auth errors must surface to the caller so the pipeline
+                # can pause rather than silently burning through remaining targets.
+                if e.response.status_code in (401, 403, 429):
+                    raise QuotaExceededException(
+                        status_code=e.response.status_code,
+                        message=f"query={query!r} regionCode={country_code!r} | {body_excerpt}",
+                    )
                 return []
             except Exception as e:
                 logger.exception(f"Unexpected error during Google Places discovery for: {query}")
@@ -282,6 +290,17 @@ class GooglePlacesClient:
                         f"{e.response.status_code} for query={query!r} "
                         f"regionCode={country_code!r} | body: {body_excerpt}"
                     )
+                    # Quota/auth errors must bubble up to the caller;
+                    # other HTTP errors (e.g. 400 bad region) just end
+                    # pagination for this target without killing the run.
+                    if e.response.status_code in (401, 403, 429):
+                        raise QuotaExceededException(
+                            status_code=e.response.status_code,
+                            message=(
+                                f"page={page + 1} query={query!r} "
+                                f"regionCode={country_code!r} | {body_excerpt}"
+                            ),
+                        )
                     break
                 except Exception:
                     logger.exception(

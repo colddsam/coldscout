@@ -9,7 +9,6 @@ const config: CapacitorConfig = {
       'checkout.razorpay.com',
       'api.razorpay.com',
       'razorpay.com',
-      '*'
     ]
   },
   plugins: {
