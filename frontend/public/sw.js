@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 /**
  * Cold Scout Service Worker.
  *

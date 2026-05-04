@@ -21,7 +21,8 @@ from sqlalchemy import delete, desc, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_active_superuser, get_current_user
+from app.config import get_settings
 from app.core.database import get_db
 from app.models.notification import Notification
 from app.models.push_subscription import (
@@ -394,6 +395,78 @@ async def clear_all(
 
 
 # ── Test / utility ────────────────────────────────────────────────────────────
+
+
+class DeviceSummary(BaseModel):
+    id: int
+    platform: str
+    label: Optional[str]
+    last_used_at: datetime
+
+
+class PushDebugStatus(BaseModel):
+    """Operator-facing health snapshot for the push subsystem."""
+
+    web_push_enabled: bool
+    vapid_public_key_preview: str
+    vapid_subject: str
+    fcm_enabled: bool
+    fcm_project_id: str
+    caller_user_id: int
+    caller_email: str
+    caller_subscriptions: list[DeviceSummary]
+    caller_subscription_counts: dict[str, int]
+
+
+@router.get("/debug/push-status", response_model=PushDebugStatus)
+async def push_debug_status(
+    current_user: User = Depends(get_current_active_superuser),
+    db: AsyncSession = Depends(get_db),
+):
+    """Operator-only health check for push notification wiring.
+
+    Returns transport configuration plus the caller's own subscribed
+    devices so you can verify, in one HTTP call:
+      * The server has VAPID keys and is willing to send Web Push.
+      * The server has Firebase credentials and is willing to send FCM.
+      * Your current device actually registered (it appears in the list).
+
+    Restricted to superusers because the response previews the VAPID
+    public key — harmless on its own but no reason to expose it broadly.
+    """
+    settings = get_settings()
+    pub = get_vapid_public_key()
+    pub_preview = (pub[:14] + "…" + pub[-6:]) if len(pub) > 24 else pub
+
+    res = await db.execute(
+        select(PushSubscription)
+        .where(PushSubscription.user_id == current_user.id)
+        .order_by(desc(PushSubscription.last_used_at))
+    )
+    subs = res.scalars().all()
+    counts: dict[str, int] = {}
+    for s in subs:
+        counts[s.platform] = counts.get(s.platform, 0) + 1
+
+    return PushDebugStatus(
+        web_push_enabled=is_webpush_configured(),
+        vapid_public_key_preview=pub_preview,
+        vapid_subject=settings.VAPID_SUBJECT or "",
+        fcm_enabled=is_fcm_configured(),
+        fcm_project_id=settings.FCM_PROJECT_ID or "",
+        caller_user_id=current_user.id,
+        caller_email=current_user.email,
+        caller_subscriptions=[
+            DeviceSummary(
+                id=s.id,
+                platform=s.platform,
+                label=s.label,
+                last_used_at=s.last_used_at,
+            )
+            for s in subs
+        ],
+        caller_subscription_counts=counts,
+    )
 
 
 @router.post("/test", response_model=NotificationRead)

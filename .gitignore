@@ -95,3 +95,10 @@ coldscout.keystore
 keystore_base64.txt
 FUTURE_FEATURES*.md
 BUG_REPORT*.md
+
+# Firebase secrets (server-side admin JWT signer + Android client config)
+# google-services.json is technically not secret, but we inject it into CI
+# from a GitHub Secret so the repo stays portable. Treat both as private.
+**/firebase-service-account*.json
+**/*-firebase-adminsdk-*.json
+frontend/android/app/google-services.json

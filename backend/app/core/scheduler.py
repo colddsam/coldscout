@@ -118,6 +118,7 @@ async def setup_scheduler():
         run_threads_response_check,
     )
     from app.tasks.billing_tasks import check_subscription_expiry
+    from app.tasks.app_update_check import check_app_update
 
     # Prime the DB cache before touching APScheduler.
     config = await job_manager.refresh_global_cache()
@@ -193,6 +194,19 @@ async def setup_scheduler():
         misfire_grace_time=3600,
     )
     logger.info("   🟢 subscription_expiry_check: cron 02:00 IST (always active)")
+
+    # 15-minute poller for new Android releases. Always-on; the helper
+    # itself is fail-soft and writes a "baseline only" record on first
+    # boot so existing users aren't spammed with a notification about
+    # the version they already have installed.
+    scheduler.add_job(
+        check_app_update,
+        IntervalTrigger(minutes=15),
+        id="app_update_check",
+        replace_existing=True,
+        misfire_grace_time=600,
+    )
+    logger.info("   🟢 app_update_check: interval 15 min (always active)")
 
     scheduler.start()
 

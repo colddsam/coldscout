@@ -77,6 +77,22 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
+      - name: Materialize google-services.json
+        # The file is gitignored (it's not secret per se, but keeping it
+        # out of the repo means anyone who forks doesn't inherit our
+        # Firebase project). Provide it via a base64-encoded Actions
+        # secret named GOOGLE_SERVICES_JSON_B64 so the Gradle build can
+        # find it at frontend/android/app/google-services.json.
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON_B64 secret. FCM push will not work in the build."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > frontend/android/app/google-services.json
+          echo "Wrote $(wc -c < frontend/android/app/google-services.json) bytes to google-services.json"
+
       - name: Sync Capacitor
         working-directory: ./frontend
         run: npx cap sync android

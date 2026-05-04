@@ -5,4 +5,5 @@
     <color name="colorAccent">#FFFFFF</color>
     <color name="splashBackground">#000000</color>
     <color name="status_bar_color">#000000</color>
+    <color name="notification_color">#000000</color>
 </resources>

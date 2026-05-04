@@ -15,17 +15,21 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environmental configuration
-// The proxy is started from within the 'server' directory via 'npm run dev:proxy'
-// So we need to look in the parent directory for .env.local
-const envPath = path.resolve(process.cwd(), '../.env.local');
-dotenv.config({ path: envPath });
+// The proxy is started from within the 'server' directory via 'npm run dev:proxy'.
+// Env config was consolidated into the repo-root .env on 2026-05-05; fall back to
+// the legacy frontend/.env.local for older checkouts.
+const rootEnvPath = path.resolve(process.cwd(), '../../.env');
+const legacyEnvPath = path.resolve(process.cwd(), '../.env.local');
+dotenv.config({ path: rootEnvPath });
+dotenv.config({ path: legacyEnvPath });
+const envPath = rootEnvPath;
 
 const app = express();
 
 /** Proxy listener port */
 const PORT = process.env.PORT || 3001;
-/** Target backend API endpoint */
-const API_BASE_URL = process.env.API_BASE_URL;
+/** Target backend API endpoint (APP_URL is the consolidated-root name) */
+const API_BASE_URL = process.env.API_BASE_URL || process.env.APP_URL;
 /** Global secret key for administrative tasks */
 const API_KEY = process.env.API_KEY || process.env.VITE_API_KEY;
 
