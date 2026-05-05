@@ -18,6 +18,14 @@ const config: CapacitorConfig = {
     CapacitorCookies: {
       enabled: true,
     },
+    // Foreground delivery: without ``alert`` the @capacitor/push-notifications
+    // plugin only fires the JS event and does NOT post a system-tray
+    // notification while the app is open. Users would silently miss any
+    // push that arrived while they were inside the app. Including
+    // ``badge`` and ``sound`` matches the backgrounded experience.
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
   },
 };
 

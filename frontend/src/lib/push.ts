@@ -207,7 +207,13 @@ export async function enablePush(label?: string): Promise<PushResult> {
 export async function disablePush(): Promise<PushResult> {
   if (isNativeAndroid()) {
     try {
-      await PushNotifications.removeAllListeners();
+      // Detach ONLY the per-enable-attempt registration listeners, not the
+      // live-notification bridge listeners installed at app boot. Calling
+      // ``removeAllListeners()`` here would wipe the foreground bridge
+      // (``pushNotificationReceived`` / ``pushNotificationActionPerformed``
+      // / ``registration``) and re-enabling without a hard reload would
+      // leave the user receiving zero notifications until next launch.
+      await detachAndroidRegistrationListeners();
       await PushNotifications.unregister();
       return { status: 'unsupported', message: 'Native push disabled on this device.' };
     } catch (e) {

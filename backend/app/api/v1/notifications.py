@@ -236,7 +236,13 @@ async def subscribe(
         sub.p256dh = payload.keys.p256dh if payload.keys else None
         sub.auth = payload.keys.auth if payload.keys else None
         sub.user_agent = user_agent
-        sub.label = payload.label
+        # Preserve the existing user-set label when this update is a silent
+        # token-rotation upsert (label=None). Only the explicit "Enable on
+        # this device" flow sends a label, so a missing label here means
+        # the bridge is healing a rotated FCM token and we shouldn't wipe
+        # the original label the user assigned.
+        if payload.label is not None:
+            sub.label = payload.label
         sub.last_used_at = func.now()  # type: ignore[assignment]
 
     try:

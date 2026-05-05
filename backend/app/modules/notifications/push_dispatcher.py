@@ -234,12 +234,27 @@ async def _dispatch_push(
     )
     subs = res.scalars().all()
     if not subs:
+        logger.debug(f"push dispatch: user={user_id} has no subscriptions; skipped")
         return
 
     payload_json = json.dumps(payload, separators=(",", ":"))
     settings = get_settings()
     web_enabled = bool(settings.VAPID_PRIVATE_KEY and settings.VAPID_PUBLIC_KEY)
     fcm_messaging = _load_fcm()
+
+    counts = {"web": 0, "android": 0, "skipped": 0}
+    for sub in subs:
+        if sub.platform == PLATFORM_ANDROID:
+            counts["android"] += 1
+        elif sub.platform == PLATFORM_WEB:
+            counts["web"] += 1
+        else:
+            counts["skipped"] += 1
+    logger.info(
+        f"push dispatch starting (user={user_id}, "
+        f"android={counts['android']}, web={counts['web']}, "
+        f"fcm_ready={fcm_messaging is not None}, web_ready={web_enabled})"
+    )
 
     # Run blocking push calls in a thread executor so the API event loop stays
     # responsive while a sluggish vendor (e.g. mozilla autopush) hangs.
@@ -248,17 +263,33 @@ async def _dispatch_push(
     dead_ids: list[int] = []
     for sub in subs:
         try:
-            if sub.platform == PLATFORM_ANDROID and fcm_messaging is not None:
+            if sub.platform == PLATFORM_ANDROID:
+                if fcm_messaging is None:
+                    logger.warning(
+                        f"push dispatch: skipping android sub={sub.id} for user={user_id} — "
+                        f"FCM is not configured (FCM_SERVICE_ACCOUNT_JSON missing or invalid)"
+                    )
+                    continue
                 ok = await loop.run_in_executor(
                     None, _send_fcm, fcm_messaging, sub.endpoint, payload, payload_json
                 )
-            elif sub.platform == PLATFORM_WEB and web_enabled:
+            elif sub.platform == PLATFORM_WEB:
+                if not web_enabled:
+                    logger.warning(
+                        f"push dispatch: skipping web sub={sub.id} for user={user_id} — "
+                        f"VAPID keys are not configured"
+                    )
+                    continue
                 ok = await loop.run_in_executor(
                     None, _send_webpush, sub, payload_json, settings
                 )
             else:
                 continue
-        except _PermanentPushError:
+        except _PermanentPushError as e:
+            logger.info(
+                f"push dispatch: pruning dead sub={sub.id} ({sub.platform}) "
+                f"for user={user_id}: {e}"
+            )
             dead_ids.append(sub.id)
             continue
         except Exception as e:
@@ -283,6 +314,13 @@ class _PermanentPushError(Exception):
     """Raised when the push service confirms the subscription will never work
     again (HTTP 404/410 for Web Push, ``UNREGISTERED`` for FCM). The caller
     deletes the subscription row when it sees this."""
+
+
+class _UnknownExc(Exception):
+    """Sentinel for ``getattr(messaging, "X", _UnknownExc)`` so that on older
+    firebase-admin builds without a particular typed exception, the
+    ``except`` clause references a class that will never match real errors —
+    falling through to the generic handler instead of crashing."""
 
 
 def _send_webpush(sub: PushSubscription, payload_json: str, settings) -> bool:
@@ -333,22 +371,61 @@ def _send_fcm(messaging, token: str, payload: dict[str, Any], payload_json: str)
                 "kind": payload.get("kind") or "system",
             },
             android=messaging.AndroidConfig(
+                # ``high`` is required for the message to wake a Doze-mode
+                # device. Without it the notification can sit in FCM's queue
+                # for hours on Android 9+ devices that have aggressive
+                # battery optimisation enabled.
                 priority="high",
+                # 1 hour TTL — shorter than FCM's 4-week default so a stale
+                # status notification (e.g. "stage running") isn't delivered
+                # an hour after the user already saw the stage finish.
+                ttl=3600,
                 notification=messaging.AndroidNotification(
                     icon="ic_stat_notification",
                     color="#000000",
                     channel_id="coldscout_default",
+                    # NOTIFICATION_PRIORITY_HIGH makes the system render a
+                    # heads-up notification on Android 7.x; on 8+ the
+                    # channel's IMPORTANCE_HIGH wins so this is harmless.
+                    notification_priority="PRIORITY_HIGH",
+                    default_sound=True,
+                    default_vibrate_timings=True,
                 ),
             ),
         )
-        messaging.send(message, app=_FCM_APP)
+        message_id = messaging.send(message, app=_FCM_APP)
+        logger.debug(
+            f"FCM send ok (token={token[:12]}…, message_id={message_id})"
+        )
+        return True
+    except getattr(messaging, "UnregisteredError", _UnknownExc) as e:  # type: ignore[misc]
+        # The token has been invalidated by FCM (app uninstalled, data
+        # cleared, token rotated and old one expired). The caller deletes
+        # the subscription row when it sees ``_PermanentPushError``.
+        raise _PermanentPushError(str(e)) from e
+    except getattr(messaging, "SenderIdMismatchError", _UnknownExc) as e:  # type: ignore[misc]
+        # Token was issued for a different Firebase project than the one
+        # we're sending from — the row can never receive from us, treat
+        # as permanent so we stop retrying.
+        logger.error(f"FCM SenderIdMismatch (token={token[:12]}…): {e}")
+        raise _PermanentPushError(str(e)) from e
+    except getattr(messaging, "ThirdPartyAuthError", _UnknownExc) as e:  # type: ignore[misc]
+        # APNS / web-push auth failed downstream — transient on FCM's side.
+        logger.warning(f"FCM ThirdPartyAuth (token={token[:12]}…): {e}")
+        return True
+    except getattr(messaging, "QuotaExceededError", _UnknownExc) as e:  # type: ignore[misc]
+        logger.warning(f"FCM quota exceeded; backing off: {e}")
         return True
     except Exception as e:
-        # firebase-admin raises ``UnregisteredError`` (subclass of FirebaseError)
-        # when the token has been invalidated. We can't import the exception
-        # type without coupling to the package, so fall back to string check.
+        # Last-resort string match for older firebase-admin builds where the
+        # typed exceptions above were not yet exported.
         msg = str(e)
-        if "UNREGISTERED" in msg.upper() or "NOT_FOUND" in msg.upper():
+        upper = msg.upper()
+        if (
+            "UNREGISTERED" in upper
+            or "NOT_FOUND" in upper
+            or "REGISTRATION-TOKEN-NOT-REGISTERED" in upper
+        ):
             raise _PermanentPushError(msg) from e
         logger.warning(f"FCM send failure (token={token[:12]}…): {e}")
         return True

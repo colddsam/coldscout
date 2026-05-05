@@ -35,6 +35,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
   sendTestNotification,
+  subscribePush,
   type NotificationFeed,
   type NotificationItem,
 } from '../lib/api';
@@ -198,6 +199,48 @@ export function useLiveNotificationBridge() {
         }
       })
         .then((handle) => capacitorListeners.push(handle))
+        .catch(() => undefined);
+
+      // ── Persistent registration listener ─────────────────────────────────
+      // FCM rotates tokens silently (app-data wipe, restore-from-backup,
+      // long-idle invalidation). Capacitor surfaces the new token via the
+      // ``registration`` event. Without a long-lived listener attached at
+      // boot, the rotation is dropped on the floor and the backend keeps
+      // shipping pushes to the dead token forever — the user sees nothing.
+      // Re-uploading the token here is idempotent on the server (upsert by
+      // user_id + endpoint), so the only effect is healing the row.
+      PushNotifications.addListener('registration', async (token) => {
+        try {
+          await subscribePush({
+            platform: 'android',
+            endpoint: token.value,
+            user_agent: navigator.userAgent || undefined,
+          });
+        } catch {
+          // Best-effort — failure here is non-fatal; the user can retry
+          // from the settings page if the token is truly broken.
+        }
+      })
+        .then((handle) => capacitorListeners.push(handle))
+        .catch(() => undefined);
+
+      // Silent boot-time refresh: if this user already has at least one
+      // Android subscription, call register() so the SDK rechecks the
+      // token. Any rotation flows through the registration listener above
+      // and patches the backend automatically. We gate on an existing
+      // subscription so we never silently register a brand-new device for
+      // a user who hasn't opted in from Settings.
+      listPushSubscriptions()
+        .then((subs) => {
+          const hasAndroid = subs.some((s) => s.platform === 'android');
+          if (!hasAndroid) return;
+          PushNotifications.checkPermissions()
+            .then((perm) => {
+              if (perm.receive !== 'granted') return;
+              PushNotifications.register().catch(() => undefined);
+            })
+            .catch(() => undefined);
+        })
         .catch(() => undefined);
     }
 
