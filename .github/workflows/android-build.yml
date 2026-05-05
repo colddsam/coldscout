@@ -55,7 +55,10 @@ jobs:
         run: npm ci
 
       - name: Create .env for build
-        working-directory: ./frontend
+        # Vite reads env from the repo root since 2026-05-05 (frontend/vite.config.ts
+        # sets envDir to '..'). Writing to ./frontend/.env produces a build with
+        # empty VITE_* values, which crashes Supabase init at module load and
+        # leaves the Android app on a black screen.
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
