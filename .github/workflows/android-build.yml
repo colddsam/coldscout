@@ -95,6 +95,23 @@ jobs:
           fi
           echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > frontend/android/app/google-services.json
           echo "Wrote $(wc -c < frontend/android/app/google-services.json) bytes to google-services.json"
+          # Print non-sensitive identifiers from the bundled file so a
+          # FIS_AUTH_ERROR investigation can confirm the secret hasn't gone
+          # stale (e.g. Firebase app deleted + recreated in console while
+          # the GH Action secret still holds the old API key).
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open("frontend/android/app/google-services.json"))
+          c = d["client"][0]
+          api_key = c["api_key"][0]["current_key"]
+          print("::group::Bundled google-services.json fingerprint")
+          print("  project_id:      ", d["project_info"]["project_id"])
+          print("  project_number:  ", d["project_info"]["project_number"])
+          print("  package_name:    ", c["client_info"]["android_client_info"]["package_name"])
+          print("  mobilesdk_app_id:", c["client_info"]["mobilesdk_app_id"])
+          print("  api_key (last 6):", "..." + api_key[-6:])
+          print("::endgroup::")
+          PY
 
       - name: Sync Capacitor
         working-directory: ./frontend
