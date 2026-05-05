@@ -15,9 +15,18 @@ Key Features:
 
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# Env was consolidated into the repo-root .env on 2026-05-05. Resolve it
+# from this file's location so the backend reads the same file regardless
+# of CWD (uvicorn from ./backend, docker-compose, Render shell, etc.).
+# config.py lives at backend/app/config.py → repo root is parents[2].
+_REPO_ROOT_ENV = (Path(__file__).resolve().parents[2] / ".env")
+ENV_FILE_PATH = str(_REPO_ROOT_ENV) if _REPO_ROOT_ENV.is_file() else ".env"
 
 
 class Settings(BaseSettings):
@@ -543,7 +552,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE_PATH,
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -599,7 +608,7 @@ def set_env_variable(key: str, value: str):
     os.environ[key] = value
 
     # Best-effort .env file persistence (useful for local dev, no-op effect on Render).
-    env_file = ".env"
+    env_file = ENV_FILE_PATH
     try:
         existing_lines: list[str] = []
         if os.path.exists(env_file):

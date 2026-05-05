@@ -6,7 +6,7 @@ services:
       context: ./backend
     ports:
       - "8000:8000"
-    env_file: ./backend/.env
+    env_file: ./.env
     environment:
       - APP_ENV=development
     restart: unless-stopped
