@@ -127,8 +127,16 @@ export default function NotificationBell() {
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
             className={cn(
-              'absolute right-0 mt-2 z-50',
-              'w-[min(92vw,360px)] max-h-[min(70vh,520px)]',
+              // Mobile (<sm): pin to the viewport so the dropdown can't be
+              // clipped by the Topbar's flex layout. The bell sits to the
+              // left of the system-toggle button, so an `absolute right-0`
+              // anchor would push the panel's left edge off-screen on a
+              // ~360 px Android viewport. Fixed positioning at top-14 (the
+              // Topbar height) with symmetric inset-x lets the panel use
+              // the full available width without overflow.
+              'fixed top-14 inset-x-2 mt-1 z-50',
+              'sm:absolute sm:top-auto sm:inset-x-auto sm:right-0 sm:mt-2',
+              'sm:w-[min(92vw,360px)] max-h-[min(70vh,520px)]',
               'bg-surface-2 border border-white/[0.08] rounded-lg shadow-xl',
               'flex flex-col overflow-hidden',
             )}

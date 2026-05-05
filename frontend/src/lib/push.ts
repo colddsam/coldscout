@@ -239,7 +239,37 @@ export async function disablePush(): Promise<PushResult> {
 
 // ── Native (Capacitor / Android) path ─────────────────────────────────────────
 
-let androidWired = false;
+/**
+ * Friendly explanation for the most common native FCM errors so the user
+ * doesn't see a raw "FIS_AUTH_ERROR" toast and assume the app is broken.
+ *
+ * FIS_AUTH_ERROR: Firebase Installations Service rejected the device. Almost
+ * always means the API key in google-services.json has Android-app
+ * restrictions in GCP Console that exclude this build's signing certificate,
+ * or the Firebase Installations / Cloud Messaging APIs are disabled for the
+ * project. Once the project-side config is corrected, retry succeeds.
+ */
+function humanizeFcmError(raw: string | undefined | null): string {
+  const msg = (raw || '').trim();
+  if (!msg) return 'FCM registration error';
+  if (/FIS_AUTH_ERROR/i.test(msg)) {
+    return (
+      'Firebase rejected this device (FIS_AUTH_ERROR). Check that the Firebase ' +
+      'Installations API and Cloud Messaging API are enabled, and that the ' +
+      'API key has no Android-app restriction excluding this APK.'
+    );
+  }
+  if (/SERVICE_NOT_AVAILABLE/i.test(msg)) {
+    return 'FCM service unavailable. Check Google Play Services and your network, then retry.';
+  }
+  if (/AUTHENTICATION_FAILED/i.test(msg)) {
+    return 'FCM authentication failed. The bundled google-services.json may not match the Firebase project.';
+  }
+  if (/MISSING_INSTANCEID_SERVICE/i.test(msg)) {
+    return 'Firebase init missing in this build (google-services plugin did not run).';
+  }
+  return msg;
+}
 
 async function enableNativeAndroid(label?: string): Promise<PushResult> {
   const cfg = await getConfig();
@@ -267,21 +297,39 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
     return { status: 'error', message: (e as Error).message };
   }
 
+  // Detach the registration listeners from any previous attempt before
+  // wiring fresh ones — without this, a second tap on "Enable" would stack
+  // a new `registration` handler on top of the old one and the cached
+  // `registrationError` from attempt #1 would re-fire forever as
+  // "FCM registration failed". We deliberately do NOT call
+  // ``removeAllListeners()`` because that would also wipe the foreground
+  // ``pushNotificationReceived`` / ``pushNotificationActionPerformed``
+  // hooks the live-notification bridge installs at app boot.
+  await detachAndroidRegistrationListeners();
+  // Drop any stale token Firebase cached from the failed attempt so the
+  // next register() request walks the full token-fetch path again.
+  try {
+    await PushNotifications.unregister();
+  } catch {
+    // best-effort — unregister throws if there's nothing to remove.
+  }
+
   // Wait for the FCM token via the ``registration`` event.
   return new Promise<PushResult>((resolve) => {
     let settled = false;
     const finish = (res: PushResult) => {
       if (settled) return;
       settled = true;
+      // Detach the per-attempt listeners so the next tap starts clean.
+      detachAndroidRegistrationListeners();
       resolve(res);
     };
 
-    if (!androidWired) {
-      androidWired = true;
-      PushNotifications.addListener('registrationError', (err) => {
-        finish({ status: 'error', message: err.error || 'FCM registration error' });
-      });
-    }
+    PushNotifications.addListener('registrationError', (err) => {
+      finish({ status: 'error', message: humanizeFcmError(err?.error) });
+    })
+      .then((h) => androidRegistrationHandles.push(h))
+      .catch((e) => finish({ status: 'error', message: (e as Error).message }));
 
     PushNotifications.addListener('registration', async (token: Token) => {
       try {
@@ -298,13 +346,36 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
           message: `Backend rejected the FCM token: ${(e as Error).message}`,
         });
       }
-    }).catch((e) => finish({ status: 'error', message: (e as Error).message }));
+    })
+      .then((h) => androidRegistrationHandles.push(h))
+      .catch((e) => finish({ status: 'error', message: (e as Error).message }));
 
     PushNotifications.register().catch((e) =>
       finish({ status: 'error', message: (e as Error).message }),
     );
 
-    // Safety timeout — if neither callback fires within 10 s, surface an error.
-    setTimeout(() => finish({ status: 'error', message: 'FCM registration timed out' }), 10_000);
+    // Safety timeout — Firebase token fetches can take a moment over slow
+    // networks; 20 s gives FIS / FCM enough room without leaving the user
+    // staring at a frozen button.
+    setTimeout(
+      () => finish({ status: 'error', message: 'FCM registration timed out' }),
+      20_000,
+    );
   });
+}
+
+// Module-scoped handles for the `registration` / `registrationError`
+// listeners attached by enableNativeAndroid. Persisted here so a retry can
+// remove just these without affecting the live-bridge listeners.
+const androidRegistrationHandles: Array<{ remove: () => Promise<void> }> = [];
+
+async function detachAndroidRegistrationListeners(): Promise<void> {
+  while (androidRegistrationHandles.length) {
+    const h = androidRegistrationHandles.pop();
+    try {
+      await h?.remove();
+    } catch {
+      // best-effort
+    }
+  }
 }
