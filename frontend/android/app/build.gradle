@@ -16,6 +16,16 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        debug {
+            // If you want your debug build to match the SHA-1 in Firebase Console
+            // for the coldscout.keystore, point to it here and provide the password.
+            // storeFile file('../../../coldscout.keystore')
+            // storePassword 'your_password'
+            // keyAlias 'your_alias'
+            // keyPassword 'your_password'
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -44,11 +54,6 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
 }

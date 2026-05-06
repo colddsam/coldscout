@@ -43,6 +43,8 @@ export interface PushResult {
   subscription?: PushSubscriptionRead;
 }
 
+let registrationInProgress = false;
+
 const SW_PATH = '/sw.js';
 
 let cachedConfig: NotificationsConfig | null = null;
@@ -255,9 +257,9 @@ export async function disablePush(): Promise<PushResult> {
  * or the Firebase Installations / Cloud Messaging APIs are disabled for the
  * project. Once the project-side config is corrected, retry succeeds.
  */
-function humanizeFcmError(raw: string | undefined | null): string {
-  const msg = (raw || '').trim();
-  if (!msg) return 'FCM registration error';
+function humanizeFcmError(raw: any): string {
+  const msg = typeof raw === 'string' ? raw.trim() : (raw?.message || raw?.error || String(raw || '')).trim();
+  if (!msg || msg === '[object Object]') return 'FCM registration error';
   if (/FIS_AUTH_ERROR/i.test(msg)) {
     return (
       'Firebase rejected this device (FIS_AUTH_ERROR). Check that the Firebase ' +
@@ -285,6 +287,15 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
       message: 'FCM is not configured on the server.',
     };
   }
+
+  if (registrationInProgress) {
+    return {
+      status: 'error',
+      message: 'A registration request is already active. Please wait a moment.',
+    };
+  }
+
+  registrationInProgress = true;
 
   try {
     const perm = await PushNotifications.checkPermissions();
@@ -327,12 +338,14 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
     const finish = (res: PushResult) => {
       if (settled) return;
       settled = true;
+      registrationInProgress = false;
       // Detach the per-attempt listeners so the next tap starts clean.
       detachAndroidRegistrationListeners();
       resolve(res);
     };
 
     PushNotifications.addListener('registrationError', (err) => {
+      console.error('[push] FCM Registration Error:', err);
       finish({ status: 'error', message: humanizeFcmError(err?.error) });
     })
       .then((h) => androidRegistrationHandles.push(h))
