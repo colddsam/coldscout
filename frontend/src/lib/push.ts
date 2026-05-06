@@ -257,8 +257,17 @@ export async function disablePush(): Promise<PushResult> {
  * or the Firebase Installations / Cloud Messaging APIs are disabled for the
  * project. Once the project-side config is corrected, retry succeeds.
  */
-function humanizeFcmError(raw: any): string {
-  const msg = typeof raw === 'string' ? raw.trim() : (raw?.message || raw?.error || String(raw || '')).trim();
+function humanizeFcmError(raw: unknown): string {
+  let msg = '';
+  if (typeof raw === 'string') {
+    msg = raw.trim();
+  } else if (raw && typeof raw === 'object') {
+    const r = raw as Record<string, unknown>;
+    msg = String(r.message || r.error || '').trim();
+  } else {
+    msg = String(raw || '').trim();
+  }
+
   if (!msg || msg === '[object Object]') return 'FCM registration error';
   if (/FIS_AUTH_ERROR/i.test(msg)) {
     return (
