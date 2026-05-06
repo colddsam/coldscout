@@ -312,13 +312,14 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
   // ``pushNotificationReceived`` / ``pushNotificationActionPerformed``
   // hooks the live-notification bridge installs at app boot.
   await detachAndroidRegistrationListeners();
-  // Drop any stale token Firebase cached from the failed attempt so the
-  // next register() request walks the full token-fetch path again.
-  try {
-    await PushNotifications.unregister();
-  } catch {
-    // best-effort — unregister throws if there's nothing to remove.
-  }
+  // NOTE: we deliberately do NOT call PushNotifications.unregister() here.
+  // unregister() invokes FirebaseMessaging.deleteToken(), which forces the
+  // next register() to make a full FIS round-trip for a fresh install ID.
+  // Tapping Enable a few times in a row rapidly burns the per-device FIS
+  // quota and the SDK then returns SERVICE_NOT_AVAILABLE for ~30-60 min.
+  // getToken() is already idempotent — it returns the cached token when one
+  // exists and only hits the network on first use or after rotation, so the
+  // delete-then-refetch dance only added churn without a real benefit.
 
   // Wait for the FCM token via the ``registration`` event.
   return new Promise<PushResult>((resolve) => {
