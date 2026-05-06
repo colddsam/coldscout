@@ -82,7 +82,13 @@ export default function Button({
       className={cn(
         'ripple-container inline-flex items-center justify-center gap-2 rounded-lg font-sans whitespace-nowrap',
         'transition-all duration-200 ease-out',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-current',
+        // Disabled / loading: dim the surface and silence pointer events
+        // so the variant's hover/active styles don't briefly fire on a
+        // mobile tap. The previous ``disabled:hover:bg-current`` rule
+        // painted the button in its own text colour while loading
+        // (e.g. white-text ghost buttons turned into solid white blocks),
+        // which is what made the idle/loading state look broken.
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none disabled:shadow-none',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         variants[variant],
         sizes[size],

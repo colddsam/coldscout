@@ -34,7 +34,7 @@ export default function LeadDemoViewer() {
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
       {/* Sticky top banner */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black text-white px-4 py-3 flex items-center justify-between text-sm shadow-lg">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-black text-white px-4 py-3 pt-safe-plus-3 flex items-center justify-between text-sm shadow-lg">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-tight">Cold Scout</span>
           <span className="hidden sm:inline text-white/70">|</span>

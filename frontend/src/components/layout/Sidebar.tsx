@@ -55,6 +55,11 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         className={cn(
           'flex flex-col bg-black border-r border-white/[0.08] z-50',
           'fixed inset-y-0 left-0 lg:static',
+          // The mobile drawer sits in front of the status bar; without
+          // the safe-area inset its logo strip would render under the
+          // notification icons on Android 15+ edge-to-edge devices and
+          // iPhones in landscape (left-edge inset).
+          'pt-safe pl-safe',
           !mobileOpen && '-translate-x-full lg:translate-x-0',
           mobileOpen && 'translate-x-0',
         )}
@@ -174,8 +179,9 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           })}
         </nav>
 
-        {/* Bottom Area */}
-        <div className="border-t border-white/[0.08] p-3 space-y-1.5">
+        {/* Bottom Area — pb-safe keeps the logout/sponsor row clear of the
+            iOS gesture bar and Android 3-button nav inset. */}
+        <div className="border-t border-white/[0.08] p-3 space-y-1.5 pb-safe-plus-3">
           {/* Logout */}
           <button
             onClick={() => {

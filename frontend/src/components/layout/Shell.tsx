@@ -68,10 +68,15 @@ export default function Shell() {
         </div>
 
         <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
-          <UpdateBanner />
-          <Topbar onMenuClick={() => setMobileOpen(true)} />
+          {/* Top chrome wrapper — owns the device safe-area inset so the
+              status bar / notch never clips UpdateBanner or Topbar. Whether
+              one or both render, the inset stays accounted for here. */}
+          <div className="pt-safe">
+            <UpdateBanner />
+            <Topbar onMenuClick={() => setMobileOpen(true)} />
+          </div>
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-safe-plus-3 px-safe">
             {showSkeleton ? (
               <DashboardSkeleton />
             ) : (

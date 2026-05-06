@@ -19,9 +19,13 @@ export default function PublicNavbar() {
   const location = useLocation();
   const { scrollY } = useScroll();
 
-  // Smoothly interpolate visual properties from scroll
+  // Smoothly interpolate visual properties from scroll. ``navTop`` is
+  // composed with the device safe-area inset so the floating nav clears
+  // the status bar / notch on Android 15+ edge-to-edge devices and iOS
+  // PWAs (where the WebView extends behind the system bar).
   const navWidth = useTransform(scrollY, [0, 80], ['100%', '92%']);
-  const navTop = useTransform(scrollY, [0, 80], [12, 16]);
+  const navTopBase = useTransform(scrollY, [0, 80], [12, 16]);
+  const navTop = useTransform(navTopBase, (v) => `calc(env(safe-area-inset-top) + ${v}px)`);
   const navRadius = useTransform(scrollY, [0, 80], [20, 999]);
 
   useEffect(() => {
@@ -207,7 +211,7 @@ export default function PublicNavbar() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="flex flex-col p-6 pt-24 gap-2 h-full">
+            <div className="flex flex-col p-6 pt-[calc(env(safe-area-inset-top)+6rem)] gap-2 h-full pb-safe">
               {navLinks.map((link, i) => (
                 <motion.div
                   key={link.name}

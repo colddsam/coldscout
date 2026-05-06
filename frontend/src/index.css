@@ -67,6 +67,39 @@ html, body, #root {
   padding: 0;
 }
 
+/* ═══════════════ Safe-Area Insets ═══════════════
+ *
+ * On Android 15+ (API 35) edge-to-edge is enforced by default and the
+ * Capacitor WebView is drawn behind the system status bar — without
+ * accounting for ``env(safe-area-inset-top)`` the top of our app would
+ * end up under the notification icons. iOS PWAs installed via "Add to
+ * Home Screen" with ``viewport-fit=cover`` and the ``black-translucent``
+ * status-bar style behave the same way. These utilities are the single
+ * source of truth for that padding so every top-of-screen surface stays
+ * out of harm's way.
+ *
+ * On platforms that don't expose insets (desktop browsers, classic
+ * Android themes), ``env(safe-area-inset-*)`` resolves to ``0px`` so
+ * applying these utilities is a no-op there.
+ */
+
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe { padding-left: env(safe-area-inset-left); }
+.pr-safe { padding-right: env(safe-area-inset-right); }
+.px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.top-safe { top: env(safe-area-inset-top); }
+.h-safe-top { height: env(safe-area-inset-top); }
+/* Combine the OS inset with a base spacing — handy for a navbar that
+ * already needs ``top: 12px`` of breathing room beneath the notch. */
+.pt-safe-plus-3 { padding-top: calc(env(safe-area-inset-top) + 0.75rem); }
+.pb-safe-plus-3 { padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem); }
+.top-safe-plus-3 { top: calc(env(safe-area-inset-top) + 0.75rem); }
+.top-safe-plus-4 { top: calc(env(safe-area-inset-top) + 1rem); }
+
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
