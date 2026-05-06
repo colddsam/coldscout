@@ -384,10 +384,11 @@ def _send_fcm(messaging, token: str, payload: dict[str, Any], payload_json: str)
                     icon="ic_stat_notification",
                     color="#000000",
                     channel_id="coldscout_default",
-                    # NOTIFICATION_PRIORITY_HIGH makes the system render a
-                    # heads-up notification on Android 7.x; on 8+ the
+                    # ``priority="high"`` is the Python kwarg (firebase-admin
+                    # encodes it as ``notification_priority`` on the wire).
+                    # Drives heads-up display on Android 7.x; on 8+ the
                     # channel's IMPORTANCE_HIGH wins so this is harmless.
-                    notification_priority="PRIORITY_HIGH",
+                    priority="high",
                     default_sound=True,
                     default_vibrate_timings=True,
                 ),
