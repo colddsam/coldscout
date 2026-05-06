@@ -43,6 +43,7 @@ export default function PublicNavbar() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
+    { name: 'Scanner', href: '/scanner' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Docs', href: '/docs' },
     { name: 'Support', href: '/support' },

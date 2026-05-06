@@ -1340,3 +1340,44 @@ export const unsubscribePushByEndpoint = (endpoint: string) =>
 
 export const deletePushSubscription = (id: number) =>
   client.delete(`/api/v1/notifications/subscriptions/${id}`).then(() => undefined);
+
+// ── Public Lead Scanner (lead-magnet) ──
+
+export type ScanFlawSeverity = 'critical' | 'warning' | 'info';
+
+export interface ScanFlaw {
+  code: string;
+  title: string;
+  detail: string;
+  severity: ScanFlawSeverity;
+}
+
+export interface ScanSocial {
+  platform: string;
+  url: string;
+}
+
+export interface ScanResult {
+  url: string;
+  normalized_url: string;
+  is_dns_valid: boolean;
+  is_http_valid: boolean;
+  has_ssl: boolean;
+  is_mobile_friendly: boolean;
+  is_free_builder: boolean;
+  copyright_year: number | null;
+  has_socials: boolean;
+  socials: ScanSocial[];
+  flaws: ScanFlaw[];
+  score: number;
+}
+
+/**
+ * Public scanner — no auth required. The endpoint is rate-limited
+ * server-side (10/min/IP via slowapi); a 429 response should be
+ * surfaced verbatim to the user as a "try again in a moment" toast.
+ */
+export const scanWebsite = (url: string) =>
+  client
+    .post<ScanResult>('/api/v1/public/scan-website', { url }, { timeout: 30_000 })
+    .then((r) => r.data);
