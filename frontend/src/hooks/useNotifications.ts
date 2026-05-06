@@ -39,6 +39,10 @@ import {
   type NotificationFeed,
   type NotificationItem,
 } from '../lib/api';
+import {
+  rememberActivePushEndpoint,
+  silentRebindPushToCurrentUser,
+} from '../lib/push';
 import { useUserScope } from './useUserScope';
 import { useAuth } from './useAuth';
 
@@ -216,6 +220,9 @@ export function useLiveNotificationBridge() {
             endpoint: token.value,
             user_agent: navigator.userAgent || undefined,
           });
+          // Remember the live endpoint so logout can detach this device
+          // from the current user's row before the JWT is invalidated.
+          rememberActivePushEndpoint(token.value);
         } catch {
           // Best-effort — failure here is non-fatal; the user can retry
           // from the settings page if the token is truly broken.
@@ -224,25 +231,33 @@ export function useLiveNotificationBridge() {
         .then((handle) => capacitorListeners.push(handle))
         .catch(() => undefined);
 
-      // Silent boot-time refresh: if this user already has at least one
-      // Android subscription, call register() so the SDK rechecks the
-      // token. Any rotation flows through the registration listener above
-      // and patches the backend automatically. We gate on an existing
-      // subscription so we never silently register a brand-new device for
-      // a user who hasn't opted in from Settings.
-      listPushSubscriptions()
-        .then((subs) => {
-          const hasAndroid = subs.some((s) => s.platform === 'android');
-          if (!hasAndroid) return;
-          PushNotifications.checkPermissions()
-            .then((perm) => {
-              if (perm.receive !== 'granted') return;
-              PushNotifications.register().catch(() => undefined);
-            })
-            .catch(() => undefined);
-        })
-        .catch(() => undefined);
     }
+
+    // ── Boot-time / login-time silent rebind ────────────────────────────
+    // Re-bind THIS device to the freshly authenticated user without
+    // showing any prompts. Two scenarios this needs to cover:
+    //
+    //  1. **Cold load with an existing Android sub.** FCM may have
+    //     rotated the token while the app was killed. Calling
+    //     ``register()`` is idempotent — when the cached token is fresh
+    //     it fires ``registration`` with the same value (no-op upsert);
+    //     when the token rotated, the persistent listener uploads the
+    //     new value under the current user.
+    //
+    //  2. **A teammate logged out, the user just logged in on the same
+    //     device.** OS-level push permission is already granted (the
+    //     teammate enabled it) but the new user has no subscription row
+    //     yet. We push the existing FCM token / Web Push subscription
+    //     up under the new user_id so they start receiving their own
+    //     notifications immediately. The backend's transfer-on-subscribe
+    //     drops any lingering row that still pointed at the previous
+    //     user, so even if the previous logout's detach call failed,
+    //     ownership ends up correct.
+    //
+    // Strictly silent: ``silentRebindPushToCurrentUser`` is a no-op when
+    // permission is missing or the transport is not configured, so we
+    // never re-bind a brand-new user who hasn't opted in.
+    silentRebindPushToCurrentUser().catch(() => undefined);
 
     // Refresh once on mount so the badge is correct after a cold load.
     invalidate();

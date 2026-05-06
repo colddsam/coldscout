@@ -213,6 +213,25 @@ async def subscribe(
 
     user_agent = payload.user_agent or request.headers.get("user-agent", "")[:512] or None
 
+    # Claim the device. The same physical device (FCM token / Web Push
+    # endpoint) may have been bound to a different user before — typical
+    # when one teammate logs out and another logs in on the same phone /
+    # browser, and the previous user's logout-detach failed (offline,
+    # session expired without auth). Without this transfer, both users
+    # end up bound to the same endpoint and the previous user's pushes
+    # keep arriving on the new user's device. Most-recent-subscriber wins.
+    transferred = await db.execute(
+        delete(PushSubscription)
+        .where(PushSubscription.endpoint == payload.endpoint)
+        .where(PushSubscription.user_id != current_user.id)
+    )
+    transferred_count = transferred.rowcount or 0
+    if transferred_count:
+        logger.info(
+            f"Push subscribe: transferred endpoint ownership to user={current_user.id} "
+            f"(displaced {transferred_count} prior subscription row[s] for the same device)"
+        )
+
     # Upsert by (user_id, endpoint).
     res = await db.execute(
         select(PushSubscription)

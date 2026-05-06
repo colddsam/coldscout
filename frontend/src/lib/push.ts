@@ -46,9 +46,42 @@ export interface PushResult {
 let registrationInProgress = false;
 
 const SW_PATH = '/sw.js';
+// Stores the most recently registered push endpoint for THIS device. The
+// backend scopes the unsubscribe by (user_id, endpoint), so on logout we
+// need this to tell the server "drop my row for this device" while the
+// JWT is still valid. Persisted in localStorage so it survives reloads
+// and is shared across tabs of the same browser.
+const ACTIVE_ENDPOINT_KEY = 'cs_push_active_endpoint';
 
 let cachedConfig: NotificationsConfig | null = null;
 let swRegistration: ServiceWorkerRegistration | null = null;
+
+function readActivePushEndpoint(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(ACTIVE_ENDPOINT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function rememberActivePushEndpoint(endpoint: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(ACTIVE_ENDPOINT_KEY, endpoint);
+  } catch {
+    // localStorage quota / private mode — non-fatal.
+  }
+}
+
+function forgetActivePushEndpoint(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(ACTIVE_ENDPOINT_KEY);
+  } catch {
+    // best-effort
+  }
+}
 
 /** Detect Capacitor's Android shell (``@capacitor/push-notifications`` only fires there). */
 export function isNativeAndroid(): boolean {
@@ -196,6 +229,7 @@ export async function enablePush(label?: string): Promise<PushResult> {
       user_agent: navigator.userAgent || undefined,
       label,
     });
+    rememberActivePushEndpoint(json.endpoint);
     return { status: 'subscribed', endpoint: json.endpoint, subscription: persisted };
   } catch (e) {
     return {
@@ -217,16 +251,21 @@ export async function disablePush(): Promise<PushResult> {
       // leave the user receiving zero notifications until next launch.
       await detachAndroidRegistrationListeners();
       await PushNotifications.unregister();
+      forgetActivePushEndpoint();
       return { status: 'unsupported', message: 'Native push disabled on this device.' };
     } catch (e) {
       return { status: 'error', message: (e as Error).message };
     }
   }
   if (!isWebPushSupported()) {
+    forgetActivePushEndpoint();
     return { status: 'unsupported' };
   }
   const reg = await ensureServiceWorker();
-  if (!reg) return { status: 'unsupported' };
+  if (!reg) {
+    forgetActivePushEndpoint();
+    return { status: 'unsupported' };
+  }
   try {
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
@@ -237,9 +276,110 @@ export async function disablePush(): Promise<PushResult> {
       } catch {
         // best-effort
       }
+      forgetActivePushEndpoint();
       return { status: 'unsupported', endpoint };
     }
+    forgetActivePushEndpoint();
     return { status: 'unsupported' };
+  } catch (e) {
+    return { status: 'error', message: (e as Error).message };
+  }
+}
+
+/**
+ * Best-effort detach of THIS device's push subscription from the currently
+ * authenticated user. Called immediately before ``supabase.auth.signOut()``
+ * during logout so the previous user's row in ``push_subscriptions`` is
+ * cleared while the JWT is still valid. We deliberately do NOT invalidate
+ * the OS-level push permission or the FCM token: a teammate logging in on
+ * the same device should be able to reuse the existing token (the backend
+ * transfers ownership on subscribe). All errors are swallowed because
+ * logout must succeed even if the network is offline.
+ */
+export async function detachActivePushFromCurrentUser(): Promise<void> {
+  const endpoint = readActivePushEndpoint();
+  if (!endpoint) return;
+  try {
+    await unsubscribePushByEndpoint(endpoint);
+  } catch {
+    // best-effort — backend transfer-on-subscribe will heal stale rows
+    // the next time someone enables on this device.
+  } finally {
+    forgetActivePushEndpoint();
+  }
+}
+
+/**
+ * Silently re-bind THIS device to the *currently authenticated* user without
+ * prompting for permission. Used right after a login flow: if the OS already
+ * granted push permission (typically because a teammate previously enabled
+ * it on this device), we want the device to start receiving the new user's
+ * notifications immediately — no manual "Enable" tap from Settings.
+ *
+ * Idempotent and safe to call from anywhere: it never prompts, never throws,
+ * and is a no-op when permission is missing or transport is unconfigured.
+ */
+export async function silentRebindPushToCurrentUser(): Promise<PushResult> {
+  if (isNativeAndroid()) {
+    try {
+      const perm = await PushNotifications.checkPermissions();
+      if (perm.receive !== 'granted') {
+        return { status: 'denied' };
+      }
+      const cfg = await getConfig();
+      if (!cfg.fcm_enabled) {
+        return { status: 'not-configured' };
+      }
+      // PushNotifications.register() is idempotent — when a token is already
+      // cached the SDK fires the ``registration`` event with the existing
+      // value. The persistent listener installed by ``useLiveNotificationBridge``
+      // posts that token to ``/notifications/subscribe`` under the freshly
+      // signed-in user, and the backend's transfer-on-subscribe drops any
+      // prior owner of the same endpoint. No need to wire a one-shot
+      // listener here.
+      await PushNotifications.register();
+      return { status: 'subscribed' };
+    } catch (e) {
+      return { status: 'error', message: (e as Error).message };
+    }
+  }
+  if (!isWebPushSupported()) {
+    return { status: 'unsupported' };
+  }
+  if (Notification.permission !== 'granted') {
+    return { status: 'denied' };
+  }
+  const cfg = await getConfig();
+  if (!cfg.web_push_enabled || !cfg.vapid_public_key) {
+    return { status: 'not-configured' };
+  }
+  const reg = await ensureServiceWorker();
+  if (!reg) return { status: 'unsupported' };
+  try {
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      // Permission is granted but the browser hasn't issued a subscription
+      // yet (e.g. first launch after a SW reset). Create one quietly — the
+      // user is already opted in at the OS level so this does not surface
+      // any new permission prompt.
+      const appServerKey = urlBase64ToUint8Array(cfg.vapid_public_key) as unknown as BufferSource;
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey,
+      });
+    }
+    const json = sub.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+      return { status: 'error', message: 'Push subscription returned without keys.' };
+    }
+    const persisted = await subscribePush({
+      platform: 'web',
+      endpoint: json.endpoint,
+      keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+      user_agent: navigator.userAgent || undefined,
+    });
+    rememberActivePushEndpoint(json.endpoint);
+    return { status: 'subscribed', endpoint: json.endpoint, subscription: persisted };
   } catch (e) {
     return { status: 'error', message: (e as Error).message };
   }
@@ -368,6 +508,7 @@ async function enableNativeAndroid(label?: string): Promise<PushResult> {
           user_agent: navigator.userAgent || undefined,
           label,
         });
+        rememberActivePushEndpoint(token.value);
         finish({ status: 'subscribed', endpoint: token.value, subscription: persisted });
       } catch (e) {
         finish({

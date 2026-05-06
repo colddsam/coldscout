@@ -15,6 +15,7 @@ import {
 import type { OAuthProvider, UserRole } from '../lib/supabase';
 import { client } from '../lib/api';
 import { getAuthItem, setAuthItem, removeAuthItem } from '../lib/authStorage';
+import { detachActivePushFromCurrentUser } from '../lib/push';
 
 /**
  * User interface for the application.
@@ -369,6 +370,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Signs out the user from both Supabase and local session.
    */
   const logout = useCallback(async () => {
+    // Detach this device's push subscription from the current user FIRST,
+    // while the JWT is still valid. Without this, the previous user's row
+    // lingers in push_subscriptions and any future notification targeted
+    // at them keeps getting delivered to this physical device — even after
+    // a different teammate signs in. Best-effort: a network blip never
+    // blocks logout (the backend's transfer-on-subscribe heals lingering
+    // rows the next time someone enables push on this device).
+    try {
+      await detachActivePushFromCurrentUser();
+    } catch {
+      // best-effort — never block logout
+    }
+
     // Cancel + wipe every cache entry FIRST so any in-flight query that
     // resolves after we tear down auth state can't write user A's data
     // back into the cache.
