@@ -76,7 +76,9 @@ export default function Shell() {
             <Topbar onMenuClick={() => setMobileOpen(true)} />
           </div>
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-safe-plus-4 px-safe">
+          <main 
+            className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-safe-plus-4 px-safe [--safe-px:1rem] sm:[--safe-px:1.5rem] lg:[--safe-px:2rem]"
+          >
             {showSkeleton ? (
               <DashboardSkeleton />
             ) : (

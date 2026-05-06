@@ -188,7 +188,7 @@ export default function LeadScanner() {
       <div className="pointer-events-none absolute inset-0 -z-0 opacity-[0.18] noise-overlay" />
       <div className="pointer-events-none absolute top-[-20%] right-[-10%] w-[40rem] h-[40rem] rounded-full bg-gradient-to-br from-white/[0.04] to-transparent blur-3xl" />
 
-      <main className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 pt-32 sm:pt-36 pb-24 px-safe">
+      <main className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 pt-32 sm:pt-36 pb-24 px-safe [--safe-px:1.25rem] sm:[--safe-px:1.5rem]">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
