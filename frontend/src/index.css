@@ -185,23 +185,27 @@ select:focus-visible {
 /* ═══════════════ Glass Panel (Dark) ═══════════════ */
 
 .glass-panel {
-  background: rgba(10,10,10,0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel-strong {
-  background: rgba(10,10,10,0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* ═══════════════ Text Effects ═══════════════ */
 
+.text-balance {
+  text-wrap: balance;
+}
+
 .text-gradient {
-  background: linear-gradient(180deg, #FFFFFF 0%, #999999 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.5) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

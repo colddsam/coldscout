@@ -150,7 +150,7 @@ export default function UpdateBanner() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-        className="sticky top-0 z-40 bg-white text-black border-b border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.18)]"
+        className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         role="status"
       >
         <div className="flex items-center gap-3 px-4 md:px-6 py-2">
@@ -172,7 +172,7 @@ export default function UpdateBanner() {
             type="button"
             onClick={handleUpdate}
             disabled={isBusy}
-            className="inline-flex items-center gap-1.5 h-7 px-3 text-xs font-semibold bg-black text-white rounded-md hover:bg-black/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 h-7 px-3 text-xs font-semibold bg-white text-black rounded-full hover:bg-gray-200 transition-all duration-200 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isBusy ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -188,7 +188,7 @@ export default function UpdateBanner() {
             onClick={handleDismiss}
             disabled={isBusy}
             aria-label="Dismiss update"
-            className="p-1 rounded-md text-black/60 hover:text-black hover:bg-black/[0.06] transition-colors disabled:opacity-40"
+            className="p-1 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all duration-200 disabled:opacity-40"
           >
             <X className="w-4 h-4" />
           </button>

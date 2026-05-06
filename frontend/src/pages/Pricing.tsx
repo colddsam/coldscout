@@ -63,11 +63,11 @@ function CurrencySelector({ selected, onChange }: {
     <div className="relative inline-block">
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 border border-white/10 rounded-md px-3 py-1.5 bg-white/5 text-sm hover:border-white/25 hover:bg-white/10 transition-all"
+        className="inline-flex items-center gap-2.5 border border-white/10 rounded-full px-4 py-2 bg-white/5 text-sm font-medium hover:border-white/30 hover:bg-white/10 transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.2)]"
       >
-        <span>{selected.flag}</span>
-        <span className="font-medium text-white">{selected.code}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-[#B0B0B0] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <span className="text-base">{selected.flag}</span>
+        <span className="text-white">{selected.code}</span>
+        <ChevronDown className={`w-4 h-4 text-[#B0B0B0] transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -77,19 +77,19 @@ function CurrencySelector({ selected, onChange }: {
             variants={fadeIn}
             initial="hidden"
             animate="visible"
-            className="absolute right-0 mt-2 w-44 bg-[#1C1C1C] border border-white/10 rounded-lg shadow-elevated z-50 py-1"
+            className="absolute right-0 mt-2 w-52 glass-panel-strong rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-50 py-1.5 border border-white/10 overflow-hidden"
           >
             {CURRENCIES.map((c) => (
               <button
                 key={c.code}
                 onClick={() => { onChange(c); setOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
-                  c.code === selected.code ? 'bg-white/10 font-medium text-white' : 'text-[#B0B0B0]'
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 ${
+                  c.code === selected.code ? 'bg-white/10 font-semibold text-white' : 'text-[#B0B0B0] hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <span>{c.flag}</span>
+                <span className="text-base">{c.flag}</span>
                 <span>{c.code}</span>
-                <span className="ml-auto text-xs text-[#8A8A8A]">{c.symbol}</span>
+                <span className="ml-auto text-[10px] uppercase tracking-widest text-[#8A8A8A]">{c.symbol}</span>
               </button>
             ))}
           </motion.div>
@@ -278,7 +278,7 @@ function PricingCards({ currency }: { currency: CurrencyInfo }) {
           initial="hidden"
           whileInView="visible"
           viewport={defaultViewport}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 max-w-5xl mx-auto"
         >
           {plans.map((plan) => {
             const isLoading = checkoutLoading === plan.planKey;
@@ -429,7 +429,8 @@ function ComparisonTable() {
           <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-white">Feature Comparison</h2>
         </div>
 
-        <div className="bg-surface-2 border border-white/[0.08] rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10">
+          <div className="bg-surface-2 border border-white/[0.08] rounded-2xl overflow-hidden min-w-[800px]">
           {/* Header */}
           <div className="grid grid-cols-4 border-b border-white/[0.08] bg-white/[0.02]">
             <div className="p-4" />
@@ -457,6 +458,7 @@ function ComparisonTable() {
               <div className="p-4 text-center border-l border-white/[0.03]">{renderCell(row.ent)}</div>
             </div>
           ))}
+          </div>
         </div>
 
         <p className="text-center text-[11px] text-[#8A8A8A] mt-4">

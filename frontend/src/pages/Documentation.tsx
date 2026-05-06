@@ -86,7 +86,7 @@ function HeroSection() {
           <span className="text-xs font-medium text-[#F0F0F0]/60">Documentation</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter text-white leading-[0.95] mb-6 animate-fade-in-up">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-white leading-[0.95] mb-6 animate-fade-in-up text-balance">
           Platform<br />
           <span className="text-gradient">Resources</span>
         </h1>
@@ -127,12 +127,12 @@ function TableOfContents() {
     <section className="py-12 bg-surface-2">
       <div className="max-w-6xl mx-auto px-6">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#F0F0F0]/40 font-semibold mb-4 text-center">On This Page</p>
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex overflow-x-auto pb-4 sm:flex-wrap sm:justify-center gap-3 scrollbar-none sm:scrollbar-thin">
           {sections.map((s) => (
             <a
               key={s.id}
               href={`#${s.id}`}
-              className="inline-flex items-center gap-2 border border-white/10 rounded-md px-4 py-2 bg-black text-sm text-[#F0F0F0]/60 hover:text-white hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-200"
+              className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-2 bg-black text-xs sm:text-sm text-[#F0F0F0]/60 hover:text-white hover:border-white hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] transition-all duration-200 whitespace-nowrap"
             >
               <s.icon className="w-3.5 h-3.5" />
               {s.label}
@@ -156,9 +156,10 @@ function ArchitectureSection() {
           <p className="text-[#F0F0F0]/60 mt-3 max-w-lg mx-auto text-sm md:text-base">The platform orchestrates an asynchronous pipeline with robust state management across three deployment layers.</p>
         </div>
 
-        {/* SVG Architecture Diagram */}
-        <div className="border border-white/10 rounded-xl p-8 bg-surface-2 overflow-x-auto">
-          <svg viewBox="0 0 900 400" className="w-full max-w-4xl mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Architecture Diagram */}
+        <div className="border border-white/10 rounded-xl p-4 sm:p-8 bg-surface-2 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
+          <div className="min-w-[800px] lg:min-w-0">
+            <svg viewBox="0 0 900 400" className="w-full h-auto mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Frontend Layer */}
             <rect x="20" y="30" width="180" height="60" rx="8" fill="#0A0A0A" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
             <text x="110" y="55" textAnchor="middle" className="text-[11px] font-semibold" fill="#F0F0F0">Admin Dashboard</text>
@@ -228,6 +229,7 @@ function ArchitectureSection() {
               </marker>
             </defs>
           </svg>
+          </div>
         </div>
       </div>
     </section>

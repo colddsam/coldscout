@@ -60,10 +60,10 @@ function HeroSection() {
         </motion.div>
 
         {/* Giant heading */}
-        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-2">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-2 text-balance">
           <WordsPullUp text="Discover leads." className="text-white" />
         </h1>
-        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-2">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-2 text-balance">
           <motion.span
             className="text-gradient"
             initial={{ opacity: 0, y: 12 }}
@@ -73,7 +73,7 @@ function HeroSection() {
             Qualify instantly.
           </motion.span>
         </h1>
-        <h1 className="text-5xl sm:text-6xl md:text-8xl font-bold tracking-tighter leading-[0.92] mb-8">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-8 text-balance">
           <WordsPullUp text="Close faster." className="text-white" delay={0.7} />
         </h1>
 
@@ -88,14 +88,14 @@ function HeroSection() {
         </motion.p>
 
         <motion.div
-          className="flex items-center justify-center gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1, duration: 0.5 }}
         >
           <Link to={isAuthenticated ? '/overview' : '/login'}>
             <motion.span
-              className="inline-flex items-center gap-3 bg-white text-black px-6 py-3 rounded-full text-sm font-medium group"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-6 py-3.5 rounded-full text-sm font-semibold group shadow-[0_4px_20px_rgba(255,255,255,0.1)]"
               whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(255,255,255,0.1)' }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
@@ -108,7 +108,7 @@ function HeroSection() {
           </Link>
           <a href="#features">
             <motion.span
-              className="inline-flex items-center gap-2 border border-white/15 text-white/70 px-6 py-3 rounded-full text-sm font-medium hover:text-white hover:border-white/30 transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/15 text-white/70 px-6 py-3.5 rounded-full text-sm font-medium hover:text-white hover:border-white/30 transition-all duration-300"
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             >
@@ -119,7 +119,7 @@ function HeroSection() {
 
         {/* Stats row */}
         <motion.div
-          className="flex items-center justify-center gap-8 md:gap-16 mt-20"
+          className="grid grid-cols-1 sm:flex items-center justify-center gap-8 md:gap-16 mt-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.3, duration: 0.5 }}
