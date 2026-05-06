@@ -22,9 +22,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # Internal imports ensure the application context is correctly initialized
 from app.config import get_settings
+from app.core.rate_limit import limiter
 from app.core.scheduler import scheduler, setup_scheduler
 from app.core.database import verify_tables_exist
 from app.core.redis_client import close_redis
@@ -109,6 +113,17 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+# ── Rate limiting (slowapi) ──────────────────────────────────────────
+# We register the limiter on the app state and attach the middleware so
+# any router can opt in with ``@limiter.limit(...)`` on individual
+# endpoints. Existing routes are unaffected — slowapi only enforces a
+# limit when an endpoint is explicitly decorated. The 429 handler turns
+# rate-limit hits into a clean JSON error rather than the default plain
+# string, so the SPA can surface it without parsing.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
 

@@ -106,15 +106,17 @@ function HeroSection() {
               </span>
             </motion.span>
           </Link>
-          <a href="#features">
+          <Link to="/scanner">
             <motion.span
               className="inline-flex items-center gap-2 border border-white/15 text-white/70 px-6 py-3 rounded-full text-sm font-medium hover:text-white hover:border-white/30 transition-colors"
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             >
-              Learn More
+              <Search className="w-4 h-4" />
+              Free Website Audit
             </motion.span>
-          </a>
+          </Link>
         </motion.div>
 
         {/* Stats row */}

@@ -16,6 +16,7 @@ from app.api.v1 import auth, tracking, webhooks, pipeline, leads, campaigns, rep
 from app.api.v1.profile import router as profile_router
 from app.api.v1.threads import public_router as threads_public, router as threads_private
 from app.api.v1.public_demos import router as public_demos_router
+from app.api.v1.public import router as public_scanner_router
 from app.api.v1.booking import router as booking_router
 from app.api.v1.seo import router as seo_router
 from app.api.v1.discovery_config import router as discovery_config_router
@@ -33,6 +34,7 @@ public_router.include_router(webhooks.router, tags=["webhooks"])
 public_router.include_router(unsubscribe.router, prefix="/unsubscribe", tags=["unsubscribe"])
 public_router.include_router(threads_public, tags=["threads"])
 public_router.include_router(public_demos_router, tags=["public-demos"])
+public_router.include_router(public_scanner_router, tags=["public-scanner"])
 
 # Profile routes — both public (check-username, /u/{username}) and private (/me/*)
 # endpoints live on the same router. Private endpoints are individually guarded by
