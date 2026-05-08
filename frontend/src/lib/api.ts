@@ -326,6 +326,9 @@ export interface Lead {
   demo_site_status: string | null;
   demo_generated_at: string | null;
   demo_view_count: number | null;
+  // Directory Privacy
+  is_private_override?: boolean;
+  is_public?: boolean;
 }
 
 export interface SocialNetwork {

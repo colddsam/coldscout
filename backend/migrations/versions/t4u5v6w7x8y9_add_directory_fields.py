@@ -45,9 +45,7 @@ def upgrade() -> None:
     # We use raw SQL for bulk efficiency. The slug is built from:
     #   lower(business_name) || '-' || lower(coalesce(city,'')) || '-' || lower(coalesce(state,''))
     # with non-alphanumeric chars replaced by hyphens, then trimmed.
-    # Collisions are resolved by appending '-' || left(id::text, 8).
-    #
-    # Step 1: Build base slugs
+    # To prevent unique constraint violations and match new inserts, we append '-' || left(id::text, 8).
     op.execute(
         """
         UPDATE leads
@@ -63,20 +61,8 @@ def upgrade() -> None:
                 '[^a-z0-9]+', '-', 'g'
             ),
             '^-+|-+$', '', 'g'
-        )
+        ) || '-' || left(id::text, 8)
         WHERE slug IS NULL;
-        """
-    )
-
-    # Step 2: Resolve collisions by appending truncated UUID
-    op.execute(
-        """
-        UPDATE leads AS l
-        SET slug = l.slug || '-' || left(l.id::text, 8)
-        WHERE l.slug IN (
-            SELECT slug FROM leads
-            GROUP BY slug HAVING count(*) > 1
-        );
         """
     )
 

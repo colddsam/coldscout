@@ -246,6 +246,11 @@ async def update_lead(lead_id: str, update_data: LeadUpdate, current_user: User 
         lead.status = update_data.status
     if update_data.notes is not None:
         lead.notes = update_data.notes
+    if update_data.is_private_override is not None:
+        lead.is_private_override = update_data.is_private_override
+        # If user explicitly opts out, instantly remove from public directory
+        if update_data.is_private_override:
+            lead.is_public = False
         
     await db.commit()
     await db.refresh(lead)

@@ -228,18 +228,31 @@ export default function DirectoryDetail() {
               {/* Two-column grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Digital Presence Signals */}
+                {/* Competitive Gap Analysis */}
                 <motion.div
                   variants={staggerItem}
-                  className="p-6 rounded-xl bg-black border border-white/10"
+                  className="p-6 rounded-xl bg-black border border-white/10 relative overflow-hidden"
                 >
-                  <h2 className="text-sm font-semibold text-white/80 mb-4">Digital Presence Signals</h2>
-                  <div className="space-y-2">
-                    <Signal positive={lead.has_website} label="Has a website" />
-                    <Signal positive={lead.is_mobile_responsive} label="Mobile responsive" />
-                    <Signal positive={lead.has_social_media} label="Social media presence" />
-                    <Signal positive={lead.has_online_booking} label="Online booking" />
-                    <Signal positive={lead.has_ecommerce} label="E-commerce enabled" />
+                  <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
+                  <h2 className="text-sm font-semibold text-white/80 mb-1">Competitive Gap Analysis</h2>
+                  <p className="text-xs text-white/40 mb-5">How this business compares to modern standards.</p>
+                  
+                  <div className="space-y-3 relative z-10">
+                    <Signal positive={lead.has_website} label={lead.has_website ? "Professional Website Exists" : "Missing Primary Website"} />
+                    <Signal positive={lead.is_mobile_responsive} label={lead.is_mobile_responsive ? "Mobile-Friendly Design" : "Not Optimized for Mobile"} />
+                    <Signal positive={lead.has_social_media} label={lead.has_social_media ? "Active Social Media" : "No Detectable Social Presence"} />
+                    <Signal positive={lead.has_online_booking} label={lead.has_online_booking ? "Accepts Online Booking" : "No Digital Booking System"} />
+                    <Signal positive={lead.has_ecommerce} label={lead.has_ecommerce ? "E-commerce Enabled" : "Cannot Process Payments Online"} />
                   </div>
+                  
+                  {tier.label === "High Need" && (
+                    <div className="mt-5 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <p className="text-xs text-blue-200/80 font-medium">💡 High Opportunity</p>
+                      <p className="text-[10px] text-blue-200/60 mt-1">
+                        Local competitors are outperforming this business due to missing digital fundamentals.
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Actions */}

@@ -83,7 +83,7 @@ export function useUpdateLead() {
   const qc = useQueryClient();
   const scope = useUserScope();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: { status?: string; notes?: string } }) =>
+    mutationFn: ({ id, payload }: { id: string; payload: { status?: string; notes?: string; is_private_override?: boolean } }) =>
       updateLead(id, payload),
     onSuccess: () => {
       toast.success('Lead updated successfully');

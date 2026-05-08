@@ -363,6 +363,45 @@ export default function LeadDetail() {
             </motion.div>
           )}
 
+          {/* Directory Privacy */}
+          <motion.div variants={staggerItem}>
+          <Card>
+            <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">Directory Privacy</h3>
+            <div className="flex items-start gap-3">
+              <div className="pt-0.5">
+                <input
+                  type="checkbox"
+                  id="privacy-toggle"
+                  className="w-4 h-4 rounded bg-surface-2 border-white/10 text-white focus:ring-black/5"
+                  checked={lead.is_private_override || false}
+                  onChange={(e) => {
+                    updateLead.mutate({ id: lead.id, payload: { is_private_override: e.target.checked } });
+                  }}
+                  disabled={updateLead.isPending}
+                />
+              </div>
+              <div>
+                <label htmlFor="privacy-toggle" className="text-sm text-white/90 font-medium block cursor-pointer">
+                  Keep Private (Opt-out)
+                </label>
+                <p className="text-[10px] text-white/50 font-mono mt-1">
+                  If checked, this lead will never appear in the public SEO directory.
+                </p>
+              </div>
+            </div>
+            
+            {!lead.is_private_override && (
+              <div className="mt-4 pt-3 border-t border-white/[0.08]">
+                <p className="text-xs text-white/70">
+                  Status: <span className={cn("font-medium", lead.is_public ? "text-green-400" : "text-yellow-400")}>
+                    {lead.is_public ? "Publicly Listed" : "Exclusivity Window (30 Days)"}
+                  </span>
+                </p>
+              </div>
+            )}
+          </Card>
+          </motion.div>
+
           {/* Metadata */}
           <motion.div variants={staggerItem}>
           <Card>

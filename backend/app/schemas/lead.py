@@ -39,6 +39,7 @@ class LeadBase(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
+    is_private_override: bool = False
     status: Optional[str] = None
     notes: Optional[str] = None
 
@@ -87,6 +88,7 @@ class LeadUpdate(BaseModel):
     """Schema for updating a lead's manual notes or status."""
     status: Optional[str] = None
     notes: Optional[str] = None
+    is_private_override: Optional[bool] = None
 
 class LeadListResponse(BaseModel):
     """Paginated response schema for multiple leads."""

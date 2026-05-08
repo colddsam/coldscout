@@ -1346,6 +1346,48 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Stage 7 — Directory Publishing (runs daily)
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def publish_eligible_leads(manual: bool = False, user_id: Optional[int] = None):
+    """
+    Finds leads that are > 30 days old, active, and not overridden, and publishes them.
+    """
+    logger.info(f"Checking for directory-eligible leads (user_id={user_id})")
+
+    if not await job_manager.is_freelancer_pipeline_active("publish_leads", user_id=user_id, is_manual=manual):
+        logger.warning(f"🚨 [publish_leads] is HOLD for user {user_id}. Skipping publishing.")
+        return
+
+    async with advisory_lock(f"pipeline_publish_leads_{user_id}"):
+        try:
+            async with get_session_maker()() as db:
+                thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+                
+                stmt = (
+                    update(Lead)
+                    .where(
+                        (Lead.is_public == False) &
+                        (Lead.is_private_override == False) &
+                        (Lead.discovered_at < thirty_days_ago) &
+                        (Lead.status.notin_(["closed", "rejected", "bounced", "unsubscribed"]))
+                    )
+                    .values(is_public=True)
+                )
+                
+                if user_id is not None:
+                    stmt = stmt.where(Lead.user_id == user_id)
+                
+                res = await db.execute(stmt)
+                await db.commit()
+                
+                if res.rowcount > 0:
+                    logger.info(f"Successfully published {res.rowcount} leads to the public directory (user_id={user_id}).")
+                
+        except Exception as e:
+            logger.exception(f"Directory publishing failed: {e}")
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 🔴 CELERY APPROACH — PRESERVED FOR FUTURE SCALE
 # Replace the async def functions above with these decorators
 # when reactivating Celery:

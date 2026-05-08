@@ -96,6 +96,10 @@ class Lead(Base):
         Boolean, default=False, nullable=False, index=True,
         comment="True when lead is eligible for the public directory (>30 days, not closed)."
     )
+    is_private_override = Column(
+        Boolean, default=False, nullable=False, server_default='false',
+        comment="If True, the lead will never be published to the public directory, overriding the 30-day window."
+    )
 
     # International Location Hierarchy
     country        = Column(String(100), nullable=True, index=True)
