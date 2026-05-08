@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:proxy\"",
     "dev:vite": "vite",
     "dev:proxy": "cd server && npm run dev",
-    "build": "tsc -b && npm run seo:generate && vite build && npm run seo:mirror",
+    "build": "tsc -b && npm run seo:generate && vite build && npm run seo:mirror && npm run seo:indexnow",
     "seo:generate": "node scripts/generate-seo-assets.mjs",
     "seo:mirror": "node scripts/generate-seo-assets.mjs",
     "seo:indexnow": "node scripts/indexnow-ping.mjs",

@@ -24,6 +24,17 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(__filename), '..');
 
+// Basic .env loader (tries root and current dir)
+[resolve(ROOT, '.env'), resolve(ROOT, '..', '.env')].forEach((path) => {
+  if (existsSync(path)) {
+    const env = readFileSync(path, 'utf-8');
+    env.split('\n').forEach((line) => {
+      const match = line.match(/^\s*COLDSCOUT_INDEXNOW_KEY\s*=\s*(.*)$/);
+      if (match) process.env.COLDSCOUT_INDEXNOW_KEY = match[1].trim().replace(/^["'](.*)["']$/, '$1');
+    });
+  }
+});
+
 const HOST = 'coldscout.colddsam.com';
 const KEY = process.env.COLDSCOUT_INDEXNOW_KEY;
 
