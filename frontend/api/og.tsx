@@ -19,7 +19,6 @@
  * edge runtime only — the rest of the app builds and runs unaffected.
  */
 
-import React from 'react';
 import { ImageResponse } from '@vercel/og';
 
 export const config = {
