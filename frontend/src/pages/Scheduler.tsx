@@ -7,10 +7,12 @@ import {
   useUpdateConfig,
   useMyJobConfig,
   useUpdateMyJobConfig,
+  useMyNotificationConfig,
+  useUpdateMyNotificationConfig,
 } from '../hooks/useConfig';
 import { useFreelancerStatus } from '../hooks/useFreelancerStatus';
 import { useAuth } from '../hooks/useAuth';
-import { Play, Pause, Save, Lock, AlertTriangle } from 'lucide-react';
+import { Play, Pause, Save, Lock, AlertTriangle, Bell, BellOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, scaleIn } from '../lib/motion';
 import ErrorState from '../components/ui/ErrorState';
@@ -34,13 +36,15 @@ export default function Scheduler() {
 
   const { data: globalConfig, isLoading: globalLoading, isError: globalError, refetch: refetchGlobal } = useConfigJobs();
   const { data: myJobs, isLoading: myLoading, isError: myError, refetch: refetchMy } = useMyJobConfig();
+  const { data: notifPrefs, isLoading: notifLoading } = useMyNotificationConfig();
   const { data: statusData } = useFreelancerStatus();
   const updateGlobal = useUpdateConfig();
   const updateMine = useUpdateMyJobConfig();
+  const updateNotifs = useUpdateMyNotificationConfig();
 
   const productionHold = (statusData?.global_production_status ?? myJobs?.global_production_status) === 'HOLD';
 
-  if (globalLoading || myLoading) return null;
+  if (globalLoading || myLoading || notifLoading) return null;
   if (globalError || myError) {
     return (
       <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
@@ -95,6 +99,10 @@ export default function Scheduler() {
           locked={productionHold}
           onSave={(updates) => updateMine.mutate(updates)}
           saving={updateMine.isPending}
+          notifPrefs={notifPrefs?.prefs ?? {}}
+          notifGoverned={new Set(notifPrefs?.stages ?? [])}
+          onSaveNotifs={(prefs) => updateNotifs.mutate(prefs)}
+          savingNotifs={updateNotifs.isPending}
         />
       )}
     </motion.div>
@@ -290,14 +298,24 @@ function MyPreferences({
   locked,
   onSave,
   saving,
+  notifPrefs,
+  notifGoverned,
+  onSaveNotifs,
+  savingNotifs,
 }: {
   jobs: import('../lib/api').FreelancerJobConfigRow[];
   locked: boolean;
   onSave: (updates: Record<string, JobEffectiveStatus>) => void;
   saving: boolean;
+  notifPrefs: Record<string, boolean>;
+  notifGoverned: Set<string>;
+  onSaveNotifs: (prefs: Record<string, boolean>) => void;
+  savingNotifs: boolean;
 }) {
   const [local, setLocal] = useState<Record<string, JobEffectiveStatus>>({});
+  const [localNotifs, setLocalNotifs] = useState<Record<string, boolean>>({});
   const hasChanges = Object.keys(local).length > 0;
+  const hasNotifChanges = Object.keys(localNotifs).length > 0;
 
   const view = jobs.map((j) => ({
     ...j,
@@ -308,32 +326,65 @@ function MyPreferences({
     setLocal((prev) => ({ ...prev, [jobId]: current === 'RUN' ? 'HOLD' : 'RUN' }));
   };
 
+  const notifEnabled = (jobId: string): boolean => {
+    if (jobId in localNotifs) return localNotifs[jobId];
+    // Default to true when the server hasn't returned a value for this job
+    // (e.g. brand-new job_id rolled out before the prefs row was seeded).
+    return notifPrefs[jobId] ?? true;
+  };
+
+  const toggleNotif = (jobId: string) => {
+    const next = !notifEnabled(jobId);
+    setLocalNotifs((prev) => ({ ...prev, [jobId]: next }));
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">My Preferences</h2>
           <p className="text-sm text-white/75">
-            Turn individual jobs off just for your account. Global HOLD jobs are locked.
+            Turn individual jobs off just for your account, or silence their notifications.
+            Global HOLD jobs are locked. Each toggle only affects your own account.
           </p>
         </div>
-        <AnimatePresence>
-          {hasChanges && !locked && (
-            <motion.div variants={scaleIn} initial="hidden" animate="visible" exit="hidden">
-              <Button
-                size="sm"
-                icon={<Save className="w-4 h-4" />}
-                loading={saving}
-                onClick={() => {
-                  onSave(local);
-                  setLocal({});
-                }}
-              >
-                Save preferences
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex items-center gap-2">
+          <AnimatePresence>
+            {hasNotifChanges && (
+              <motion.div variants={scaleIn} initial="hidden" animate="visible" exit="hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Bell className="w-4 h-4" />}
+                  loading={savingNotifs}
+                  onClick={() => {
+                    onSaveNotifs(localNotifs);
+                    setLocalNotifs({});
+                  }}
+                >
+                  Save notifications
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {hasChanges && !locked && (
+              <motion.div variants={scaleIn} initial="hidden" animate="visible" exit="hidden">
+                <Button
+                  size="sm"
+                  icon={<Save className="w-4 h-4" />}
+                  loading={saving}
+                  onClick={() => {
+                    onSave(local);
+                    setLocal({});
+                  }}
+                >
+                  Save preferences
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       <Card padding={true}>
@@ -343,35 +394,58 @@ function MyPreferences({
             const rowLocked = locked || globalHold || j.system_only;
             const userStatus = j.freelancer_status;
             const effective = rowLocked ? j.effective_status : userStatus;
+            const notifSupported = notifGoverned.has(j.job_id);
+            const notifOn = notifEnabled(j.job_id);
 
             return (
-              <li key={j.job_id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
+              <li key={j.job_id} className="flex items-center justify-between py-3 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {rowLocked ? (
-                    <Lock className="w-4 h-4 text-white/70" />
+                    <Lock className="w-4 h-4 text-white/70 shrink-0" />
                   ) : effective === 'RUN' ? (
-                    <Play className="w-4 h-4 text-emerald-500" />
+                    <Play className="w-4 h-4 text-emerald-500 shrink-0" />
                   ) : (
-                    <Pause className="w-4 h-4 text-amber-500" />
+                    <Pause className="w-4 h-4 text-amber-500 shrink-0" />
                   )}
-                  <div>
-                    <p className="text-sm font-medium text-white capitalize">{j.job_id.replace(/_/g, ' ')}</p>
-                    <p className="text-xs text-white/75">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white capitalize truncate">
+                      {j.job_id.replace(/_/g, ' ')}
+                    </p>
+                    <p className="text-xs text-white/75 truncate">
                       Global: {j.global_status}
                       {j.system_only && ' · system-only'}
                       {globalHold && !j.system_only && ' · controlled by admin'}
+                      {notifSupported && (notifOn ? ' · notifications on' : ' · notifications off')}
                     </p>
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant={userStatus === 'RUN' ? 'outline' : 'primary'}
-                  disabled={rowLocked}
-                  onClick={() => toggle(j.job_id, userStatus)}
-                >
-                  {rowLocked ? 'Locked' : userStatus === 'RUN' ? 'Disable for me' : 'Enable for me'}
-                </Button>
+                <div className="flex items-center gap-2 shrink-0">
+                  {notifSupported && (
+                    <button
+                      type="button"
+                      title={notifOn ? 'Silence notifications for this job' : 'Enable notifications for this job'}
+                      aria-label={notifOn ? 'Silence notifications' : 'Enable notifications'}
+                      aria-pressed={notifOn}
+                      onClick={() => toggleNotif(j.job_id)}
+                      className={`p-2 rounded-md border border-white/10 transition ${
+                        notifOn
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : 'text-white/60 hover:bg-white/5'
+                      }`}
+                    >
+                      {notifOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                    </button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={userStatus === 'RUN' ? 'outline' : 'primary'}
+                    disabled={rowLocked}
+                    onClick={() => toggle(j.job_id, userStatus)}
+                  >
+                    {rowLocked ? 'Locked' : userStatus === 'RUN' ? 'Disable for me' : 'Enable for me'}
+                  </Button>
+                </div>
               </li>
             );
           })}

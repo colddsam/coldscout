@@ -66,6 +66,13 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
     UI shows scheduled runs alongside manual ones, with the trigger
     source tagged as ``scheduler``.
 
+    Notifications: the same stage_started / stage_finished / stage_failed
+    feed entries that manual triggers raise (via ``app.core.job_queue``)
+    are emitted here too, scoped strictly to the freelancer the run is
+    being executed for. Each user's notification preferences gate whether
+    the row + push are actually delivered — see
+    ``app.modules.notifications.events`` for the per-user gate.
+
     Args:
         stage_func: The async stage function to call (e.g., run_discovery_stage).
         stage_name: The job ID for status checking (e.g., 'discovery').
@@ -82,6 +89,20 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
         record_skipped_run,
         TRIGGER_SCHEDULER,
     )
+    from app.modules.notifications import events as notif_events
+
+    notif_session_maker = get_session_maker()
+
+    async def _emit(event_fn, **kwargs) -> None:
+        """Best-effort notification emit. Notifications are observability,
+        not correctness, so swallow any failure rather than impact the
+        stage outcome. Opens its own short-lived session so a failed
+        notification can never poison the dispatch loop's state."""
+        try:
+            async with notif_session_maker() as ndb:
+                await event_fn(ndb, **kwargs)
+        except Exception as e:
+            logger.debug(f"notify emit failed (non-fatal): {e}")
 
     # Global HOLD blocks everything
     if get_production_status() == "HOLD":
@@ -136,10 +157,28 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
             logger.info(f"▶️ Running {stage_name} for freelancer {user_id}.")
             await enqueue_job(user_id, stage_name, triggered_by=TRIGGER_SCHEDULER)
             await mark_running(user_id, stage_name)
+
+            # Live "stage running" card — strictly scoped to this freelancer.
+            # The notification gate inside ``events`` consults this user's
+            # per-job preference; a different freelancer's preference cannot
+            # affect this emission because we always pass ``user_id``.
+            await _emit(
+                notif_events.stage_started,
+                user_id=user_id,
+                stage=stage_name,
+                trigger="scheduled",
+            )
+
             try:
                 await stage_func(manual=False, user_id=user_id)
                 await mark_completed(
                     user_id, stage_name, f"{stage_name} completed successfully"
+                )
+                await _emit(
+                    notif_events.stage_finished,
+                    user_id=user_id,
+                    stage=stage_name,
+                    summary=f"{stage_name.replace('_', ' ').title()} finished successfully.",
                 )
             except asyncio.CancelledError:
                 # Re-raise after best-effort marking. The active-map TTL
@@ -154,6 +193,12 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
             except Exception as e:
                 await mark_failed(
                     user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}"
+                )
+                await _emit(
+                    notif_events.stage_failed,
+                    user_id=user_id,
+                    stage=stage_name,
+                    error=f"{type(e).__name__}: {str(e)[:200]}",
                 )
                 logger.exception(
                     f"Error running {stage_name} for freelancer {user_id}: {e}"

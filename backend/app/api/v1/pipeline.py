@@ -493,6 +493,83 @@ async def admin_update_freelancer_job_config(
     }
 
 
+# ── Per-freelancer notification preferences ──────────────────────────────────
+#
+# Per-user, per-job toggles for stage-event notifications. Strict isolation:
+# every endpoint reads / writes ONLY ``current_user.id``'s rows so user A's
+# preference cannot affect user B. Defaults to ENABLED for all governed
+# stages when no row exists, matching the historical behaviour.
+
+from app.modules.notifications.preferences import (
+    GOVERNED_STAGES,
+    get_user_preferences,
+    set_user_preference,
+)
+
+
+class NotificationPrefsUpdate(BaseModel):
+    """Map of ``{job_id: bool}`` — True enables notifications, False silences them."""
+
+    prefs: dict[str, bool]
+
+
+@router.get("/pipeline/my-notification-config")
+async def get_my_notification_config(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the calling freelancer's per-job notification preferences.
+
+    Strict per-user scoping: only ``current_user.id``'s rows are read.
+    Missing rows default to ``True`` (notifications enabled) so a freshly
+    onboarded user gets the same opt-in experience the system has had
+    historically.
+    """
+    prefs = await get_user_preferences(current_user.id)
+    return {
+        "user_id": current_user.id,
+        "stages": sorted(GOVERNED_STAGES),
+        "prefs": prefs,
+    }
+
+
+@router.patch("/pipeline/my-notification-config")
+async def update_my_notification_config(
+    body: NotificationPrefsUpdate = Body(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Upsert the calling freelancer's per-job notification preferences.
+
+    Validation:
+      - Unknown ``job_id`` values are rejected so a typo can't strand a
+        preference row that nothing reads.
+      - Each value must be a bool — explicit toggle, no truthiness games.
+    """
+    if not body.prefs:
+        raise HTTPException(status_code=422, detail="prefs map cannot be empty")
+
+    for job_id, enabled in body.prefs.items():
+        if job_id not in GOVERNED_STAGES:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unknown job_id '{job_id}' for notification preferences",
+            )
+        if not isinstance(enabled, bool):
+            raise HTTPException(
+                status_code=422,
+                detail=f"prefs['{job_id}'] must be a boolean (got {type(enabled).__name__})",
+            )
+
+    for job_id, enabled in body.prefs.items():
+        await set_user_preference(current_user.id, job_id, enabled)
+
+    prefs = await get_user_preferences(current_user.id)
+    return {
+        "user_id": current_user.id,
+        "stages": sorted(GOVERNED_STAGES),
+        "prefs": prefs,
+    }
+
+
 # ── Freelancer Production Status ─────────────────────────────────────────────
 
 from app.models.freelancer_pipeline_config import FreelancerPipelineConfig

@@ -539,6 +539,31 @@ export const updateFreelancerJobConfigAdmin = (
     .patch<FreelancerJobConfigResponse>(`/api/v1/pipeline/freelancer-job-config/${userId}`, updates)
     .then((r) => r.data);
 
+// Per-freelancer notification preferences
+export interface NotificationPrefsResponse {
+  user_id: number;
+  stages: string[];
+  prefs: Record<string, boolean>;
+}
+
+/**
+ * Fetch the current freelancer's per-job notification preferences.
+ * Defaults to ``true`` (enabled) for stages without an explicit row.
+ */
+export const getMyNotificationConfig = () =>
+  client
+    .get<NotificationPrefsResponse>('/api/v1/pipeline/my-notification-config')
+    .then((r) => r.data);
+
+/**
+ * Update the current freelancer's per-job notification preferences.
+ * Each value must be a boolean — true enables notifications, false silences.
+ */
+export const updateMyNotificationConfig = (prefs: Record<string, boolean>) =>
+  client
+    .patch<NotificationPrefsResponse>('/api/v1/pipeline/my-notification-config', { prefs })
+    .then((r) => r.data);
+
 // Freelancer Pipeline Status
 /**
  * Gets the current freelancer's pipeline production status.

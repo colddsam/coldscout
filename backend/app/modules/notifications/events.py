@@ -25,6 +25,7 @@ from app.models.notification import (
     KIND_SYSTEM,
 )
 
+from .preferences import is_stage_notification_enabled
 from .push_dispatcher import NotificationPayload, notify_user
 
 
@@ -71,7 +72,14 @@ async def stage_started(
 
     ``trigger`` is one of ``"manual"``, ``"scheduled"``, or ``"system"`` so
     the UI badge can distinguish a button-click run from a cron-driven one.
+
+    Per-user notification preferences gate this emission: if the user has
+    disabled notifications for ``stage`` from their Scheduler page, no
+    feed row is written and no push is dispatched. The check is scoped
+    strictly to ``user_id`` — another user's preference cannot affect it.
     """
+    if not await is_stage_notification_enabled(db, user_id, stage):
+        return
     label = _stage_label(stage)
     body = "Started just now…"
     if trigger == "scheduled":
@@ -103,7 +111,12 @@ async def stage_finished(
     run_id: Optional[str] = None,
 ) -> None:
     """Fire when a stage completes successfully. ``summary`` is a one-liner
-    rendered as the body, e.g. ``"42 leads qualified, 3 skipped."``"""
+    rendered as the body, e.g. ``"42 leads qualified, 3 skipped."``
+
+    Gated by the calling user's per-job notification preference — see
+    :func:`stage_started` for isolation guarantees."""
+    if not await is_stage_notification_enabled(db, user_id, stage):
+        return
     label = _stage_label(stage)
     payload: dict[str, Any] = {"stage": stage, "status": "finished"}
     if counts:
@@ -131,7 +144,11 @@ async def stage_failed(
     run_id: Optional[str] = None,
 ) -> None:
     """Fire when a stage raises. ``error`` is the short message — full
-    tracebacks belong in the server log, not the user-facing notification."""
+    tracebacks belong in the server log, not the user-facing notification.
+
+    Gated by the calling user's per-job notification preference."""
+    if not await is_stage_notification_enabled(db, user_id, stage):
+        return
     label = _stage_label(stage)
     await notify_user(
         db,
@@ -157,7 +174,11 @@ async def stage_progress(
     run_id: Optional[str] = None,
 ) -> None:
     """Optional incremental update mid-stage. Coalesces with start/finish via
-    the shared group_key so the live banner mutates in place."""
+    the shared group_key so the live banner mutates in place.
+
+    Gated by the calling user's per-job notification preference."""
+    if not await is_stage_notification_enabled(db, user_id, stage):
+        return
     label = _stage_label(stage)
     payload: dict[str, Any] = {"stage": stage, "status": "running"}
     if counts:

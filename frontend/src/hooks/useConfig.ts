@@ -9,6 +9,8 @@ import {
   updateMyJobConfig,
   getFreelancerJobConfigAdmin,
   updateFreelancerJobConfigAdmin,
+  getMyNotificationConfig,
+  updateMyNotificationConfig,
   type JobEffectiveStatus,
 } from '../lib/api';
 import { broadcastPipelineStatusChange } from '../lib/realtime';
@@ -149,6 +151,42 @@ export function useFreelancerJobConfigAdmin(userId: number | null) {
     queryKey: ['freelancer-job-config', userId],
     queryFn: () => getFreelancerJobConfigAdmin(userId as number),
     enabled: userId !== null,
+  });
+}
+
+/**
+ * Fetch the calling freelancer's per-job notification preferences.
+ *
+ * Cache key includes the user scope so logging out / switching accounts
+ * never lets one user read a previously-cached value belonging to another.
+ */
+export function useMyNotificationConfig() {
+  const scope = useUserScope();
+  return useQuery({
+    queryKey: ['my-notification-config', scope],
+    queryFn: getMyNotificationConfig,
+    enabled: scope !== 'anon',
+  });
+}
+
+/**
+ * Update the calling freelancer's per-job notification preferences.
+ *
+ * Server-side the write is scoped to ``current_user.id`` only, so this
+ * call cannot affect any other user's notifications.
+ */
+export function useUpdateMyNotificationConfig() {
+  const qc = useQueryClient();
+  const scope = useUserScope();
+  return useMutation({
+    mutationFn: (prefs: Record<string, boolean>) => updateMyNotificationConfig(prefs),
+    onSuccess: () => {
+      toast.success('Notification preferences saved');
+      qc.invalidateQueries({ queryKey: ['my-notification-config', scope] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Save failed: ${err.message}`);
+    },
   });
 }
 

@@ -44,6 +44,7 @@ from app.models.verification import ProfileVerification
 from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
 from app.models.freelancer_job_config import FreelancerJobConfig
 from app.models.freelancer_discovery_config import FreelancerDiscoveryConfig
+from app.models.freelancer_notification_config import FreelancerNotificationConfig
 from app.models.global_job_config import GlobalJobConfig
 
 # ── Billing models (depend on User) ───────────────────────────────────────────

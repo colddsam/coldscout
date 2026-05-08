@@ -74,3 +74,9 @@ supabase==2.10.0
 
 # Payment Gateway
 razorpay==1.4.2
+# razorpay==1.4.2 still imports the legacy ``pkg_resources`` module which
+# was removed from default venvs in Python 3.12+ AND was dropped from
+# setuptools entirely in 81.x. Pinning ``setuptools<81`` keeps
+# ``pkg_resources`` available so the app boots on a fresh 3.12/3.13
+# environment without ``ModuleNotFoundError: No module named 'pkg_resources'``.
+setuptools<81
