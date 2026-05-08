@@ -27,6 +27,10 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+export const config = {
+  runtime: 'nodejs',
+};
+
 const SITE_URL = 'https://coldscout.colddsam.com';
 const API_URL = 'https://api.coldscout.colddsam.com';
 
