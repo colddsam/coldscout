@@ -43,7 +43,7 @@ export default function PublicNavbar() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
-    { name: 'Scanner', href: '/scanner' },
+    { name: 'Free Audit', href: '/scanner' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Docs', href: '/docs' },
     { name: 'Support', href: '/support' },
@@ -146,6 +146,12 @@ export default function PublicNavbar() {
                     }`}
                   >
                     {link.name}
+                    {link.name === 'Free Audit' && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                      </span>
+                    )}
                   </span>
                 </Link>
               );
@@ -226,7 +232,14 @@ export default function PublicNavbar() {
                     className="text-lg font-medium text-white border-b border-white/[0.08] py-4 flex items-center justify-between group w-full"
                     onClick={handleLinkClick}
                   >
-                    {link.name}
+                    <div className="flex items-center gap-2">
+                      {link.name}
+                      {link.name === 'Free Audit' && (
+                        <span className="bg-blue-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                          New
+                        </span>
+                      )}
+                    </div>
                     <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </Link>
                 </motion.div>

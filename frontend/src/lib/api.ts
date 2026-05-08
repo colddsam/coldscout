@@ -1406,3 +1406,149 @@ export const scanWebsite = (url: string) =>
   client
     .post<ScanResult>('/api/v1/public/scan-website', { url }, { timeout: 30_000 })
     .then((r) => r.data);
+
+/* ───────────────────────────── Deep audit ────────────────────────────── */
+
+export type AuditCategory =
+  | 'indexability'
+  | 'meta'
+  | 'headings'
+  | 'content'
+  | 'schema'
+  | 'performance'
+  | 'mobile'
+  | 'accessibility'
+  | 'trust'
+  | 'aeo';
+
+export type AuditSeverity = 'critical' | 'warning' | 'info' | 'good';
+
+export type AuditImpact = 'high' | 'medium' | 'low';
+
+export interface AuditFinding {
+  category: AuditCategory;
+  code: string;
+  title: string;
+  detail: string;
+  suggestion: string;
+  severity: AuditSeverity;
+  impact: AuditImpact;
+}
+
+export interface AuditCategoryScore {
+  category: AuditCategory;
+  score: number;
+  headline: string;
+  findings_count: number;
+}
+
+export type AuditGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+
+export interface DeepAudit {
+  url: string;
+  normalized_url: string;
+  final_url: string;
+  fetched_at_iso: string;
+  is_dns_valid: boolean;
+  is_http_valid: boolean;
+  http_status: number | null;
+  final_redirect_chain: string[];
+  page_title: string | null;
+  meta_description: string | null;
+  canonical: string | null;
+  has_ssl: boolean;
+  overall_score: number;
+  grade: AuditGrade;
+  summary: string;
+  category_scores: AuditCategoryScore[];
+  findings: AuditFinding[];
+  detected_schemas: string[];
+  open_graph: Record<string, string>;
+  twitter: Record<string, string>;
+  word_count: number;
+  image_count: number;
+  image_without_alt_count: number;
+  internal_link_count: number;
+  external_link_count: number;
+  has_robots_txt: boolean;
+  has_sitemap_referenced: boolean;
+  has_llms_txt: boolean;
+}
+
+/**
+ * Run the deep website audit. Server-side rate limit: 5/min/IP.
+ */
+export const auditWebsite = (url: string) =>
+  client
+    .post<DeepAudit>('/api/v1/public/audit-website', { url }, { timeout: 45_000 })
+    .then((r) => r.data);
+
+/* ───────────────────────────── Maps audit ────────────────────────────── */
+
+export interface BusinessReview {
+  author_name: string | null;
+  rating: number | null;
+  relative_time: string | null;
+  text: string | null;
+}
+
+/**
+ * Profile derived from a Google Maps Places API response. Distinct from the
+ * separate `BusinessProfile` (signup-time data) earlier in this file — this
+ * one only carries fields the public Places API returns.
+ */
+export interface MapsBusinessProfile {
+  place_id: string;
+  display_name: string | null;
+  formatted_address: string | null;
+  primary_type: string | null;
+  types: string[];
+  phone: string | null;
+  website_uri: string | null;
+  google_maps_uri: string | null;
+  rating: number | null;
+  user_rating_count: number | null;
+  business_status: string | null;
+  price_level: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  weekday_descriptions: string[];
+  open_now: boolean | null;
+  photo_count: number;
+  photo_thumbnails: string[];
+  editorial_summary: string | null;
+  reviews: BusinessReview[];
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  postal_code: string | null;
+}
+
+export interface DerivedRecommendation {
+  code: string;
+  title: string;
+  detail: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface MapsAuditResponse {
+  place_id: string;
+  business: MapsBusinessProfile;
+  website_audit: DeepAudit | null;
+  socials_found: boolean;
+  socials: ScanSocial[];
+  derived_findings: AuditFinding[];
+  recommendations: DerivedRecommendation[];
+}
+
+/**
+ * Audit a Google Maps share URL or place_id. Server-side rate limit: 5/min/IP.
+ */
+export const auditPlace = (mapsUrl: string) =>
+  client
+    .post<MapsAuditResponse>(
+      '/api/v1/public/audit-place',
+      { maps_url: mapsUrl },
+      { timeout: 45_000 },
+    )
+    .then((r) => r.data);

@@ -43,6 +43,16 @@ from app.modules.qualification.website_checker import (
     check_website,
     get_website_quality,
 )
+from app.modules.qualification.deep_audit import (
+    DeepAudit,
+    Finding,
+    run_deep_audit,
+)
+from app.modules.qualification.maps_resolver import (
+    BusinessProfile,
+    fetch_business_profile,
+    resolve_maps_url,
+)
 
 
 router = APIRouter()
@@ -381,4 +391,408 @@ async def scan_website(
         socials=[ScanSocial(**s) for s in socials],
         flaws=flaws,
         score=score,
+    )
+
+
+# ── Comprehensive audit endpoints ─────────────────────────────────────────
+
+
+class AuditRequest(BaseModel):
+    """Body for the deep-audit endpoint. Same surface as ScanRequest plus an
+    explicit doc string — kept separate so the OpenAPI schema is unambiguous."""
+
+    url: str = Field(
+        ...,
+        min_length=4,
+        max_length=2048,
+        description="Website URL to deep-audit. Scheme optional.",
+    )
+
+
+class MapsAuditRequest(BaseModel):
+    """Body for the Maps-driven audit endpoint."""
+
+    maps_url: str = Field(
+        ...,
+        min_length=10,
+        max_length=2048,
+        description=(
+            "A Google Maps share URL, long URL, or raw Place ID. We resolve "
+            "the place ID, fetch business intel, and (if a website is "
+            "listed) run the same deep audit as /audit-website."
+        ),
+    )
+
+
+class DerivedRecommendation(BaseModel):
+    """Action item derived from Maps + website signals (Maps audit only)."""
+
+    code: str
+    title: str
+    detail: str
+    priority: str = Field(..., pattern=r"^(high|medium|low)$")
+
+
+class MapsAuditResponse(BaseModel):
+    place_id: str
+    business: BusinessProfile
+    website_audit: Optional[DeepAudit]
+    socials_found: bool
+    socials: list[ScanSocial]
+    derived_findings: list[Finding]
+    recommendations: list[DerivedRecommendation]
+
+
+def _maps_recommendations(
+    *,
+    business: BusinessProfile,
+    website_audit: Optional[DeepAudit],
+) -> tuple[list[Finding], list[DerivedRecommendation]]:
+    """Generate Maps-specific findings and high-level marketing advice.
+
+    Pure analysis over the BusinessProfile. The website findings are already
+    inside ``website_audit.findings``; this function only adds the
+    *additional* signals that come from having Maps data we wouldn't get
+    from a website-only scan.
+    """
+    findings: list[Finding] = []
+    recs: list[DerivedRecommendation] = []
+
+    if business.business_status and business.business_status != "OPERATIONAL":
+        findings.append(
+            Finding(
+                category="trust",
+                code="maps_status_not_operational",
+                title=f"Business status: {business.business_status.replace('_', ' ').title()}",
+                detail=(
+                    "Google has flagged this listing as non-operational. New "
+                    "customers will see a warning before they ever click through."
+                ),
+                suggestion="Re-verify your listing in Google Business Profile and update operating status.",
+                severity="critical",
+                impact="high",
+            )
+        )
+
+    if not business.website_uri:
+        findings.append(
+            Finding(
+                category="trust",
+                code="maps_no_website",
+                title="No website on Google Business Profile",
+                detail=(
+                    "Listings without a website convert ~50% worse than those with "
+                    "one. Even a single landing page outperforms 'no website' for "
+                    "trust and SEO juice."
+                ),
+                suggestion=(
+                    "Publish at least a 1-page site with hours, services, and a "
+                    "contact form, then add it to your Google Business Profile."
+                ),
+                severity="warning",
+                impact="high",
+            )
+        )
+        recs.append(
+            DerivedRecommendation(
+                code="rec_publish_website",
+                title="Publish a basic website",
+                detail=(
+                    "Even a single-page Carrd / Wix site lifts conversion and "
+                    "lets us run a full SEO audit next time."
+                ),
+                priority="high",
+            )
+        )
+
+    if business.user_rating_count is not None:
+        if business.user_rating_count < 25:
+            findings.append(
+                Finding(
+                    category="trust",
+                    code="maps_low_review_count",
+                    title=f"Only {business.user_rating_count} Google reviews",
+                    detail=(
+                        "Listings with <25 reviews rank below better-reviewed "
+                        "competitors in 'near me' results."
+                    ),
+                    suggestion="Send a polite review-request to your last 50 happy customers via email or WhatsApp.",
+                    severity="warning",
+                    impact="high",
+                )
+            )
+            recs.append(
+                DerivedRecommendation(
+                    code="rec_review_request_campaign",
+                    title="Run a 30-day review request drive",
+                    detail="Aim for +20 reviews this month — biggest single lift to local pack ranking.",
+                    priority="high",
+                )
+            )
+
+    if business.rating is not None and business.rating < 4.0 and (business.user_rating_count or 0) >= 10:
+        findings.append(
+            Finding(
+                category="trust",
+                code="maps_low_rating",
+                title=f"Average rating is {business.rating:.1f}",
+                detail=(
+                    "Below 4.0 is a hard discovery cap — most consumers filter "
+                    "to 4-stars-and-up, especially in the Google local pack."
+                ),
+                suggestion="Audit recent 1–3 star reviews, respond publicly, and fix the operational root cause.",
+                severity="critical",
+                impact="high",
+            )
+        )
+
+    if business.photo_count < 5:
+        findings.append(
+            Finding(
+                category="trust",
+                code="maps_few_photos",
+                title=f"Only {business.photo_count} photo(s) on Google",
+                detail=(
+                    "Listings with 10+ photos receive ~35% more clicks. Mobile "
+                    "users skim photos before reading anything else."
+                ),
+                suggestion="Upload 10+ high-resolution photos: storefront, interior, products/services, team.",
+                severity="warning",
+                impact="medium",
+            )
+        )
+        recs.append(
+            DerivedRecommendation(
+                code="rec_upload_photos",
+                title="Upload 10+ business photos",
+                detail="Photos are the single strongest engagement lever on a Google Business Profile.",
+                priority="medium",
+            )
+        )
+
+    if not business.weekday_descriptions:
+        findings.append(
+            Finding(
+                category="trust",
+                code="maps_no_hours",
+                title="Operating hours not set",
+                detail=(
+                    "Listings without hours don't show 'Open now' on mobile and "
+                    "drop out of 'open now' filtered searches."
+                ),
+                suggestion="Set accurate weekly hours in Google Business Profile, including holiday exceptions.",
+                severity="warning",
+                impact="medium",
+            )
+        )
+
+    if not business.editorial_summary and business.user_rating_count and business.user_rating_count > 50:
+        findings.append(
+            Finding(
+                category="aeo",
+                code="maps_no_editorial",
+                title="No editorial description on Google",
+                detail=(
+                    "Established businesses sometimes get a Google-curated summary. "
+                    "Earning one boosts answer-engine citations."
+                ),
+                suggestion="Maintain a complete profile (description, services, posts) so Google's editorial team has signal to work with.",
+                severity="info",
+                impact="low",
+            )
+        )
+
+    # Website-derived recommendations (delivered as DerivedRecommendation
+    # entries so the SPA can show a tidy "next steps" panel separate from
+    # the audit findings list).
+    if website_audit:
+        if website_audit.overall_score < 60:
+            recs.append(
+                DerivedRecommendation(
+                    code="rec_website_overhaul",
+                    title="Schedule a website overhaul",
+                    detail=(
+                        "Your website scored under 60. The fastest path is a template-based "
+                        "rebuild that addresses indexability + meta + schema in one pass."
+                    ),
+                    priority="high",
+                )
+            )
+        elif website_audit.overall_score < 80:
+            recs.append(
+                DerivedRecommendation(
+                    code="rec_website_polish",
+                    title="Targeted website improvements",
+                    detail=(
+                        "Knock out the warning-level findings on your audit page in priority order — "
+                        "you can move from B to A in a single sprint."
+                    ),
+                    priority="medium",
+                )
+            )
+
+        if not any(f.category == "schema" and "incomplete" not in f.code for f in website_audit.findings):
+            recs.append(
+                DerivedRecommendation(
+                    code="rec_add_localbusiness_schema",
+                    title="Add LocalBusiness JSON-LD",
+                    detail=(
+                        "Pair your Google Business Profile with on-site LocalBusiness schema "
+                        "containing your NAP, hours, and rating — major lift for local pack visibility."
+                    ),
+                    priority="high",
+                )
+            )
+
+    if business.website_uri and not website_audit:
+        # Website crawl failed — surface that clearly to the visitor.
+        findings.append(
+            Finding(
+                category="indexability",
+                code="website_unreachable",
+                title="Listed website did not respond",
+                detail=(
+                    f"Google has '{business.website_uri}' as your website but our audit "
+                    "could not load it. Customers clicking 'Website' on Maps see the same."
+                ),
+                suggestion="Verify the website URL is correct in Google Business Profile and confirm the site is live.",
+                severity="critical",
+                impact="high",
+            )
+        )
+
+    return findings, recs
+
+
+@router.post(
+    "/public/audit-website",
+    response_model=DeepAudit,
+    summary="Comprehensive SEO/AEO/trust/performance audit for a website",
+    tags=["public-scanner"],
+)
+@limiter.limit("5/minute")
+async def audit_website(
+    payload: AuditRequest,
+    request: Request,
+    response: Response,
+) -> Any:
+    """Public, anonymous deep-audit endpoint.
+
+    Single outbound HTTP fetch + a few HEAD probes for robots/sitemap/llms.
+    Returns a categorized scorecard with actionable suggestions per finding.
+
+    Conservative rate limit (5/min/IP) reflects the higher upstream cost
+    relative to the basic ``scan-website`` endpoint.
+    """
+    _ = response  # injected for slowapi headers
+
+    # We do social discovery in parallel with the deep audit so we can pass
+    # ``socials_found`` into the Trust category. The two requests are
+    # independent — one is the homepage GET, the other parses links from
+    # the same homepage. To avoid double-fetching, we run audit first.
+    audit = await run_deep_audit(payload.url)
+    if audit is None:
+        raise HTTPException(
+            status_code=422,
+            detail="That URL doesn't look right — try something like example.com",
+        )
+
+    # Best-effort social check (re-uses an additional homepage GET, but on
+    # a 5/min limit the cost is acceptable).
+    try:
+        socials_found, socials = await check_social_media(audit.normalized_url)
+    except Exception:
+        socials_found, socials = False, []
+
+    if not socials_found:
+        # Re-attach the trust finding now that we know — re-running run_deep_audit
+        # would double the latency budget, so we patch in place.
+        already = any(f.code == "no_socials" for f in audit.findings)
+        if not already:
+            audit.findings.append(
+                Finding(
+                    category="trust",
+                    code="no_socials",
+                    title="No social profile links found",
+                    detail="Social proof is one of the strongest trust signals for first-time visitors.",
+                    suggestion="Add LinkedIn (B2B), Instagram (consumer), or Facebook (local) icons in the footer.",
+                    severity="info",
+                    impact="low",
+                )
+            )
+
+    return audit
+
+
+@router.post(
+    "/public/audit-place",
+    response_model=MapsAuditResponse,
+    summary="Resolve a Google Maps URL → business intel + website audit",
+    tags=["public-scanner"],
+)
+@limiter.limit("5/minute")
+async def audit_place(
+    payload: MapsAuditRequest,
+    request: Request,
+    response: Response,
+) -> Any:
+    """Take any Google Maps share URL or place_id and return a complete
+    audit: the business profile pulled from the Places API, plus (if the
+    listing has a website) the same deep audit as ``/audit-website`` over
+    that website. Adds Maps-specific findings (rating, reviews, photos,
+    hours) and a 'recommendations' list of high-level marketing actions.
+
+    Cost notes:
+      - One Places Details call (paid, ~$0.005 / request).
+      - Up to one HEAD on a shortlink unfurl.
+      - The website audit cost only fires if the listing has a website.
+    """
+    _ = response
+
+    place_id = await resolve_maps_url(payload.maps_url)
+    if not place_id:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Couldn't extract a Place ID from that URL. Open the place in "
+                "Google Maps, click Share → Copy link, and paste the long URL."
+            ),
+        )
+
+    business = await fetch_business_profile(place_id)
+    if business is None:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Found the place but the Places API didn't return details. "
+                "Try again in a moment."
+            ),
+        )
+
+    website_audit: Optional[DeepAudit] = None
+    socials_found = False
+    socials: list[dict] = []
+    if business.website_uri:
+        try:
+            website_audit = await run_deep_audit(business.website_uri)
+        except Exception as e:
+            logger.exception(f"audit-place: deep audit failed for {business.website_uri}: {e}")
+        try:
+            socials_found, socials = await check_social_media(business.website_uri)
+        except Exception:
+            socials_found, socials = False, []
+
+    derived_findings, recommendations = _maps_recommendations(
+        business=business,
+        website_audit=website_audit,
+    )
+
+    return MapsAuditResponse(
+        place_id=place_id,
+        business=business,
+        website_audit=website_audit,
+        socials_found=socials_found,
+        socials=[ScanSocial(**s) for s in socials],
+        derived_findings=derived_findings,
+        recommendations=recommendations,
     )
