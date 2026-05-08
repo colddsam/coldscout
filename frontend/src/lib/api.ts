@@ -1487,41 +1487,171 @@ export const auditWebsite = (url: string) =>
 
 export interface BusinessReview {
   author_name: string | null;
+  author_uri: string | null;
+  author_photo_uri: string | null;
   rating: number | null;
   relative_time: string | null;
+  publish_time: string | null;
   text: string | null;
+  original_text: string | null;
+}
+
+export interface AmenityFlags {
+  delivery: boolean | null;
+  takeout: boolean | null;
+  dine_in: boolean | null;
+  curbside_pickup: boolean | null;
+  reservable: boolean | null;
+  serves_breakfast: boolean | null;
+  serves_lunch: boolean | null;
+  serves_dinner: boolean | null;
+  serves_brunch: boolean | null;
+  serves_beer: boolean | null;
+  serves_wine: boolean | null;
+  serves_cocktails: boolean | null;
+  serves_coffee: boolean | null;
+  serves_dessert: boolean | null;
+  serves_vegetarian_food: boolean | null;
+  good_for_children: boolean | null;
+  good_for_groups: boolean | null;
+  good_for_watching_sports: boolean | null;
+  allows_dogs: boolean | null;
+  live_music: boolean | null;
+  menu_for_children: boolean | null;
+  outdoor_seating: boolean | null;
+  restroom: boolean | null;
+}
+
+export interface AccessibilityOptions {
+  wheelchair_accessible_parking: boolean | null;
+  wheelchair_accessible_entrance: boolean | null;
+  wheelchair_accessible_restroom: boolean | null;
+  wheelchair_accessible_seating: boolean | null;
+}
+
+export interface ParkingOptions {
+  free_parking_lot: boolean | null;
+  paid_parking_lot: boolean | null;
+  free_street_parking: boolean | null;
+  paid_street_parking: boolean | null;
+  valet_parking: boolean | null;
+  free_garage_parking: boolean | null;
+  paid_garage_parking: boolean | null;
+}
+
+export interface PaymentOptions {
+  accepts_credit_cards: boolean | null;
+  accepts_debit_cards: boolean | null;
+  accepts_cash_only: boolean | null;
+  accepts_nfc: boolean | null;
 }
 
 /**
  * Profile derived from a Google Maps Places API response. Distinct from the
  * separate `BusinessProfile` (signup-time data) earlier in this file — this
- * one only carries fields the public Places API returns.
+ * one only carries fields the Places API exposes.
  */
 export interface MapsBusinessProfile {
   place_id: string;
   display_name: string | null;
+  short_formatted_address: string | null;
   formatted_address: string | null;
+  adr_format_address: string | null;
   primary_type: string | null;
+  primary_type_raw: string | null;
   types: string[];
   phone: string | null;
+  national_phone: string | null;
+  international_phone: string | null;
   website_uri: string | null;
   google_maps_uri: string | null;
+  place_uri: string | null;
+  write_a_review_uri: string | null;
   rating: number | null;
   user_rating_count: number | null;
   business_status: string | null;
   price_level: string | null;
+  price_range_start: string | null;
+  price_range_end: string | null;
   latitude: number | null;
   longitude: number | null;
+  viewport_low_lat: number | null;
+  viewport_low_lng: number | null;
+  viewport_high_lat: number | null;
+  viewport_high_lng: number | null;
+  plus_code_global: string | null;
+  plus_code_compound: string | null;
   weekday_descriptions: string[];
+  secondary_hours_descriptions: string[];
   open_now: boolean | null;
+  next_open_close_time: string | null;
   photo_count: number;
   photo_thumbnails: string[];
+  photo_attributions: string[];
   editorial_summary: string | null;
+  generative_summary: string | null;
+  review_summary: string | null;
+  area_summary: string | null;
+  icon_mask_base_uri: string | null;
+  icon_background_color: string | null;
   reviews: BusinessReview[];
   country: string | null;
   region: string | null;
   city: string | null;
+  neighborhood: string | null;
+  sublocality: string | null;
+  route: string | null;
+  street_number: string | null;
   postal_code: string | null;
+  utc_offset_minutes: number | null;
+  amenities: AmenityFlags;
+  accessibility: AccessibilityOptions;
+  parking: ParkingOptions;
+  payments: PaymentOptions;
+  sub_destinations: Array<Record<string, unknown>>;
+  attributions: string[];
+  pure_service_area_business: boolean | null;
+}
+
+export interface PlaceMetrics {
+  profile_completeness_pct: number;
+  nap_completeness_pct: number;
+  photo_coverage_pct: number;
+  amenity_disclosure_pct: number;
+  accessibility_disclosure_pct: number;
+  review_response_rate_pct: number | null;
+  avg_review_length_chars: number;
+  days_since_latest_review: number | null;
+  days_since_oldest_review: number | null;
+  estimated_review_velocity_per_month: number;
+  rating_percentile_estimate: number | null;
+  local_pack_eligible: boolean;
+  is_top_rated: boolean;
+  is_low_rated: boolean;
+  is_new_listing: boolean;
+  sentiment_proxy_pct: number;
+}
+
+export interface PlaceCategoryScore {
+  category: 'reviews' | 'profile' | 'photos' | 'engagement' | 'discoverability';
+  score: number;
+  headline: string;
+  detail: string;
+}
+
+export interface PlaceScorecard {
+  overall_score: number;
+  grade: AuditGrade;
+  summary: string;
+  categories: PlaceCategoryScore[];
+}
+
+export interface BenchmarkSnapshot {
+  category_label: string;
+  review_benchmark: number;
+  star_benchmark: number;
+  review_gap: number;
+  star_gap: number;
 }
 
 export interface DerivedRecommendation {
@@ -1533,22 +1663,43 @@ export interface DerivedRecommendation {
 
 export interface MapsAuditResponse {
   place_id: string;
+  fetched_at_iso: string;
   business: MapsBusinessProfile;
   website_audit: DeepAudit | null;
   socials_found: boolean;
   socials: ScanSocial[];
   derived_findings: AuditFinding[];
   recommendations: DerivedRecommendation[];
+  metrics: PlaceMetrics;
+  scorecard: PlaceScorecard;
+  benchmark: BenchmarkSnapshot;
+}
+
+export interface AuditAccessResponse {
+  allowed: boolean;
+  plan: string;
+  reason: string;
 }
 
 /**
- * Audit a Google Maps share URL or place_id. Server-side rate limit: 5/min/IP.
+ * Pro/Enterprise check before showing the input. Returns 401/403 when not
+ * logged in — callers should surface that as "log in" rather than a hard
+ * error toast.
+ */
+export const getAuditAccess = () =>
+  client
+    .get<AuditAccessResponse>('/api/v1/audit/access')
+    .then((r) => r.data);
+
+/**
+ * Audit a Google Maps share URL, place_id, or business name. Requires login
+ * + an active Pro/Enterprise plan. Server-side rate limit: 20/min/IP.
  */
 export const auditPlace = (mapsUrl: string) =>
   client
     .post<MapsAuditResponse>(
-      '/api/v1/public/audit-place',
+      '/api/v1/audit/place',
       { maps_url: mapsUrl },
-      { timeout: 45_000 },
+      { timeout: 60_000 },
     )
     .then((r) => r.data);
