@@ -44,9 +44,9 @@ export default function PublicNavbar() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Free Audit', href: '/scanner' },
+    { name: 'Directory', href: '/directory' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Docs', href: '/docs' },
-    { name: 'Support', href: '/support' },
   ];
 
   const dashboardPath = isAuthenticated

@@ -207,6 +207,17 @@ export const ROUTE_META: RouteMeta[] = [
     changefreq: 'monthly',
     lastmod: TODAY,
   },
+  {
+    path: '/directory',
+    title: 'Business Lead Directory — Find Local Service Leads | Cold Scout',
+    description:
+      'Browse thousands of local business leads by city and industry. Find plumbers, roofers, contractors, and more businesses that need digital services. Free digital presence audits.',
+    keywords:
+      'business directory, local business leads, find leads by city, service leads, B2B leads, plumber leads, contractor leads, Cold Scout directory',
+    priority: 0.85,
+    changefreq: 'daily',
+    lastmod: TODAY,
+  },
   // Auth + dashboard routes — present so the prerender layer can quickly
   // identify them as noindex and short-circuit. Excluded from sitemap.
   {

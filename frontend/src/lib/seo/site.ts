@@ -101,5 +101,6 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { path: '/terms', priority: 0.4, changefreq: 'yearly' },
   { path: '/refund-policy', priority: 0.4, changefreq: 'yearly' },
   { path: '/delete-data', priority: 0.3, changefreq: 'yearly' },
+  { path: '/directory', priority: 0.85, changefreq: 'daily' },
   { path: '/download', priority: 0.5, changefreq: 'monthly' },
 ];

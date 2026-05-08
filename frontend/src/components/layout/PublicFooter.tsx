@@ -108,6 +108,8 @@ export default function PublicFooter() {
                   {[
                     { to: '/pricing', label: 'Pricing' },
                     { to: '/docs', label: 'Documentation' },
+                    { to: '/directory', label: 'Lead Directory' },
+                    { to: '/scanner', label: 'Free Scanner' },
                     { to: '/integrations', label: 'Integrations' },
                     { to: '/use-cases', label: 'Use cases' },
                     { to: '/compare', label: 'Compare' },

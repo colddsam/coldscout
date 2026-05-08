@@ -1703,3 +1703,148 @@ export const auditPlace = (mapsUrl: string) =>
       { timeout: 60_000 },
     )
     .then((r) => r.data);
+
+// ── Public Lead Directory ─────────────────────────────────────────────────────
+
+export interface DirectoryLocation {
+  city: string;
+  region: string | null;
+  state: string | null;
+  country: string | null;
+  country_code: string | null;
+  lead_count: number;
+}
+
+export interface DirectoryLocationList {
+  locations: DirectoryLocation[];
+  total_locations: number;
+}
+
+export interface DirectoryLeadSummary {
+  slug: string;
+  business_name: string;
+  category: string | null;
+  city: string | null;
+  state: string | null;
+  region: string | null;
+  country: string | null;
+  rating: number | null;
+  review_count: number | null;
+  ai_score_tier: string;
+  has_website: boolean;
+  website_url: string | null;
+  google_maps_url: string | null;
+  discovered_at: string | null;
+}
+
+export interface DirectoryLeadDetail {
+  slug: string;
+  business_name: string;
+  category: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  region: string | null;
+  country: string | null;
+  country_code: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  rating: number | null;
+  review_count: number | null;
+  ai_score_tier: string;
+  has_website: boolean;
+  website_url: string | null;
+  google_maps_url: string | null;
+  is_mobile_responsive: boolean | null;
+  has_online_booking: boolean | null;
+  has_ecommerce: boolean | null;
+  has_social_media: boolean;
+  website_title: string | null;
+  discovered_at: string | null;
+}
+
+export interface DirectoryListResponse {
+  leads: DirectoryLeadSummary[];
+  total: number;
+  page: number;
+  pages: number;
+  industry: string;
+  city: string;
+}
+
+/**
+ * Fetches grouped locations with public lead counts for the directory index.
+ * Public endpoint — no authentication required.
+ */
+export const getDirectoryLocations = (country?: string) =>
+  client
+    .get<DirectoryLocationList>('/api/v1/directory/locations', {
+      params: country ? { country } : undefined,
+    })
+    .then((r) => r.data);
+
+/**
+ * Fetches paginated public leads for a given industry and city.
+ * Public endpoint — no authentication required.
+ */
+export const getDirectoryList = (
+  industry: string,
+  city: string,
+  page = 1,
+  limit = 20,
+) =>
+  client
+    .get<DirectoryListResponse>(`/api/v1/directory/${industry}/${city}`, {
+      params: { page, limit },
+    })
+    .then((r) => r.data);
+
+/**
+ * Fetches detailed public-safe data for a single lead by slug.
+ * Public endpoint — no authentication required.
+ */
+export const getDirectoryLead = (slug: string) =>
+  client
+    .get<DirectoryLeadDetail>(`/api/v1/directory/lead/${slug}`)
+    .then((r) => r.data);
+
+export interface DirectoryIndustry {
+  category: string;
+  slug: string;
+  lead_count: number;
+}
+
+export interface DirectoryIndustryList {
+  industries: DirectoryIndustry[];
+  total_industries: number;
+}
+
+export interface DirectoryStats {
+  total_leads: number;
+  total_cities: number;
+  total_industries: number;
+  total_countries: number;
+  top_industries: DirectoryIndustry[];
+  top_locations: DirectoryLocation[];
+}
+
+/**
+ * Fetches grouped industry categories with lead counts.
+ * Public endpoint — no authentication required.
+ */
+export const getDirectoryIndustries = (city?: string) =>
+  client
+    .get<DirectoryIndustryList>('/api/v1/directory/industries', {
+      params: city ? { city } : undefined,
+    })
+    .then((r) => r.data);
+
+/**
+ * Fetches high-level directory statistics.
+ * Public endpoint — no authentication required.
+ */
+export const getDirectoryStats = () =>
+  client
+    .get<DirectoryStats>('/api/v1/directory/stats')
+    .then((r) => r.data);

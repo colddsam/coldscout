@@ -22,6 +22,7 @@ from app.api.v1.seo import router as seo_router
 from app.api.v1.discovery_config import router as discovery_config_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.directory import router as directory_router
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -44,6 +45,7 @@ public_router.include_router(public_scanner_router, tags=["public-scanner"])
 public_router.include_router(profile_router, tags=["profile"])
 public_router.include_router(booking_router, tags=["booking"])
 public_router.include_router(seo_router, tags=["seo"])
+public_router.include_router(directory_router, tags=["directory"])
 
 # Private routes (System-level authentication required)
 private_router.include_router(auth.router, tags=["auth"])

@@ -87,6 +87,16 @@ class Lead(Base):
     review_count   = Column(Integer, nullable=True)
     state          = Column(String(100), nullable=True)
 
+    # Public Directory Fields
+    slug = Column(
+        String(300), unique=True, nullable=True, index=True,
+        comment="URL-safe slug for the public directory (e.g. joes-plumbing-miami-fl)."
+    )
+    is_public = Column(
+        Boolean, default=False, nullable=False, index=True,
+        comment="True when lead is eligible for the public directory (>30 days, not closed)."
+    )
+
     # International Location Hierarchy
     country        = Column(String(100), nullable=True, index=True)
     country_code   = Column(String(5), nullable=True, index=True)
@@ -197,6 +207,25 @@ class Lead(Base):
     social_networks = relationship(
         "LeadSocialNetwork", back_populates="lead", cascade="all, delete-orphan"
     )
+
+import re
+from sqlalchemy import event
+
+@event.listens_for(Lead, "before_insert")
+def _generate_lead_slug(mapper, connection, target):
+    """
+    Generate a URL-safe slug for the public directory upon lead creation.
+    Appends the first 8 characters of the UUID to prevent collisions.
+    """
+    if not target.slug and target.business_name:
+        parts = [target.business_name, target.city or "", target.state or target.region or ""]
+        base = "-".join(filter(None, parts)).lower()
+        slug = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+        if slug:
+            # target.id is guaranteed to exist because of default=uuid.uuid4
+            short_id = str(target.id)[:8]
+            target.slug = f"{slug}-{short_id}"
+
 
 
 class LeadSocialNetwork(Base):

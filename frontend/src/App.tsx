@@ -60,6 +60,9 @@ import Changelog from './pages/Changelog';
 import Blog from './pages/Blog';
 import Guides from './pages/Guides';
 import Post from './pages/Post';
+import DirectoryIndex from './pages/directory/DirectoryIndex';
+import DirectoryList from './pages/directory/DirectoryList';
+import DirectoryDetail from './pages/directory/DirectoryDetail';
 
 /**
  * Shared QueryClient instance with optimized development defaults.
@@ -151,6 +154,9 @@ export default function App() {
             <Route path="/blog/:slug" element={<Post kind="blog" />} />
             <Route path="/guides" element={<Guides />} />
             <Route path="/guides/:slug" element={<Post kind="guide" />} />
+            <Route path="/directory" element={<DirectoryIndex />} />
+            <Route path="/directory/:industry/:city" element={<DirectoryList />} />
+            <Route path="/directory/lead/:slug" element={<DirectoryDetail />} />
 
             {/* Protected: Client Welcome (clients only — freelancers redirected to /overview) */}
             <Route element={<ClientRoute />}>
