@@ -184,12 +184,14 @@ _DATA_PLACEID_RE = re.compile(r"!1s([\w\-:%]{8,120})")
 _FTID_RE = re.compile(r"(0x[0-9a-f]{6,16}:0x[0-9a-f]{6,16})")
 # Latitude/longitude block in /maps/place/<...>/@<lat>,<lng>,<zoom>z/...
 _LATLNG_RE = re.compile(r"/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)")
-# /maps/place/<URL-encoded-name>/...
-_PLACE_NAME_RE = re.compile(r"/maps/place/([^/]+)")
+# /maps/place/<URL-encoded-name>/... or /maps/search/<query>
+_PLACE_NAME_RE = re.compile(r"/maps/(?:place|search|uv)/([^/]+)")
 # Cid-only links use ``cid=<int>`` — also need a fallback pathway.
 _CID_RE = re.compile(r"[?&!]cid=(\d{6,})")
 # `q=<text>` query for plain text Maps searches.
 _Q_RE = re.compile(r"[?&]q=([^&]+)")
+# Path component for /maps/search/... when no q= param exists.
+_SEARCH_PATH_RE = re.compile(r"/maps/search/([^/?]+)")
 
 
 def _maybe_extract_placeid(url: str) -> Optional[str]:
@@ -207,7 +209,19 @@ def _maybe_extract_placeid(url: str) -> Optional[str]:
         # Keep only those that look like a real place_id token.
         if candidate.startswith(("ChIJ", "GhIJ", "EkIJ")):
             return candidate
+        # If it looks like an FTID token (0x...:0x...), we can't return it
+        # as a Place ID yet, but _maybe_extract_ftid will pick it up
+        # for a search-fallback later.
     return None
+
+
+def _maybe_extract_cid(url: str) -> Optional[str]:
+    """Pull a numeric CID out of a Maps URL."""
+    if not url:
+        return None
+    decoded = unquote(url)
+    m = _CID_RE.search(decoded)
+    return m.group(1) if m else None
 
 
 def _maybe_extract_ftid(url: str) -> Optional[str]:
@@ -257,6 +271,10 @@ def _maybe_extract_search_query(url: str) -> Optional[str]:
     m = _Q_RE.search(url)
     if m:
         return unquote(m.group(1)).replace("+", " ").strip() or None
+    # Path fallback: /maps/search/Business+Name/...
+    m = _SEARCH_PATH_RE.search(url)
+    if m:
+        return unquote(m.group(1)).replace("+", " ").strip() or None
     return None
 
 
@@ -265,14 +283,25 @@ async def _unfurl(client: httpx.AsyncClient, url: str) -> str:
 
     Maps share links (``maps.app.goo.gl``, ``goo.gl/maps``) only resolve
     once you actually GET them, so we fire a HEAD-then-GET sequence.
+    We use a standard Browser User-Agent to avoid being blocked or
+    served simplified mobile pages by Google.
     """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
     try:
         # HEAD first — cheap if the server supports it.
-        resp = await client.head(url, timeout=8.0, follow_redirects=True)
+        resp = await client.head(url, headers=headers, timeout=8.0, follow_redirects=True)
         if str(resp.url) and str(resp.url) != url:
-            return str(resp.url)
-        # Some servers don't redirect on HEAD; fall back to GET.
-        resp = await client.get(url, timeout=10.0, follow_redirects=True)
+            # If the URL changed but doesn't have a place segment, it might
+            # be a consent page. We need to GET it.
+            if "/maps/" in str(resp.url):
+                return str(resp.url)
+
+        # Fall back to GET for the full redirect chain.
+        resp = await client.get(url, headers=headers, timeout=10.0, follow_redirects=True)
         return str(resp.url)
     except Exception as e:
         logger.debug(f"_unfurl: {url} failed — {e!r}")
@@ -769,14 +798,33 @@ async def resolve_maps_url(raw_input: str) -> Optional[str]:
             if biased:
                 return biased
 
-        # 5. Try ``q=`` style query.
+        # 5. Try ``q=`` style query or search path component.
         q_text = _maybe_extract_search_query(unfurled) or _maybe_extract_search_query(cleaned)
         if q_text:
             biased = await _searchtext_first(client, q_text, location_bias=latlng)
             if biased:
                 return biased
 
-        # 6. Final fallback — treat the whole raw string as a text query if
+        # 6. Fallback: CID or FTID tokens in the URL.
+        # While searchText (New) doesn't support these directly, searching
+        # for them as text often yields the top match.
+        cid = _maybe_extract_cid(unfurled) or _maybe_extract_cid(cleaned)
+        if cid:
+            res = await _searchtext_first(client, f"cid:{cid}")
+            if res:
+                return res
+            # Try just the number
+            res = await _searchtext_first(client, cid)
+            if res:
+                return res
+
+        ftid = _maybe_extract_ftid(unfurled) or _maybe_extract_ftid(cleaned)
+        if ftid:
+            res = await _searchtext_first(client, ftid)
+            if res:
+                return res
+
+        # 7. Final fallback — treat the whole raw string as a text query if
         # it doesn't look like a URL at all (bare business name pasted in).
         if not parsed.netloc and raw_input.strip():
             return await _searchtext_first(client, raw_input.strip())
