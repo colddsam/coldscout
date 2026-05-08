@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
+import { SITE } from '../lib/seo/site';
+import {
+  breadcrumbSchema,
+  articleSchema,
+  howToSchema,
+} from '../lib/seo/schemas';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 
@@ -893,56 +899,85 @@ function ProdArchitectureSection() {
 
 /* ═══════════════ Main Documentation Page ═══════════════ */
 
-const LD_BREADCRUMB_DOCS = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
+const DOCS_URL = `${SITE.url}/docs`;
+
+const LD_BREADCRUMB_DOCS = breadcrumbSchema(
+  [
+    { name: 'Home', url: `${SITE.url}/` },
+    { name: 'Documentation', url: DOCS_URL },
+  ],
+  DOCS_URL,
+);
+
+const LD_TECH_ARTICLE_DOCS = articleSchema({
+  type: 'TechArticle',
+  url: DOCS_URL,
+  headline: 'Cold Scout Documentation — Setup, Deployment & API Guide',
+  description:
+    'Complete technical documentation for Cold Scout AI Lead Generation Platform. Covers system architecture, Google Maps API setup, Groq AI configuration, Supabase database, environment variables, Docker deployment, Render backend, and Vercel frontend.',
+  datePublished: '2024-01-01',
+  dateModified: '2026-05-08',
+  keywords: [
+    'Cold Scout documentation',
+    'AI lead generation setup',
+    'FastAPI deployment',
+    'Vercel',
+    'Render',
+    'Supabase',
+    'Groq API',
+    'Google Places API',
+    'Docker',
+    'self-hosting',
+  ],
+});
+
+const LD_HOWTO_DOCS = howToSchema({
+  name: 'How to install and self-host Cold Scout',
+  description:
+    'Set up the Cold Scout AI lead generation pipeline on your own infrastructure with Docker or pip in about 15 minutes.',
+  totalTimeISO: 'PT15M',
+  pageId: DOCS_URL,
+  steps: [
     {
-      '@type': 'ListItem',
-      position: 1,
-      name: 'Home',
-      item: 'https://coldscout.colddsam.com/',
+      name: 'Clone the repository',
+      text: 'Clone the open-source Cold Scout repo from GitHub and switch into the project directory.',
+      url: `${DOCS_URL}#setup`,
     },
     {
-      '@type': 'ListItem',
-      position: 2,
-      name: 'Documentation',
-      item: 'https://coldscout.colddsam.com/docs',
+      name: 'Provision API keys',
+      text: 'Create accounts on Google Cloud (Places API), Groq, Brevo, and Supabase. Each has a free tier sufficient for testing.',
+      url: `${DOCS_URL}#api-keys`,
+    },
+    {
+      name: 'Configure environment variables',
+      text: 'Copy .env.example to .env and fill in the API keys, database URL, and SMTP credentials.',
+      url: `${DOCS_URL}#env`,
+    },
+    {
+      name: 'Run with Docker Compose',
+      text: 'Run docker compose up to start the FastAPI backend, the React frontend, and the APScheduler worker together.',
+      url: `${DOCS_URL}#deployment`,
+    },
+    {
+      name: 'Configure your first pipeline',
+      text: 'Open the dashboard, define your Ideal Customer Profile (industry, location, ICP signals), and trigger your first discovery run.',
+      url: `${DOCS_URL}#configuration`,
     },
   ],
-};
+});
 
-const LD_TECH_ARTICLE_DOCS = {
+const LD_SERVICE_MCP = {
   '@context': 'https://schema.org',
-  '@type': 'TechArticle',
-  '@id': 'https://coldscout.colddsam.com/docs#article',
-  headline: 'Cold Scout Documentation — Setup, Deployment & API Guide',
-  description: 'Complete technical documentation for Cold Scout AI Lead Generation Platform. Covers system architecture, Google Maps API setup, Groq AI configuration, Supabase database, environment variables, Docker deployment, Render backend, and Vercel frontend.',
-  url: 'https://coldscout.colddsam.com/docs',
-  image: 'https://coldscout.colddsam.com/banner.png',
-  author: {
-    '@type': 'Organization',
-    name: 'Cold Scout',
-    url: 'https://coldscout.colddsam.com/',
-  },
-  publisher: {
-    '@type': 'Organization',
-    name: 'Cold Scout',
-    logo: {
-      '@type': 'ImageObject',
-      url: 'https://coldscout.colddsam.com/web-app-manifest-512x512.png',
-    },
-  },
-  datePublished: '2024-01-01',
-  dateModified: '2026-03-29',
-  inLanguage: 'en-US',
-  keywords: 'Cold Scout documentation, AI lead generation setup, FastAPI deployment, Vercel, Render, Supabase, Groq API, Google Places API, Docker, self-hosting',
-  articleSection: 'Technical Documentation',
-  about: {
-    '@type': 'SoftwareApplication',
-    name: 'Cold Scout',
-    url: 'https://coldscout.colddsam.com/',
-  },
+  '@type': 'Service',
+  '@id': `${SITE.url}/docs#mcp-service`,
+  name: 'Cold Scout MCP Server',
+  description:
+    'Model Context Protocol (MCP) server that lets AI agents (Claude, GPT-4, Gemini) call Cold Scout lead generation endpoints directly.',
+  provider: { '@id': `${SITE.url}/#organization` },
+  serviceType: 'Model Context Protocol Server',
+  areaServed: 'Worldwide',
+  termsOfService: `${SITE.url}/terms`,
+  url: `${DOCS_URL}#mcp`,
 };
 
 export default function Documentation() {
@@ -950,18 +985,20 @@ export default function Documentation() {
     title: 'Documentation — Cold Scout AI Lead Generation Setup & API Guide',
     description:
       'Complete setup guide for Cold Scout: system architecture, Google Maps API, Groq AI, Supabase database, environment variables, Docker deployment to Render & Vercel.',
-    canonical: 'https://coldscout.colddsam.com/docs',
+    canonical: DOCS_URL,
     keywords:
-      'Cold Scout documentation, AI lead generation setup, FastAPI deployment, Vercel deployment, Render deployment, Supabase database, Groq API, Google Places API, self-host lead generation, open source CRM setup',
+      'Cold Scout documentation, AI lead generation setup, FastAPI deployment, Vercel deployment, Render deployment, Supabase database, Groq API, Google Places API, self-host lead generation, MCP server setup',
     ogType: 'article',
     publishedTime: '2024-01-01',
-    modifiedTime: '2026-03-29',
+    modifiedTime: '2026-05-08',
   });
 
   return (
     <div className="bg-black text-white font-sans antialiased">
       <JsonLd data={LD_BREADCRUMB_DOCS} id="breadcrumb-docs" />
       <JsonLd data={LD_TECH_ARTICLE_DOCS} id="tech-article-docs" />
+      <JsonLd data={LD_HOWTO_DOCS} id="howto-docs" />
+      <JsonLd data={LD_SERVICE_MCP} id="service-mcp" />
       <PublicNavbar />
       <HeroSection />
       <TableOfContents />

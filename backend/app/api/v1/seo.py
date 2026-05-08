@@ -1,17 +1,26 @@
 """
-SEO Endpoints — Dynamic sitemap for public profiles.
+SEO Endpoints — Dynamic sitemap + bot prerender mirror.
 
-Provides a machine-generated XML sitemap containing all public user profiles
-so that search engines can discover and index them. This supplements the
-static sitemap.xml that covers fixed pages (home, pricing, docs, etc.).
-
-Public endpoints (no auth required):
+Provides:
   - GET /seo/sitemap-profiles.xml  — XML sitemap of all public profiles
+  - GET /seo/prerender             — Bot prerender (self-host mirror of the
+                                     Vercel Edge prerender at /api/prerender).
+                                     Self-hosted nginx forwards bot UAs here.
+
+The prerender endpoint exists so an OSS user running Cold Scout behind their
+own nginx (per the bundled nginx.conf) gets the same per-route meta + JSON-LD
+injection that Vercel users get out of the box. The two implementations are
+intentionally kept in lockstep — same query contract, same injection rules.
 """
 
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
 from xml.sax.saxutils import escape as xml_escape
-from fastapi import APIRouter, Depends
+import html as _html
+import re
+
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -22,6 +31,7 @@ from app.models.profile import UserProfile
 router = APIRouter(prefix="/seo", tags=["seo"])
 
 BASE_URL = "https://coldscout.colddsam.com"
+API_BASE_URL = "https://api.coldscout.colddsam.com"
 
 
 @router.get("/sitemap-profiles.xml", response_class=Response)
@@ -73,5 +83,247 @@ async def sitemap_profiles(db: AsyncSession = Depends(get_db)) -> Response:
         headers={
             "Cache-Control": "public, max-age=3600, s-maxage=3600",
             "X-Robots-Tag": "noindex",
+        },
+    )
+
+
+# ─── Bot prerender ────────────────────────────────────────────────────────────
+
+# Static route → meta map. Mirrors frontend/api/prerender.ts so the two
+# implementations stay in sync. Edit both when adding a new public route.
+STATIC_ROUTE_META: dict[str, dict[str, str]] = {
+    "/": {
+        "title": "Cold Scout — AI Lead Generation Platform | Automate B2B Outreach",
+        "description": "Cold Scout uses AI to discover, enrich, and engage local business leads — automating your entire outreach pipeline from search to inbox.",
+    },
+    "/pricing": {
+        "title": "Pricing — Cold Scout AI Lead Generation",
+        "description": "Simple, transparent pricing. Free open-source self-hosting, Pro managed API at ₹100/month, Enterprise at ₹2,000/month.",
+    },
+    "/docs": {
+        "title": "Documentation — Cold Scout AI Lead Generation Setup & API Guide",
+        "description": "Complete setup guide for Cold Scout: architecture, Google Maps API, Groq AI, Supabase, environment variables, Docker deployment.",
+        "ogType": "article",
+    },
+    "/faq": {
+        "title": "FAQ — Cold Scout AI Lead Generation Platform",
+        "description": "Frequently asked questions — product capabilities, pricing tiers, integrations, MCP server, AI models, GDPR compliance.",
+    },
+    "/compare": {
+        "title": "Cold Scout vs Apollo vs Outreach vs Instantly — Comparison",
+        "description": "Honest side-by-side comparison of Cold Scout against Apollo, Outreach, and Instantly.",
+    },
+    "/use-cases": {
+        "title": "Use Cases — Cold Scout for Freelancers, Agencies, SaaS, AI Agents",
+        "description": "How freelancers, marketing agencies, SaaS go-to-market teams, and AI agent builders use Cold Scout in production.",
+    },
+    "/integrations": {
+        "title": "Integrations — Cold Scout AI Lead Generation Platform",
+        "description": "Cold Scout integrates with Google Places, Groq, Brevo, Supabase, Razorpay, Meta Threads, and the Model Context Protocol.",
+    },
+    "/changelog": {
+        "title": "Changelog — Cold Scout AI Lead Generation Platform",
+        "description": "Release notes and product updates for Cold Scout — what shipped, when, and what is in flight.",
+    },
+    "/blog": {
+        "title": "Blog — Cold Scout: AI Lead Generation, Outreach, Sales Engineering",
+        "description": "Articles, comparisons, and how-tos on AI lead generation, B2B outreach automation, and modern sales pipelines.",
+    },
+    "/guides": {
+        "title": "Guides — Cold Scout: Self-host, Setup, MCP Server, Deliverability",
+        "description": "Technical guides for the Cold Scout open-source AI lead generation platform.",
+    },
+    "/support": {
+        "title": "Customer Support — Cold Scout",
+        "description": "Customer support — email response within 48 hours on Pro, 4 hours on Enterprise.",
+    },
+    "/privacy": {
+        "title": "Privacy Policy — Cold Scout",
+        "description": "Privacy policy for Cold Scout — data handling, GDPR/CCPA rights, third-party services, retention.",
+    },
+    "/terms": {
+        "title": "Terms of Service — Cold Scout",
+        "description": "Terms of service for the Cold Scout AI lead generation platform.",
+    },
+    "/refund-policy": {
+        "title": "Refund Policy — Cold Scout",
+        "description": "Refund and cancellation policy for Cold Scout subscriptions.",
+    },
+    "/delete-data": {
+        "title": "Data Deletion Request — Cold Scout",
+        "description": "Submit a GDPR/CCPA data deletion request for your Cold Scout account.",
+    },
+}
+
+
+def _esc(s: str) -> str:
+    """HTML-escape for attribute and text content."""
+    return _html.escape(s, quote=True)
+
+
+def _replace_meta(html_doc: str, attr: str, key: str, value: str) -> str:
+    """Replace a <meta> tag by attribute key, or append before </head> if absent."""
+    pattern = re.compile(
+        rf'<meta\s+{attr}=["\']{re.escape(key)}["\'][^>]*>',
+        re.IGNORECASE,
+    )
+    tag = f'<meta {attr}="{key}" content="{value}" />'
+    if pattern.search(html_doc):
+        return pattern.sub(tag, html_doc)
+    return html_doc.replace("</head>", f"  {tag}\n  </head>")
+
+
+def _inject_meta(html_doc: str, meta: dict[str, str], canonical: str) -> str:
+    """Mutate the SPA shell with route-specific meta + canonical."""
+    title = _esc(meta["title"])
+    description = _esc(meta["description"])
+    canonical_esc = _esc(canonical)
+    og_type = _esc(meta.get("ogType", "website"))
+    og_image = _esc(meta.get("ogImage", f"{BASE_URL}/banner.png"))
+    indexed = meta.get("index", True)
+    robots = (
+        "noindex, follow"
+        if indexed is False
+        else "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    )
+
+    out = re.sub(
+        r"<title>[\s\S]*?</title>", f"<title>{title}</title>", html_doc, count=1, flags=re.IGNORECASE
+    )
+    out = _replace_meta(out, "name", "description", description)
+    out = _replace_meta(out, "name", "robots", robots)
+    out = _replace_meta(out, "property", "og:title", title)
+    out = _replace_meta(out, "property", "og:description", description)
+    out = _replace_meta(out, "property", "og:url", canonical_esc)
+    out = _replace_meta(out, "property", "og:image", og_image)
+    out = _replace_meta(out, "property", "og:type", og_type)
+    out = _replace_meta(out, "name", "twitter:title", title)
+    out = _replace_meta(out, "name", "twitter:description", description)
+    out = _replace_meta(out, "name", "twitter:image", og_image)
+
+    # Canonical link
+    canonical_pattern = re.compile(
+        r'<link\s+rel=["\']canonical["\'][^>]*>', re.IGNORECASE
+    )
+    canonical_tag = f'<link rel="canonical" href="{canonical_esc}" />'
+    if canonical_pattern.search(out):
+        out = canonical_pattern.sub(canonical_tag, out)
+    else:
+        out = out.replace("</head>", f"  {canonical_tag}\n  </head>")
+
+    return out
+
+
+def _load_shell() -> Optional[str]:
+    """Locate and read the SPA shell. Returns None if not found.
+
+    Expected layout:
+      backend/app/api/v1/seo.py  → ../../../../frontend/dist/index.html
+      For OSS / docker, FRONTEND_DIST_PATH env var can override.
+    """
+    import os
+
+    override = os.environ.get("FRONTEND_DIST_PATH")
+    candidates = []
+    if override:
+        candidates.append(Path(override) / "index.html")
+
+    here = Path(__file__).resolve()
+    candidates.extend(
+        [
+            here.parents[3] / "frontend" / "dist" / "index.html",
+            here.parents[4] / "frontend" / "dist" / "index.html",
+            here.parents[3] / "frontend" / "index.html",  # dev fallback
+        ]
+    )
+
+    for c in candidates:
+        if c.exists():
+            try:
+                return c.read_text(encoding="utf-8")
+            except OSError:
+                continue
+    return None
+
+
+async def _resolve_profile(username: str, db: AsyncSession) -> Optional[dict[str, str]]:
+    """Pull a public profile and shape it as prerender meta."""
+    result = await db.execute(
+        select(UserProfile).where(
+            UserProfile.username == username,
+            UserProfile.is_public == True,  # noqa: E712
+        )
+    )
+    profile = result.scalar_one_or_none()
+    if not profile:
+        return None
+
+    name = profile.full_name or username
+    title = f"{name} | Cold Scout"
+    return {
+        "title": title,
+        "description": f"View {name}'s public profile on Cold Scout — AI-powered lead generation platform.",
+        "ogType": "profile",
+        "ogImage": getattr(profile, "profile_photo_url", None)
+        or getattr(profile, "avatar_url", None)
+        or f"{BASE_URL}/banner.png",
+        "index": True,
+    }
+
+
+@router.get("/prerender", response_class=Response)
+async def prerender(
+    path: str = Query(default="/", description="Original request path to prerender"),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Serve the SPA shell with route-specific meta tags injected.
+
+    This endpoint is invoked by self-host nginx configurations that detect
+    bot UAs and forward those requests here (see frontend/nginx.conf for
+    the recommended snippet). The Vercel Edge equivalent lives in
+    frontend/api/prerender.ts. Both implementations honor the same path
+    contract so a single ROUTE_META map drives both deployments.
+    """
+    shell = _load_shell()
+    if shell is None:
+        # Best effort — return a tiny fallback so crawlers still see meta.
+        return Response(
+            content=(
+                "<!doctype html><html lang=\"en\"><head>"
+                "<meta charset=\"utf-8\">"
+                "<title>Cold Scout — AI Lead Generation Platform</title>"
+                "<meta name=\"description\" content=\"AI lead generation platform.\">"
+                "</head><body></body></html>"
+            ),
+            media_type="text/html; charset=utf-8",
+        )
+
+    normalized = "/" if path in ("", "/") else path.rstrip("/")
+    canonical = f"{BASE_URL}{normalized if normalized else '/'}"
+    meta: Optional[dict[str, str]] = STATIC_ROUTE_META.get(normalized)
+
+    if meta is None and normalized.startswith("/u/"):
+        username = normalized.removeprefix("/u/").split("/")[0]
+        if username:
+            meta = await _resolve_profile(username, db)
+
+    if meta is None and normalized.startswith("/demo/"):
+        meta = {
+            "title": "Your Website Demo | Cold Scout",
+            "description": "A custom website demo built for your business by Cold Scout.",
+            "index": False,
+        }
+
+    if meta is None:
+        meta = STATIC_ROUTE_META["/"]
+
+    html_doc = _inject_meta(shell, meta, canonical)
+
+    return Response(
+        content=html_doc,
+        media_type="text/html; charset=utf-8",
+        headers={
+            "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=86400",
+            "X-Cold-Scout-Prerender": "1",
         },
     )

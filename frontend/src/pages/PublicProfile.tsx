@@ -26,6 +26,7 @@ import { getPublicProfile } from '../lib/api';
 import type { PublicProfile } from '../lib/api';
 import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
+import { buildOgImage } from '../lib/seo/og';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 import {
@@ -364,11 +365,24 @@ export default function PublicProfilePage() {
   const { first, last } = splitName(profile?.full_name);
   const twitterUrl = profile?.freelancer?.twitter_url || profile?.business?.twitter_url;
 
+  // OG image priority: actual profile photo (most personal) → dynamic Vercel
+  // OG card with the freelancer's name + headline (per-share unique) → site
+  // banner fallback. Avatar URLs from Supabase storage are absolute, so they
+  // pass through unchanged; the buildOgImage call returns an absolute URL too.
+  const dynamicOg = profile
+    ? buildOgImage({
+        title: displayName,
+        subtitle: headline ?? 'Profile on Cold Scout',
+        kind: 'profile',
+        badge: profile.freelancer ? 'FREELANCER' : profile.business ? 'BUSINESS' : 'PROFILE',
+      })
+    : undefined;
+
   useSEO({
     title: seoTitle,
     description: seoDesc,
     canonical: username ? `${BASE_URL}/u/${username}` : undefined,
-    ogImage: profile?.profile_photo_url || profile?.avatar_url || undefined,
+    ogImage: profile?.profile_photo_url || profile?.avatar_url || dynamicOg,
     ogType: 'profile',
     ogImageAlt: `${displayName}'s profile photo on Cold Scout`,
     index: !!profile,
@@ -521,7 +535,14 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
             transition={{ duration: 0.5 }}
           >
             {profile.banner_url ? (
-              <img src={profile.banner_url} alt={`${profile.full_name || profile.username}'s cover photo`} className="w-full h-full object-cover" />
+              <img
+                src={profile.banner_url}
+                alt={`${profile.full_name || profile.username}'s cover photo`}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
             ) : (
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
             )}
@@ -545,6 +566,8 @@ function ProfileView({ profile }: { profile: PublicProfile }) {
                       className="w-full h-full object-cover"
                       itemProp="image"
                       loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-white/5 text-white/20">
@@ -887,7 +910,13 @@ function BusinessCard({ data, verifiedFields }: { data: NonNullable<PublicProfil
             )}
           </div>
           {data.company_logo_url && (
-            <img src={data.company_logo_url} alt={`${data.company_name || 'Company'} logo`} className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+            <img
+              src={data.company_logo_url}
+              alt={`${data.company_name || 'Company'} logo`}
+              className="w-12 h-12 rounded-lg object-cover border border-white/10"
+              loading="lazy"
+              decoding="async"
+            />
           )}
         </div>
 
@@ -977,6 +1006,7 @@ function PortfolioCard({ items }: { items: NonNullable<PublicProfile['portfolio'
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     itemProp="image"
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
               )}

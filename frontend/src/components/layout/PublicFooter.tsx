@@ -99,19 +99,39 @@ export default function PublicFooter() {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-12 md:gap-24">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-12 md:gap-16">
             {/* Product */}
             <ScrollReveal delay={0.15}>
               <div className="flex flex-col gap-4">
                 <h2 className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">Product</h2>
                 <nav className="flex flex-col gap-2.5" aria-label="Product navigation">
                   {[
-                    { href: '/#features', label: 'Features' },
-                    { href: '/#workflow', label: 'How it works' },
-                    { href: '/#faq', label: 'FAQ' },
                     { to: '/pricing', label: 'Pricing' },
                     { to: '/docs', label: 'Documentation' },
+                    { to: '/integrations', label: 'Integrations' },
+                    { to: '/use-cases', label: 'Use cases' },
+                    { to: '/compare', label: 'Compare' },
+                    { to: '/changelog', label: 'Changelog' },
+                  ].map((item) => (
+                    <Link key={item.label} to={item.to} className="text-sm text-[#B0B0B0] hover:text-white transition-colors hover-underline inline-block">
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </ScrollReveal>
+
+            {/* Resources */}
+            <ScrollReveal delay={0.18}>
+              <div className="flex flex-col gap-4">
+                <h2 className="text-[10px] font-bold text-white uppercase tracking-[0.15em]">Resources</h2>
+                <nav className="flex flex-col gap-2.5" aria-label="Resources navigation">
+                  {[
+                    { to: '/blog', label: 'Blog' },
+                    { to: '/guides', label: 'Guides' },
+                    { to: '/faq', label: 'FAQ' },
                     { to: '/support', label: 'Support' },
+                    { href: '/llms.txt', label: 'AI agents (llms.txt)' },
                   ].map((item) =>
                     'to' in item ? (
                       <Link key={item.label} to={item.to!} className="text-sm text-[#B0B0B0] hover:text-white transition-colors hover-underline inline-block">

@@ -52,6 +52,14 @@ import LeadDemoViewer from './pages/LeadDemoViewer';
 import BookingPage from './pages/BookingPage';
 import DownloadApp from './pages/Download';
 import LeadScanner from './pages/LeadScanner';
+import Faq from './pages/Faq';
+import Compare from './pages/Compare';
+import UseCases from './pages/UseCases';
+import Integrations from './pages/Integrations';
+import Changelog from './pages/Changelog';
+import Blog from './pages/Blog';
+import Guides from './pages/Guides';
+import Post from './pages/Post';
 
 /**
  * Shared QueryClient instance with optimized development defaults.
@@ -134,6 +142,15 @@ export default function App() {
             <Route path="/book/:username" element={<BookingPage />} />
             <Route path="/download" element={<DownloadApp />} />
             <Route path="/scanner" element={<LeadScanner />} />
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/compare" element={<Compare />} />
+            <Route path="/use-cases" element={<UseCases />} />
+            <Route path="/integrations" element={<Integrations />} />
+            <Route path="/changelog" element={<Changelog />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<Post kind="blog" />} />
+            <Route path="/guides" element={<Guides />} />
+            <Route path="/guides/:slug" element={<Post kind="guide" />} />
 
             {/* Protected: Client Welcome (clients only — freelancers redirected to /overview) */}
             <Route element={<ClientRoute />}>

@@ -1,13 +1,21 @@
-# Cold Scout OSS — Self-Hosted Lead Generation
+# Cold Scout OSS — Open-Source AI Lead Generation, Self-Hosted
 
 [![GitHub Release](https://img.shields.io/github/v/release/colddsam/coldscout?filter=oss-v*&label=Latest%20Release&color=black)](https://github.com/colddsam/coldscout/releases?q=oss-v&expanded=true)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
+[![Made with FastAPI](https://img.shields.io/badge/FastAPI-Python-009688)](https://fastapi.tiangolo.com)
+[![AI: Groq Llama 3](https://img.shields.io/badge/AI-Groq%20Llama%203-black)](https://groq.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)](https://www.docker.com/)
+[![MCP Server](https://img.shields.io/badge/MCP-Server-5e60ce)](https://modelcontextprotocol.io)
 
-> Free, open-source, self-hosted lead generation pipeline. Part of the [Cold Scout](https://coldscout.colddsam.com) platform.
+> The open-source **AI lead generation platform** — discover local businesses on Google Maps, AI-qualify each lead with Llama 3, draft personalized cold emails, and run the entire outreach pipeline yourself. A free, self-hosted alternative to Apollo, Outreach, and Instantly.
+
+**Keywords:** AI lead generation, Google Maps lead scraper, B2B outreach automation, open source lead generation, cold email AI generator, MCP server, self-hosted CRM, FastAPI lead pipeline, Llama 3 sales AI.
 
 **Zero cost to Cold Scout** — you bring your own API keys.
 
-### [Download Latest Release](https://github.com/colddsam/coldscout/releases/latest)
+### [⬇ Download Latest Release](https://github.com/colddsam/coldscout/releases/latest) · [🌐 Visit coldscout.colddsam.com](https://coldscout.colddsam.com) · [📚 Documentation](https://coldscout.colddsam.com/docs) · [💬 GitHub Issues](https://github.com/colddsam/coldscout/issues)
+
+> **Suggested GitHub topics** to add to this repo for discovery: `lead-generation`, `b2b-sales`, `cold-email`, `google-maps-api`, `groq`, `llama`, `fastapi`, `mcp-server`, `open-source-saas`, `ai-agents`, `sales-automation`.
 
 ## What's Included
 
@@ -134,6 +142,73 @@ coldscout-oss/
 ├── docker-compose.yml
 └── .env.example
 ```
+
+## How Cold Scout compares (vs Apollo, Outreach, Instantly)
+
+| Feature                          | Cold Scout (OSS)              | Apollo            | Outreach           | Instantly         |
+| -------------------------------- | ----------------------------- | ----------------- | ------------------ | ----------------- |
+| **Pricing floor**                | Free (self-host)              | ~$50/seat/mo      | ~$130/seat/mo      | ~$30/mo           |
+| **Open source**                  | ✅                            | ❌                | ❌                 | ❌                |
+| **Self-hostable**                | ✅                            | ❌                | ❌                 | ❌                |
+| **AI qualification (Llama 3)**   | ✅                            | ❌                | Limited            | ❌                |
+| **MCP server for AI agents**     | ✅                            | ❌                | ❌                 | ❌                |
+| **Google Maps lead source**      | ✅                            | ❌                | ❌                 | ❌                |
+| **B2B contact database**         | ❌                            | ✅ (260M+)        | ❌                 | ❌                |
+| **Native CRM sync**              | Roadmap                       | ✅                | ✅                 | Limited           |
+| **Best for**                     | Local-business outreach, OSS  | SaaS contact data | Enterprise sales   | List sending      |
+
+Read the full editorial comparison: <https://coldscout.colddsam.com/compare>
+
+## Frequently Asked Questions
+
+### What is Cold Scout?
+
+Cold Scout is an AI-powered lead generation platform that automates the entire B2B outreach pipeline — discovery (Google Maps), qualification (Groq Llama 3), personalization (AI-drafted cold emails), and sending (Brevo SMTP). The OSS edition runs entirely on your own infrastructure with your own API keys.
+
+### How does Cold Scout discover leads?
+
+Cold Scout queries the **Google Places API** for businesses matching your Ideal Customer Profile (industry, location, rating, review count). It tiles geographies into grid cells to bypass per-query result caps, dedups by `place_id`, and enriches each lead with website, contact data, and social profiles.
+
+### What AI model does Cold Scout use?
+
+Cold Scout uses **Groq-hosted Llama 3.3 70B** for qualification and personalized email generation, and **Llama 3.1 8B** for fast scoring. Groq's low-latency inference lets the pipeline score thousands of leads per minute.
+
+### Is Cold Scout free to use?
+
+Yes. The OSS package in this directory is open-source and free to self-host forever. You only pay for third-party API usage on your own accounts (most have generous free tiers). For a managed version with hosted API + MCP server, see [Cold Scout Pro](https://coldscout.colddsam.com/pricing).
+
+### Does Cold Scout work with Claude / GPT / Cursor?
+
+Yes — Cold Scout exposes itself as a **Model Context Protocol (MCP) server**. Any MCP-aware client can call `search_places`, `qualify_lead`, `generate_email`, and `send_email` as native tools. See the [MCP server setup guide](https://coldscout.colddsam.com/guides/mcp-server-setup-ai-agents-claude).
+
+### Is Cold Scout GDPR / CAN-SPAM compliant?
+
+Cold Scout is built with compliance in mind: every outbound email includes a one-click unsubscribe footer, hard bounces are auto-suppressed, and the platform respects rate limits and `robots.txt` for any scraping. You are still responsible for the legal basis of your outreach in your target jurisdiction.
+
+### What's the difference between Cold Scout OSS and Cold Scout Pro?
+
+| Capability                       | OSS (free)                           | Pro / Enterprise (hosted)         |
+| -------------------------------- | ------------------------------------ | --------------------------------- |
+| Lead discovery + qualification   | ✅                                   | ✅                                |
+| AI email generation              | ✅                                   | ✅                                |
+| Web dashboard                    | ✅                                   | ✅                                |
+| MCP server                       | ✅ (local)                           | ✅ (hosted)                       |
+| Authentication / multi-user      | —                                    | ✅ (Supabase Auth)                |
+| Threads / social pipeline        | —                                    | ✅                                |
+| Managed infrastructure           | —                                    | ✅                                |
+| Support                          | GitHub Issues                        | Email (48h Pro / 4h Enterprise)   |
+
+## Useful links
+
+- 🌐 **Marketing site**: <https://coldscout.colddsam.com>
+- 📚 **Full documentation**: <https://coldscout.colddsam.com/docs>
+- 📋 **Setup guide (Docker)**: <https://coldscout.colddsam.com/guides/self-host-lead-generation-docker-guide>
+- 🤖 **MCP server guide**: <https://coldscout.colddsam.com/guides/mcp-server-setup-ai-agents-claude>
+- 💰 **Pricing**: <https://coldscout.colddsam.com/pricing>
+- 🆚 **vs Apollo / Outreach / Instantly**: <https://coldscout.colddsam.com/compare>
+- 📰 **Blog & engineering notes**: <https://coldscout.colddsam.com/blog>
+- 🐛 **Report a bug**: <https://github.com/colddsam/coldscout/issues>
+- 💬 **AI agent policy (llms.txt)**: <https://coldscout.colddsam.com/llms.txt>
 
 ## License
 

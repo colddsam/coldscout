@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- ── Search Engine Verification ─────────────────────────────────────── -->
+    <!-- Each verification value is a placeholder. Replace once you've claimed
+         the property in the respective webmaster tool. Leaving placeholders is
+         harmless — search engines simply ignore unmatched tokens. -->
     <meta name="google-site-verification" content="5nKg5xf4hIJu_aK0BVKpGxC_zmLcJ4aX0hU5PteFTmM" />
+    <meta name="yandex-verification" content="c53cf3eb1bcf494a" />
+    <meta name="p:domain_verify" content="286bedde5f002cfef0d38dae25ebfb46" />
+    <meta name="ahrefs-site-verification" content="" />
+    <meta name="facebook-domain-verification" content="" />
     <!-- ── Primary Meta Tags ─────────────────────────────────────────────── -->
     <title>Cold Scout — AI Lead Generation Platform | Automate B2B Outreach</title>
     <meta name="title" content="Cold Scout — AI Lead Generation Platform | Automate B2B Outreach" />
@@ -14,7 +23,7 @@
     />
     <meta
       name="keywords"
-      content="AI lead generation, local business leads, cold outreach automation, lead qualification, email campaign automation, Google Maps scraping, sales pipeline, CRM, B2B leads, SaaS lead generation, automated prospecting, ICP scoring, outreach automation"
+      content="AI lead generation platform, Google Maps lead scraper, B2B outreach automation, open source lead generation, cold email AI generator, local business leads, lead qualification, email campaign automation, sales pipeline, CRM, B2B leads, SaaS lead generation, automated prospecting, ICP scoring, MCP server lead generation"
     />
     <meta name="author" content="Cold Scout" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
@@ -83,9 +92,37 @@
     <!-- ── Performance: Preconnect & DNS Prefetch ────────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.coldscout.colddsam.com" crossorigin />
+    <link rel="preconnect" href="https://bbmvzahgkrmkciiejunt.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://api.coldscout.colddsam.com" />
+    <link rel="dns-prefetch" href="https://bbmvzahgkrmkciiejunt.supabase.co" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
+    <!-- Preload the Google Fonts stylesheet so the woff2 fetch starts before
+         the rest of head finishes parsing. The follow-up <link rel="stylesheet">
+         applies it to the document. -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Instrument+Serif:ital@1&display=swap"
+    />
+
+    <!-- Privacy-friendly analytics by Plausible -->
+    <script async src="https://plausible.io/js/pa-Zd8IkCjCeDsewEU490lvG.js"></script>
+    <script>
+      window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+      plausible.init()
+    </script>
+
+    <!-- Cloudflare Web Analytics alternative — also cookieless. Replace TOKEN
+         with the project token from Cloudflare's dashboard, then uncomment. -->
+    <!-- Ahrefs Analytics -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="D1Yon6YZMVzmquAUfRrRxg" async></script>
+
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "754e9bfde5384879b0e3b7302d02691e"}'></script>
+    <!-- End Cloudflare Web Analytics -->
 
     <!-- ── Fonts ──────────────────────────────────────────────────────────── -->
     <link
@@ -161,7 +198,74 @@
           "url": [
             "https://coldscout.colddsam.com/",
             "https://coldscout.colddsam.com/pricing",
-            "https://coldscout.colddsam.com/docs"
+            "https://coldscout.colddsam.com/docs",
+            "https://coldscout.colddsam.com/faq"
+          ]
+        }
+      }
+    </script>
+
+    <!-- ── Structured Data: SoftwareApplication (homepage primary entity) ── -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://coldscout.colddsam.com/#software",
+        "name": "Cold Scout",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "SalesApplication",
+        "operatingSystem": "Web, Linux, macOS, Windows (Docker)",
+        "url": "https://coldscout.colddsam.com/",
+        "image": "https://coldscout.colddsam.com/banner.png",
+        "description": "AI-powered lead generation platform: discover local businesses on Google Maps, AI-qualify each lead, generate personalized cold emails, and run the entire outreach pipeline. Open source self-host or managed SaaS.",
+        "keywords": "AI lead generation platform, Google Maps lead scraper, B2B outreach automation, open source lead generation, cold email AI generator",
+        "publisher": { "@id": "https://coldscout.colddsam.com/#organization" },
+        "softwareVersion": "1.x",
+        "inLanguage": "en-US",
+        "featureList": [
+          "Google Maps lead discovery",
+          "AI lead qualification (Llama 3.3 70B)",
+          "AI personalized cold email generation",
+          "Brevo SMTP outreach with tracking",
+          "Pipeline analytics dashboard",
+          "MCP server for AI agents",
+          "Open source self-host (Docker, pip)",
+          "Meta Threads engagement pipeline"
+        ],
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "INR",
+          "lowPrice": "0",
+          "highPrice": "2000",
+          "offerCount": 3,
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Open Source",
+              "description": "Self-hosted, full platform access with unlimited leads using your own API keys.",
+              "price": "0",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://github.com/colddsam/coldscout/releases"
+            },
+            {
+              "@type": "Offer",
+              "name": "Pro",
+              "description": "Managed API and MCP server with 2,000 leads per month, AI qualification, and email support.",
+              "price": "100",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://coldscout.colddsam.com/pricing"
+            },
+            {
+              "@type": "Offer",
+              "name": "Enterprise",
+              "description": "Dedicated infrastructure, unlimited leads, custom ICP model training, white-label templates, and priority 4-hour support SLA.",
+              "price": "2000",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://coldscout.colddsam.com/pricing"
+            }
           ]
         }
       }

@@ -1,12 +1,21 @@
 # robots.txt — Cold Scout (https://coldscout.colddsam.com)
 # https://www.robotstxt.org/robotstxt.html
-# Last updated: 2026-04-05
+# Last updated: 2026-05-08
 
 # ── Default: Allow all public pages, disallow app routes ──────────────────────
 User-agent: *
 Allow: /$
 Allow: /pricing
 Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
 Allow: /privacy
 Allow: /terms
 Allow: /support
@@ -14,6 +23,8 @@ Allow: /refund-policy
 Allow: /delete-data
 Allow: /u/
 Allow: /sitemap.xml
+Allow: /sitemap-index.xml
+Allow: /sitemap-images.xml
 Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /robots.txt
@@ -232,6 +243,7 @@ User-agent: DataForSeoBot
 Disallow: /
 
 # ── Sitemaps ───────────────────────────────────────────────────────────────────
+Sitemap: https://coldscout.colddsam.com/sitemap-index.xml
 Sitemap: https://coldscout.colddsam.com/sitemap.xml
 Sitemap: https://coldscout.colddsam.com/sitemap-images.xml
 Sitemap: https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml

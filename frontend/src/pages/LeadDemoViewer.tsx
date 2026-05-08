@@ -26,7 +26,11 @@ export default function LeadDemoViewer() {
   useSEO({
     title: 'Your Website Demo | Cold Scout',
     description: 'A custom website demo built for your business by Cold Scout.',
+    // Demos are intentionally not indexed (lead privacy + ephemeral). Keep
+    // `follow` true so the in-page "Claim This Website" link still passes
+    // authority back to the marketing site if a demo is ever shared publicly.
     index: false,
+    follow: true,
   });
 
   const demoUrl = `${API_BASE}/api/v1/public/demo/${leadId}`;

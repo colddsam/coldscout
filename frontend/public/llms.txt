@@ -2,7 +2,7 @@
 # llms.txt — AI/LLM Agent Access Policy and Platform Summary
 # https://coldscout.colddsam.com/llms.txt
 # Full version: https://coldscout.colddsam.com/llms-full.txt
-# Last updated: 2026-04-05
+# Last updated: 2026-05-08
 
 ## What is Cold Scout?
 
@@ -69,6 +69,13 @@ https://github.com/colddsam/coldscout
 - Homepage: https://coldscout.colddsam.com/
 - Pricing: https://coldscout.colddsam.com/pricing
 - Documentation: https://coldscout.colddsam.com/docs
+- FAQ: https://coldscout.colddsam.com/faq
+- Comparison: https://coldscout.colddsam.com/compare
+- Use Cases: https://coldscout.colddsam.com/use-cases
+- Integrations: https://coldscout.colddsam.com/integrations
+- Changelog: https://coldscout.colddsam.com/changelog
+- Blog: https://coldscout.colddsam.com/blog
+- Guides: https://coldscout.colddsam.com/guides
 - Support: https://coldscout.colddsam.com/support
 - Privacy Policy: https://coldscout.colddsam.com/privacy
 - Terms of Service: https://coldscout.colddsam.com/terms

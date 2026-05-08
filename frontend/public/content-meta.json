@@ -1,0 +1,62 @@
+{
+  "/blog/automate-google-maps-lead-generation": {
+    "title": "How to Automate Google Maps Lead Generation in 2026",
+    "description": "A practical guide to extracting qualified B2B leads from Google Maps at scale using the Places API, AI qualification, and a compliant outreach pipeline."
+  },
+  "/blog/cold-scout-vs-apollo-vs-outreach": {
+    "title": "Cold Scout vs Apollo vs Outreach vs Instantly: 2026 Comparison",
+    "description": "Honest comparison of four B2B lead generation tools — pricing, data sources, AI features, and where each one wins for solo founders, freelancers, and agencies."
+  },
+  "/blog/what-is-icp-ideal-customer-profile": {
+    "title": "What Is an Ideal Customer Profile (ICP)? Definition, Examples, How to Build One",
+    "description": "Plain-English definition of Ideal Customer Profile (ICP), worked examples for B2B SaaS and freelance agencies, and a step-by-step framework to write your own."
+  },
+  "/blog/cold-email-ai-personalization-at-scale": {
+    "title": "Cold Email AI: How to Generate Personalized Outreach at Scale",
+    "description": "A practical playbook for using LLMs to write cold emails that actually feel personal — covering data inputs, prompts, deliverability, and CAN-SPAM compliance."
+  },
+  "/blog/lead-qualification-bant-meddic-icp-scoring": {
+    "title": "Lead Qualification Frameworks: BANT, MEDDIC, and Modern ICP Scoring",
+    "description": "A side-by-side look at BANT, MEDDIC, CHAMP, and modern ICP-based scoring for B2B sales — when each one fits and how AI changes the game."
+  },
+  "/blog/anatomy-of-a-cold-outreach-pipeline": {
+    "title": "From Discovery to Reply: The Anatomy of a Cold Outreach Pipeline",
+    "description": "The five stages every cold-outreach pipeline shares — discovery, enrichment, qualification, personalization, sending — and the metrics to measure each one."
+  },
+  "/blog/top-b2b-lead-generation-tools-2026": {
+    "title": "Top 10 B2B Lead Generation Tools Compared (2026)",
+    "description": "A short, opinionated comparison of the top B2B lead generation tools in 2026 — from contact databases to AI-first scrapers and outreach automation platforms."
+  },
+  "/blog/how-freelancers-use-ai-to-land-clients": {
+    "title": "How Freelancers Use AI to Land 10x More Clients",
+    "description": "A short playbook for solo freelancers and small agencies using AI lead generation, qualification, and personalized cold email to fill the pipeline without an SDR."
+  },
+  "/blog/open-source-saas-why-it-wins": {
+    "title": "Open-Source SaaS: Why It Wins for Power Users",
+    "description": "The five concrete advantages of open-source SaaS — cost floor, data ownership, modifiability, audit-ability, and community speed — for power users."
+  },
+  "/blog/cold-scout-roadmap-2026": {
+    "title": "Cold Scout Roadmap: Threads Pipeline, Web Scraper, and More",
+    "description": "Public roadmap for Cold Scout — what is shipping next across the discovery, qualification, and outreach stages, plus the new platform features."
+  },
+  "/guides/self-host-lead-generation-docker-guide": {
+    "title": "Self-Hosted Lead Generation: Complete Setup Guide with Docker",
+    "description": "Step-by-step guide to running the open-source Cold Scout AI lead generation pipeline on your own infrastructure with Docker, including API keys, environment, and a first run."
+  },
+  "/guides/mcp-server-setup-ai-agents-claude": {
+    "title": "MCP Server Setup: Connecting Claude and GPT Agents to Cold Scout",
+    "description": "Quickstart for using Cold Scout as an MCP (Model Context Protocol) server so Claude Desktop, Claude Code, and other AI agents can call lead generation endpoints."
+  },
+  "/guides/building-a-sales-pipeline-with-fastapi-postgres": {
+    "title": "Building a Sales Pipeline with FastAPI, PostgreSQL, and APScheduler",
+    "description": "Architectural notes from building Cold Scout — the open-source AI lead generation pipeline — with FastAPI, async SQLAlchemy, PostgreSQL, and APScheduler."
+  },
+  "/guides/spf-dkim-dmarc-cold-email-deliverability": {
+    "title": "Email Deliverability: SPF, DKIM, and DMARC Explained",
+    "description": "Plain-English guide to setting up SPF, DKIM, and DMARC so your cold outreach actually lands in the primary inbox instead of spam."
+  },
+  "/guides/google-places-api-best-practices": {
+    "title": "Local Business Discovery with Google Places API: Best Practices",
+    "description": "Practical recipe for using the Google Places API at scale — geographic tiling, dedup by place_id, smart caching of details, and avoiding ToS pitfalls."
+  }
+}

@@ -14,6 +14,7 @@
  */
 
 import { useEffect } from 'react';
+import { SITE, DEFAULT_KEYWORDS } from '../lib/seo/site';
 
 /** Profile-specific Open Graph properties (og:profile:*). */
 interface ProfileMeta {
@@ -37,6 +38,8 @@ interface SEOOptions {
   ogImageAlt?: string;
   /** Whether search engines should index this page. Defaults to true. */
   index?: boolean;
+  /** Whether crawlers should follow links on this page. Defaults to mirror `index`. */
+  follow?: boolean;
   /** Additional keywords for this page. */
   keywords?: string;
   /** Article published date (ISO 8601) for article pages. */
@@ -49,12 +52,10 @@ interface SEOOptions {
   twitterCreator?: string;
 }
 
-const SITE_NAME = 'Cold Scout';
-const BASE_URL = 'https://coldscout.colddsam.com';
-const DEFAULT_OG_IMAGE = `${BASE_URL}/banner.png`;
-const DEFAULT_KEYWORDS =
-  'AI lead generation, local business leads, cold outreach automation, sales pipeline, B2B leads, automated prospecting';
-const TWITTER_SITE = '@ColdSc0ut';
+const SITE_NAME = SITE.name;
+const BASE_URL = SITE.url;
+const DEFAULT_OG_IMAGE = SITE.defaultOgImage;
+const TWITTER_SITE = SITE.twitterSite;
 
 function setMeta(name: string, content: string, isProperty = false) {
   const attr = isProperty ? 'property' : 'name';
@@ -86,8 +87,9 @@ export function useSEO({
   canonical,
   ogImage = DEFAULT_OG_IMAGE,
   ogType = 'website',
-  ogImageAlt = 'Cold Scout — AI Lead Generation Platform',
+  ogImageAlt = SITE.defaultOgImageAlt,
   index = true,
+  follow,
   keywords,
   publishedTime,
   modifiedTime,
@@ -104,13 +106,17 @@ export function useSEO({
     // Keywords
     setMeta('keywords', keywords ?? DEFAULT_KEYWORDS);
 
-    // Robots — fine-grained directives for maximum crawl budget efficiency
+    // Robots — fine-grained directives for maximum crawl budget efficiency.
+    // `follow` falls back to mirroring `index`; pass it explicitly to enable
+    // the noindex+follow pattern (e.g., demo pages where we don't want the
+    // demo itself indexed but still want link-equity to flow).
+    const shouldFollow = follow ?? index;
     if (index) {
-      setMeta('robots', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
-      setMeta('googlebot', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
+      setMeta('robots', `index, ${shouldFollow ? 'follow' : 'nofollow'}, max-snippet:-1, max-image-preview:large, max-video-preview:-1`);
+      setMeta('googlebot', `index, ${shouldFollow ? 'follow' : 'nofollow'}, max-snippet:-1, max-image-preview:large, max-video-preview:-1`);
     } else {
-      setMeta('robots', 'noindex, nofollow');
-      setMeta('googlebot', 'noindex, nofollow');
+      setMeta('robots', `noindex, ${shouldFollow ? 'follow' : 'nofollow'}`);
+      setMeta('googlebot', `noindex, ${shouldFollow ? 'follow' : 'nofollow'}`);
     }
 
     // Canonical
@@ -168,5 +174,5 @@ export function useSEO({
     setMeta('twitter:image', ogImage);
     setMeta('twitter:image:alt', ogImageAlt);
 
-  }, [title, description, canonical, ogImage, ogType, ogImageAlt, index, keywords, publishedTime, modifiedTime, profileMeta, twitterCreator]);
+  }, [title, description, canonical, ogImage, ogType, ogImageAlt, index, follow, keywords, publishedTime, modifiedTime, profileMeta, twitterCreator]);
 }

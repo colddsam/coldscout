@@ -24,27 +24,17 @@ import {
   fadeIn, fadeInUp, staggerContainer, staggerItem,
   accordionContent, hoverLift, defaultViewport,
 } from '../lib/motion';
+import { CURRENCIES, BASE_PRICING, type CurrencyDisplay } from '../lib/seo/pricing';
+import { SITE } from '../lib/seo/site';
+import {
+  serviceSchema,
+  faqSchema,
+  breadcrumbSchema,
+  webPageSchema,
+} from '../lib/seo/schemas';
+import { buildOgImage } from '../lib/seo/og';
 
-/* ═══════════════ Currency Data ═══════════════ */
-
-interface CurrencyInfo {
-  code: string;
-  symbol: string;
-  flag: string;
-  pro: number;
-  enterprise: number;
-}
-
-const CURRENCIES: CurrencyInfo[] = [
-  { code: 'USD', symbol: '$',  flag: '🇺🇸', pro: 1,    enterprise: 24   },
-  { code: 'EUR', symbol: '€',  flag: '🇪🇺', pro: 1,    enterprise: 22   },
-  { code: 'GBP', symbol: '£',  flag: '🇬🇧', pro: 1,    enterprise: 19   },
-  { code: 'INR', symbol: '₹',  flag: '🇮🇳', pro: 100,  enterprise: 2000 },
-  { code: 'CAD', symbol: 'C$', flag: '🇨🇦', pro: 2,    enterprise: 33   },
-  { code: 'AUD', symbol: 'A$', flag: '🇦🇺', pro: 2,    enterprise: 36   },
-  { code: 'JPY', symbol: '¥',  flag: '🇯🇵', pro: 175,  enterprise: 3500 },
-  { code: 'BRL', symbol: 'R$', flag: '🇧🇷', pro: 6,    enterprise: 118  },
-];
+type CurrencyInfo = CurrencyDisplay;
 
 function formatPrice(value: number, symbol: string): string {
   return `${symbol}${value.toLocaleString()}`;
@@ -440,11 +430,11 @@ function ComparisonTable() {
             </div>
             <div className="p-4 text-center border-l border-white/[0.08] bg-white/[0.03]">
               <p className="text-[10px] uppercase tracking-widest text-white font-semibold">Pro</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹100<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹{BASE_PRICING.pro.inrPerMonth}<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
             </div>
             <div className="p-4 text-center border-l border-white/[0.08]">
               <p className="text-[10px] uppercase tracking-widest text-[#8A8A8A] font-semibold">Enterprise</p>
-              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹2,000<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
+              <p className="text-lg font-bold tracking-tighter mt-0.5 text-white">₹{BASE_PRICING.enterprise.inrPerMonth}<span className="text-xs font-normal text-[#8A8A8A]">/mo</span></p>
             </div>
           </div>
 
@@ -564,147 +554,48 @@ function CtaBanner() {
 
 /* ═══════════════ Main Pricing Page ═══════════════ */
 
-const LD_FAQ_PRICING = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Is the platform truly free to self-host?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Absolutely. Download the Cold Scout OSS package from our GitHub Releases page, set up your own API keys (Google Places, Groq, Brevo — all have free tiers), and run it on your own machine. You only pay for third-party API usage on your own accounts.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What do I get with the Pro plan?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'The Pro plan gives you instant access to our pre-configured, managed API server and MCP server — no deployment, no Docker, no environment setup. You get a ready-to-use API key and start generating leads immediately.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Can I cancel my subscription anytime?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. Both Pro and Enterprise plans are billed monthly with no long-term contracts. Cancel anytime from your dashboard. Your access continues until the end of the current billing period.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What happens if I exceed the 2,000 leads/month on Pro?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'You will receive a notification when you approach your limit. Once reached, the pipeline pauses until the next billing cycle. You can upgrade to Enterprise at any time for unlimited leads.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How does the Enterprise plan differ for agencies?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Enterprise customers get a dedicated API instance, custom ICP model training tailored to their niche, white-label email templates, and priority support with a 4-hour response SLA.',
-      },
-    },
-  ],
-};
+const PRICING_URL = `${SITE.url}/pricing`;
 
-const LD_WEBPAGE_PRICING = {
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  '@id': 'https://coldscout.colddsam.com/pricing#webpage',
+const PRICING_FAQS = [
+  {
+    q: 'Is the platform truly free to self-host?',
+    a: 'Absolutely. Download the Cold Scout OSS package from our GitHub Releases page, set up your own API keys (Google Places, Groq, Brevo — all have free tiers), and run it on your own machine. You only pay for third-party API usage on your own accounts.',
+  },
+  {
+    q: 'What do I get with the Pro plan?',
+    a: 'The Pro plan gives you instant access to our pre-configured, managed API server and MCP server — no deployment, no Docker, no environment setup. You get a ready-to-use API key and start generating leads immediately.',
+  },
+  {
+    q: 'Can I cancel my subscription anytime?',
+    a: 'Yes. Both Pro and Enterprise plans are billed monthly with no long-term contracts. Cancel anytime from your dashboard. Your access continues until the end of the current billing period.',
+  },
+  {
+    q: 'What happens if I exceed the 2,000 leads/month on Pro?',
+    a: 'You will receive a notification when you approach your limit. Once reached, the pipeline pauses until the next billing cycle. You can upgrade to Enterprise at any time for unlimited leads.',
+  },
+  {
+    q: 'How does the Enterprise plan differ for agencies?',
+    a: 'Enterprise customers get a dedicated API instance, custom ICP model training tailored to their niche, white-label email templates, and priority support with a 4-hour response SLA.',
+  },
+];
+
+const LD_WEBPAGE_PRICING = webPageSchema({
+  url: PRICING_URL,
   name: 'Pricing — Cold Scout AI Lead Generation',
-  url: 'https://coldscout.colddsam.com/pricing',
-  description: 'Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at ₹100/month, and Enterprise plans for agencies at ₹2,000/month.',
-  isPartOf: { '@id': 'https://coldscout.colddsam.com/#website' },
-  breadcrumb: { '@id': 'https://coldscout.colddsam.com/pricing#breadcrumb' },
-  dateModified: '2026-04-05',
-  inLanguage: 'en-US',
-};
+  description:
+    `Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at ₹${BASE_PRICING.pro.inrPerMonth}/month, and Enterprise plans for agencies at ₹${BASE_PRICING.enterprise.inrPerMonth}/month.`,
+  dateModified: '2026-05-08',
+});
 
-const LD_SERVICE_PRICING = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  '@id': 'https://coldscout.colddsam.com/pricing#service',
-  name: 'Cold Scout AI Lead Generation',
-  description: 'AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.',
-  provider: {
-    '@type': 'Organization',
-    name: 'Cold Scout',
-    url: 'https://coldscout.colddsam.com/',
-  },
-  serviceType: 'AI Lead Generation',
-  areaServed: 'Worldwide',
-  hasOfferCatalog: {
-    '@type': 'OfferCatalog',
-    name: 'Cold Scout Plans',
-    itemListElement: [
-      {
-        '@type': 'Offer',
-        name: 'Open Source',
-        description: 'Self-hosted, full platform access with unlimited leads using your own API keys.',
-        price: '0',
-        priceCurrency: 'INR',
-        availability: 'https://schema.org/InStock',
-        url: 'https://github.com/colddsam/coldscout/releases',
-      },
-      {
-        '@type': 'Offer',
-        name: 'Pro',
-        description: 'Managed API and MCP server access with 2,000 leads per month, AI qualification, and email support.',
-        price: '100',
-        priceCurrency: 'INR',
-        priceSpecification: {
-          '@type': 'UnitPriceSpecification',
-          price: '100',
-          priceCurrency: 'INR',
-          unitCode: 'MON',
-          billingDuration: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
-        },
-        availability: 'https://schema.org/InStock',
-        url: 'https://coldscout.colddsam.com/pricing',
-      },
-      {
-        '@type': 'Offer',
-        name: 'Enterprise',
-        description: 'Dedicated infrastructure, unlimited leads, custom ICP model training, white-label templates, and priority 4-hour support SLA.',
-        price: '2000',
-        priceCurrency: 'INR',
-        priceSpecification: {
-          '@type': 'UnitPriceSpecification',
-          price: '2000',
-          priceCurrency: 'INR',
-          unitCode: 'MON',
-          billingDuration: { '@type': 'QuantitativeValue', value: 1, unitCode: 'MON' },
-        },
-        availability: 'https://schema.org/InStock',
-        url: 'https://coldscout.colddsam.com/pricing',
-      },
-    ],
-  },
-};
-
-const LD_BREADCRUMB_PRICING = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  '@id': 'https://coldscout.colddsam.com/pricing#breadcrumb',
-  itemListElement: [
-    {
-      '@type': 'ListItem',
-      position: 1,
-      name: 'Home',
-      item: 'https://coldscout.colddsam.com/',
-    },
-    {
-      '@type': 'ListItem',
-      position: 2,
-      name: 'Pricing',
-      item: 'https://coldscout.colddsam.com/pricing',
-    },
+const LD_FAQ_PRICING = faqSchema(PRICING_FAQS, PRICING_URL);
+const LD_SERVICE_PRICING = serviceSchema();
+const LD_BREADCRUMB_PRICING = breadcrumbSchema(
+  [
+    { name: 'Home', url: `${SITE.url}/` },
+    { name: 'Pricing', url: PRICING_URL },
   ],
-};
+  PRICING_URL,
+);
 
 export default function Pricing() {
   const [currency, setCurrency] = useState<CurrencyInfo>(() => {
@@ -764,11 +655,15 @@ export default function Pricing() {
 
   useSEO({
     title: 'Pricing — Cold Scout AI Lead Generation',
-    description:
-      'Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at ₹100/month, and Enterprise plans for agencies at ₹2,000/month. No hidden fees.',
-    canonical: 'https://coldscout.colddsam.com/pricing',
+    description: `Simple, transparent pricing for Cold Scout. Free open-source self-hosting, Pro managed API at ₹${BASE_PRICING.pro.inrPerMonth}/month, and Enterprise plans for agencies at ₹${BASE_PRICING.enterprise.inrPerMonth}/month. No hidden fees.`,
+    canonical: PRICING_URL,
     keywords:
       'Cold Scout pricing, AI lead generation pricing, lead generation SaaS cost, open source lead tool, managed API pricing, enterprise lead generation',
+    ogImage: buildOgImage({
+      title: 'Cold Scout Pricing',
+      subtitle: `Free self-host · Pro ₹${BASE_PRICING.pro.inrPerMonth}/mo · Enterprise ₹${BASE_PRICING.enterprise.inrPerMonth.toLocaleString()}/mo`,
+      kind: 'pricing',
+    }),
   });
 
   return (

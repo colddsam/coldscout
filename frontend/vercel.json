@@ -6,7 +6,6 @@
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/home", "destination": "/", "permanent": true },
     { "source": "/documentation", "destination": "/docs", "permanent": true },
-    { "source": "/faq", "destination": "/pricing#faq", "permanent": true },
     { "source": "/contact", "destination": "/support", "permanent": true },
     { "source": "/refund", "destination": "/refund-policy", "permanent": true },
     { "source": "/cancellation", "destination": "/refund-policy", "permanent": true },
@@ -60,7 +59,29 @@
       ]
     },
     {
+      "source": "/sitemap-index.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/content-meta.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400" },
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" },
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    },
+    {
       "source": "/llms.txt",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/llms-full.txt",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400" },
         { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
