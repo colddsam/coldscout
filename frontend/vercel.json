@@ -1,6 +1,10 @@
 {
+  "functions": {
+    "api/og.tsx": { "runtime": "edge" },
+    "api/prerender.ts": { "runtime": "nodejs22.x" }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true },
