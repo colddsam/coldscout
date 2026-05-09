@@ -37,19 +37,20 @@ async def get_resolved_booking_url(db: AsyncSession, user_id: Optional[int] = No
             user_id = int(user_id)
             
             res = await db.execute(
-                select(FreelancerProfile, UserProfile.username, User.email)
-                .join(UserProfile, FreelancerProfile.user_id == UserProfile.user_id)
-                .join(User, FreelancerProfile.user_id == User.id)
-                .where(FreelancerProfile.user_id == user_id)
+                select(User.email, UserProfile.username, FreelancerProfile)
+                .outerjoin(UserProfile, User.id == UserProfile.user_id)
+                .outerjoin(FreelancerProfile, User.id == FreelancerProfile.user_id)
+                .where(User.id == user_id)
             )
             row = res.first()
             if row:
-                fl_profile, username, email = row
+                email, username, fl_profile = row
                 
-                # A. Check Availability Toggle
-                if getattr(fl_profile, "availability", "") == "not_available" or not getattr(fl_profile, "show_availability", True):
-                    logger.info(f"Booking: User {user_id} is marked as not available.")
-                    return None
+                # A. Check Availability Toggle (if freelancer profile exists)
+                if fl_profile:
+                    if getattr(fl_profile, "availability", "") == "not_available" or not getattr(fl_profile, "show_availability", True):
+                        logger.info(f"Booking: User {user_id} is marked as not available.")
+                        return None
                 
                 # B. Native Scheduling (Primary Platform Choice)
                 if username:
