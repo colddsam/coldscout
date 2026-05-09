@@ -140,18 +140,15 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
     session_maker = get_session_maker()
 
     async with session_maker() as db:
-        # ── 1. Reload + ownership / status check ────────────────────────
+        # ── 1. Reload lead ────────────────────────
         lead_query = select(Lead).where(Lead.id == lead_id_str)
-        if user_id is not None:
-            lead_query = lead_query.where(Lead.user_id == user_id)
         lead = (await db.execute(lead_query)).scalars().first()
 
         if lead is None:
-            raise _SingleLeadAbort("Lead not found or not owned by this user")
+            raise _SingleLeadAbort(f"Lead not found with ID: {lead_id_str}")
 
         from app.models.user import User
         from app.models.profile import UserProfile
-        logger.info(f"Resolving sender branding for user_id: {user_id}")
         res = await db.execute(
             select(User.full_name, UserProfile.username)
             .outerjoin(UserProfile, User.id == UserProfile.user_id)
@@ -161,10 +158,7 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
         from_name = None
         if row:
             full_name, username = row
-            from_name = full_name or username or "Admin"
-            logger.info(f"Resolved from_name: '{from_name}' (full_name: {full_name}, username: {username})")
-        else:
-            logger.warning(f"No user found for user_id: {user_id}, falling back to settings.FROM_NAME")
+            from_name = full_name or username
         
         if lead.status != "qualified":
             raise _SingleLeadAbort(
@@ -189,7 +183,6 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
             await db.flush()
 
         resolved_booking_url = await get_resolved_booking_url(db, user_id)
-        logger.info(f"Resolved booking_url for user_id {user_id}: {resolved_booking_url}")
 
         # ── 3. Optional website content + competitor enrichment ─────────
         website_content: dict = {}
