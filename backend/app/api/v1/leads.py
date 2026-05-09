@@ -380,10 +380,10 @@ async def trigger_outreach(
     if not lead.email:
         raise HTTPException(status_code=409, detail="Lead has no email address.")
 
-    # The owning freelancer always drives the campaign attribution. For
-    # superusers acting on a freelancer's lead this preserves multi-tenant
-    # bookkeeping.
-    owner_user_id = lead.user_id or current_user.id
+    # Manual outreach is driven by the logged-in freelancer. We use current_user.id
+    # instead of lead.user_id to ensure the identity resolution (name, signature,
+    # and booking link) matches the person actually sending the mail.
+    owner_user_id = current_user.id
 
     # Atomic claim — closes the TOCTOU window between two simultaneous
     # double-clicks. ``mark_queued`` returns False if another request has
@@ -481,7 +481,7 @@ async def post_whatsapp_link(
         raise HTTPException(status_code=409, detail="Lead has no phone number on file.")
 
     sender_name = current_user.full_name or current_user.email or None
-    owner_user_id = lead.user_id or current_user.id
+    owner_user_id = current_user.id
 
     try:
         result = await build_whatsapp_outreach(
