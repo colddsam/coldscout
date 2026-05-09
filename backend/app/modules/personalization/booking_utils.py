@@ -29,30 +29,39 @@ async def get_resolved_booking_url(db: AsyncSession, user_id: Optional[int] = No
     if user_id is not None:
         try:
             res = await db.execute(
-                select(FreelancerProfile, UserProfile.username)
+                select(FreelancerProfile, UserProfile.username, User.email)
                 .join(UserProfile, FreelancerProfile.user_id == UserProfile.user_id)
+                .join(User, FreelancerProfile.user_id == User.id)
                 .where(FreelancerProfile.user_id == user_id)
             )
             row = res.first()
             if row:
-                fl_profile, username = row
+                fl_profile, username, email = row
                 
                 # A. Check Availability Toggle
                 if getattr(fl_profile, "availability", "") == "not_available" or not getattr(fl_profile, "show_availability", True):
                     logger.info(f"Booking link suppressed for {username} because availability is off.")
                     return None
                 
-                # B. External Override (Robust Check)
-                booking_url = (fl_profile.booking_url or "").strip()
-                if booking_url:
-                    logger.info(f"Using freelancer {user_id} external override: {booking_url}")
-                    return booking_url
-                
-                # C. Native Scheduling (Robust Fallback)
+                # B. Native Scheduling (Primary Platform Choice)
+                # Favor the built-in scheduling system if the user has a platform username.
                 if username:
                     native_url = f"{settings.FRONTEND_DOMAIN}/book/{username.strip().lower()}"
                     logger.info(f"Using native scheduling link for {username}: {native_url}")
                     return native_url
+
+                # C. External Override (Fallback)
+                booking_url = (fl_profile.booking_url or "").strip()
+                if booking_url:
+                    logger.info(f"Using freelancer {user_id} external override: {booking_url}")
+                    return booking_url
+
+                # D. Direct Mailto Fallback (Per User)
+                # If no meeting link is possible, direct the lead to email the freelancer.
+                if email:
+                    mailto_link = f"mailto:{email}"
+                    logger.info(f"Using direct freelancer mailto fallback for {user_id}: {mailto_link}")
+                    return mailto_link
                     
         except Exception as e:
             logger.warning(f"Error fetching booking data for user {user_id}: {e}")
