@@ -818,6 +818,7 @@ function FreelancerTab({
     behance_url: data?.behance_url || '',
     personal_website: data?.personal_website || '',
     booking_url: data?.booking_url || '',
+    booking_confirmation_mode: data?.booking_confirmation_mode || 'manual',
     include_profile_signature: data?.include_profile_signature ?? false,
   });
 
@@ -852,6 +853,18 @@ function FreelancerTab({
                   { value: 'busy', label: 'Busy' },
                   { value: 'not_available', label: 'Not Available' },
                   { value: 'open_to_offers', label: 'Open to Offers' },
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-5 mt-5">
+               <SelectField
+                label="Booking Confirmation Mode"
+                value={form.booking_confirmation_mode}
+                onChange={set('booking_confirmation_mode')}
+                placeholder="Select confirmation mode"
+                options={[
+                  { value: 'manual', label: 'Manual (Requires your approval)' },
+                  { value: 'auto', label: 'Auto (Automatically reserves slot)' },
                 ]}
               />
             </div>

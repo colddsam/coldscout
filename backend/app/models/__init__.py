@@ -50,6 +50,10 @@ from app.models.global_job_config import GlobalJobConfig
 # ── Billing models (depend on User) ───────────────────────────────────────────
 from app.models.subscription import Subscription, PaymentOrder
 
+# ── Native Scheduling models (depend on User) ─────────────────────────────────
+from app.models.booking import Booking
+from app.models.event_type import EventType
+
 # ── Notifications & push subscriptions (depend on User) ───────────────────────
 from app.models.notification import Notification
 from app.models.push_subscription import PushSubscription

@@ -27,6 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.profile import FreelancerProfile, UserProfile
+from app.modules.personalization.booking_utils import get_resolved_booking_url
 from app.models.user import User
 
 
@@ -96,7 +97,10 @@ async def get_freelancer_signature_html(
         )
         user_profile: Optional[UserProfile] = up_res.scalars().first()
 
-        return _render_signature(user, user_profile, fl_profile)
+        # Resolve the multi-tenant booking URL (native or external)
+        resolved_booking_url = await get_resolved_booking_url(db, user_id)
+        
+        return _render_signature(user, user_profile, fl_profile, resolved_booking_url)
     except Exception as exc:  # noqa: BLE001 — never break the email pipeline
         logger.warning(
             "Profile signature render failed for user_id=%s; emitting empty signature: %s",
@@ -110,6 +114,7 @@ def _render_signature(
     user: User,
     user_profile: Optional[UserProfile],
     fl_profile: FreelancerProfile,
+    booking_url: Optional[str] = None,
 ) -> str:
     """
     Render the HTML block. All inputs are escaped/validated.
@@ -155,7 +160,7 @@ def _render_signature(
         ("Twitter", getattr(fl_profile, "twitter_url", None)),
         ("Dribbble", getattr(fl_profile, "dribbble_url", None)),
         ("Behance", getattr(fl_profile, "behance_url", None)),
-        ("Book a Meeting", getattr(fl_profile, "booking_url", None)),
+        ("Book a Meeting", booking_url),
     ]
 
     link_html_parts: list[str] = []

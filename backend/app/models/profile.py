@@ -156,6 +156,16 @@ class FreelancerProfile(Base):
     booking_url = Column(String(500), nullable=True)
     """External scheduling link (Calendly, Cal.com, etc.)."""
 
+    # Native Scheduling
+    scheduling_preferences = Column(JSON, nullable=True, default=dict)
+    """JSON storing working days, hours, slot duration for native scheduling."""
+    
+    booking_confirmation_mode = Column(String(50), default="auto", nullable=False)
+    """One of: auto, manual."""
+    
+    google_calendar_credentials = Column(JSON, nullable=True)
+    """OAuth tokens for Google Calendar sync."""
+
     # Visibility
     is_public = Column(Boolean, default=True, nullable=False)
     show_rates = Column(Boolean, default=True, nullable=False)

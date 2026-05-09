@@ -170,7 +170,7 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
             db.add(campaign)
             await db.flush()
 
-        resolved_booking_url = await get_resolved_booking_url(db)
+        resolved_booking_url = await get_resolved_booking_url(db, user_id)
 
         # ── 3. Optional website content + competitor enrichment ─────────
         website_content: dict = {}

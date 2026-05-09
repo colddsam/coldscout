@@ -207,6 +207,8 @@ class FreelancerProfileUpdate(BaseModel):
     show_rates: Optional[bool] = None
     show_availability: Optional[bool] = None
     include_profile_signature: Optional[bool] = None
+    scheduling_preferences: Optional[dict] = None
+    booking_confirmation_mode: Optional[str] = None
 
     @field_validator("booking_url")
     @classmethod
@@ -249,7 +251,10 @@ class FreelancerProfileOut(BaseModel):
     is_public: bool = True
     show_rates: bool = True
     show_availability: bool = True
-    include_profile_signature: bool = False
+    include_profile_signature: bool = True
+    scheduling_preferences: Optional[dict] = None
+    booking_confirmation_mode: Optional[str] = None
+    google_calendar_credentials: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
 

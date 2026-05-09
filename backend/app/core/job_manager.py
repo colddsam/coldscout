@@ -36,7 +36,7 @@ DAILY_PIPELINE_JOBS = {
 
 # System-only jobs that never run per freelancer. UI hides per-freelancer
 # toggle rows for these.
-SYSTEM_ONLY_JOBS = {"weekly_optimization"}
+SYSTEM_ONLY_JOBS = {"weekly_optimization", "booking_reminders"}
 
 # Hard-coded fallback — only used if the DB is unreachable at boot. Keep in
 # sync with the Alembic seed list.
@@ -53,6 +53,7 @@ DEFAULT_JOBS_CONFIG: dict[str, dict] = {
     "threads_qualification": {"status": "HOLD", "type": "cron",     "hour": 11, "minute": 0},
     "threads_engagement":    {"status": "HOLD", "type": "cron",     "hour": 12, "minute": 0},
     "threads_response_check":{"status": "HOLD", "type": "interval", "minutes": 30},
+    "booking_reminders":     {"status": "RUN",  "type": "interval", "minutes": 15},
 }
 
 

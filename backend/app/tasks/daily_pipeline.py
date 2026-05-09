@@ -791,7 +791,7 @@ async def run_personalization_stage(manual: bool = False, user_id: Optional[int]
 
         async with get_session_maker()() as db:
             # Resolve the booking URL once per batch (system-wide or admin-specific)
-            resolved_booking_url = await get_resolved_booking_url(db)
+            resolved_booking_url = await get_resolved_booking_url(db, user_id)
 
             # Ensure today's campaign exists for this freelancer
             today = date.today()

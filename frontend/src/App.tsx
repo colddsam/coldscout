@@ -36,6 +36,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Threads from './pages/Threads';
 import Billing from './pages/Billing';
+import Bookings from './pages/Bookings';
 import DiscoveryTargets from './pages/DiscoveryTargets';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
@@ -143,6 +144,7 @@ export default function App() {
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/demo/:leadId" element={<LeadDemoViewer />} />
             <Route path="/book/:username" element={<BookingPage />} />
+            <Route path="/book/:username/:eventSlug" element={<BookingPage />} />
             <Route path="/download" element={<DownloadApp />} />
             <Route path="/scanner" element={<LeadScanner />} />
             <Route path="/faq" element={<Faq />} />
@@ -167,6 +169,7 @@ export default function App() {
             <Route element={<FreelancerRoute />}>
               <Route element={<Shell />}>
                 <Route path="/overview" element={<Overview />} />
+                <Route path="/bookings" element={<Bookings />} />
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/scheduler" element={<Scheduler />} />
                 <Route path="/discovery-targets" element={<DiscoveryTargets />} />

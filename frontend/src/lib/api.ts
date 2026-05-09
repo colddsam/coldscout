@@ -983,6 +983,8 @@ export interface FreelancerProfile {
   behance_url?: string | null;
   personal_website?: string | null;
   booking_url?: string | null;
+  booking_confirmation_mode?: 'auto' | 'manual';
+  scheduling_preferences?: Record<string, unknown>;
   is_public: boolean;
   show_rates: boolean;
   show_availability: boolean;
@@ -1007,6 +1009,7 @@ export interface FreelancerProfileUpdate {
   behance_url?: string;
   personal_website?: string;
   booking_url?: string;
+  booking_confirmation_mode?: 'manual' | 'auto';
   is_public?: boolean;
   show_rates?: boolean;
   show_availability?: boolean;
@@ -1851,3 +1854,109 @@ export const getDirectoryStats = () =>
   client
     .get<DirectoryStats>('/api/v1/directory/stats')
     .then((r) => r.data);
+
+// ── Native Booking ──────────────────────────────────────────────────────────
+
+export interface BookingSlotResponse {
+  slots: string[];
+}
+
+export const getBookingSlots = (username: string, startDate: string, endDate: string, duration: number = 30) =>
+  client.get<BookingSlotResponse>(`/api/v1/book/${username}/slots`, {
+    params: { start_date: startDate, end_date: endDate, duration }
+  }).then(r => r.data);
+
+export interface CreateBookingRequest {
+  guest_name: string;
+  guest_email: string;
+  guest_notes?: string;
+  start_time: string;
+  duration_minutes: number;
+  event_slug?: string;
+}
+
+export const createNativeBooking = (username: string, payload: CreateBookingRequest) =>
+  client.post(`/api/v1/book/${username}`, payload).then(r => r.data);
+
+export const getMyBookings = () =>
+  client.get('/api/v1/bookings/').then(r => r.data);
+
+export const approveBooking = (id: number) =>
+  client.post(`/api/v1/bookings/${id}/approve`).then(r => r.data);
+
+export const rejectBooking = (id: number) =>
+  client.post(`/api/v1/bookings/${id}/reject`).then(r => r.data);
+
+export const cancelBooking = (id: number) =>
+  client.post(`/api/v1/bookings/${id}/cancel`).then(r => r.data);
+
+export interface CustomBookingRequest {
+  guest_name: string;
+  guest_email: string;
+  guest_notes?: string;
+  proposed_times: string;
+}
+
+export const requestCustomTime = (username: string, payload: CustomBookingRequest) =>
+  client.post(`/api/v1/book/${username}/custom-request`, payload).then(r => r.data);
+
+export interface ManualBlockRequest {
+  title: string;
+  start_time: string;
+  end_time: string;
+}
+
+export const createManualBlock = (payload: ManualBlockRequest) =>
+  client.post(`/api/v1/bookings/manual-block`, payload).then(r => r.data);
+
+// ── Event Types ──────────────────────────────────────────────────────────────
+
+export interface EventTypeItem {
+  id: number;
+  title: string;
+  slug: string;
+  duration_minutes: number;
+  description: string | null;
+  color: string | null;
+  is_active: boolean;
+  created_at?: string | null;
+}
+
+export interface EventTypesResponse {
+  event_types: EventTypeItem[];
+  has_custom?: boolean;
+}
+
+export interface EventTypeCreateRequest {
+  title: string;
+  slug: string;
+  duration_minutes: number;
+  description?: string;
+  color?: string;
+}
+
+export interface EventTypeUpdateRequest {
+  title?: string;
+  slug?: string;
+  duration_minutes?: number;
+  description?: string;
+  color?: string;
+  is_active?: boolean;
+}
+
+/** Public: list a freelancer's active event types (no auth). */
+export const getPublicEventTypes = (username: string) =>
+  client.get<EventTypesResponse>(`/api/v1/book/${username}/events`).then(r => r.data);
+
+/** Private: list the current freelancer's event types (authed). */
+export const getMyEventTypes = () =>
+  client.get<EventTypesResponse>('/api/v1/bookings/event-types').then(r => r.data);
+
+export const createEventType = (payload: EventTypeCreateRequest) =>
+  client.post('/api/v1/bookings/event-types', payload).then(r => r.data);
+
+export const updateEventType = (id: number, payload: EventTypeUpdateRequest) =>
+  client.put(`/api/v1/bookings/event-types/${id}`, payload).then(r => r.data);
+
+export const deleteEventType = (id: number) =>
+  client.delete(`/api/v1/bookings/event-types/${id}`).then(r => r.data);

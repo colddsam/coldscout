@@ -39,8 +39,8 @@ def get_engine():
         }
 
         if not settings.DATABASE_URL.startswith("sqlite"):
-            engine_args["pool_size"] = 10
-            engine_args["max_overflow"] = 20
+            engine_args["pool_size"] = 5
+            engine_args["max_overflow"] = 5
             # Required for Supabase PgBouncer (Transaction Pooler)
             engine_args["connect_args"] = {"prepared_statement_cache_size": 0}
 

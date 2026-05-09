@@ -197,6 +197,16 @@ class Settings(BaseSettings):
     The API key for Google Places.
     """
 
+    GOOGLE_CLIENT_ID: str = ""
+    """
+    The Google Client ID for OAuth (Calendar integration).
+    """
+
+    GOOGLE_CLIENT_SECRET: str = ""
+    """
+    The Google Client Secret for OAuth.
+    """
+
     GROQ_API_KEY: str
     """
     The API key for Groq.

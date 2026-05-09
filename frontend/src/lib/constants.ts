@@ -57,6 +57,7 @@ export const LEAD_STATUSES: LeadStatus[] = ['discovered', 'qualified', 'contacte
 export const NAV_ITEMS = [
   { path: '/overview', label: 'Overview', icon: 'LayoutDashboard', roles: ['freelancer'] },
   { path: '/pipeline', label: 'Pipeline', icon: 'GitBranch', roles: ['freelancer'] },
+  { path: '/bookings', label: 'Bookings', icon: 'Calendar', roles: ['freelancer'] },
   { path: '/scheduler', label: 'Scheduler', icon: 'Clock', roles: ['freelancer'] },
   { path: '/discovery-targets', label: 'Discovery', icon: 'Target', roles: ['freelancer'] },
   { path: '/leads', label: 'Leads CRM', icon: 'Users', roles: ['freelancer'] },

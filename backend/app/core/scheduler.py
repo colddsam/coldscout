@@ -119,6 +119,7 @@ async def setup_scheduler():
     )
     from app.tasks.billing_tasks import check_subscription_expiry
     from app.tasks.app_update_check import check_app_update
+    from app.tasks.reminders import send_booking_reminders
 
     # Prime the DB cache before touching APScheduler.
     config = await job_manager.refresh_global_cache()
@@ -169,6 +170,7 @@ async def setup_scheduler():
         "threads_qualification": _dispatch_threads_qualification,
         "threads_engagement": _dispatch_threads_engagement,
         "threads_response_check": _dispatch_threads_response_check,
+        "booking_reminders": send_booking_reminders,
     }
 
     for j_id, func in job_map.items():

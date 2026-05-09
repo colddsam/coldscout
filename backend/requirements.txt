@@ -80,3 +80,8 @@ razorpay==1.4.2
 # ``pkg_resources`` available so the app boots on a fresh 3.12/3.13
 # environment without ``ModuleNotFoundError: No module named 'pkg_resources'``.
 setuptools<81
+
+# Google API
+google-api-python-client==2.115.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0
