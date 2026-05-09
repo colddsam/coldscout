@@ -1,0 +1,93 @@
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '30 1 * * 5'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java-kotlin', 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # ── PYTHON SETUP ──
+    - name: Set up Python
+      if: matrix.language == 'python'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python dependencies
+      if: matrix.language == 'python'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+
+    # ── JAVA/KOTLIN SETUP ──
+    - name: Set up Node.js
+      if: matrix.language == 'java-kotlin'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install Frontend Dependencies
+      if: matrix.language == 'java-kotlin'
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build Web App
+      if: matrix.language == 'java-kotlin'
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Sync Capacitor
+      if: matrix.language == 'java-kotlin'
+      working-directory: ./frontend
+      run: npx cap sync android
+
+    - name: Set up Java
+      if: matrix.language == 'java-kotlin'
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+        cache: 'gradle'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        # Setting build-mode to 'manual' for Java to avoid extraction failures
+        build-mode: ${{ matrix.language == 'java-kotlin' && 'manual' || 'none' }}
+
+    - name: Build Java (Manual)
+      if: matrix.language == 'java-kotlin'
+      working-directory: ./frontend/android
+      run: |
+        chmod +x gradlew
+        # We only need to compile, not sign or assemble a full release.
+        # This ensures CodeQL sees all classfiles and dependencies.
+        ./gradlew compileDebugJavaWithJavac compileDebugKotlin
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
