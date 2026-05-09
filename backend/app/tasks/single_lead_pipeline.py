@@ -148,6 +148,20 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
 
         if lead is None:
             raise _SingleLeadAbort("Lead not found or not owned by this user")
+
+        from app.models.user import User
+        from app.models.profile import UserProfile
+        res = await db.execute(
+            select(User.full_name, UserProfile.username)
+            .outerjoin(UserProfile, User.id == UserProfile.user_id)
+            .where(User.id == user_id)
+        )
+        row = res.first()
+        from_name = None
+        if row:
+            full_name, username = row
+            from_name = full_name or username or "Admin"
+        
         if lead.status != "qualified":
             raise _SingleLeadAbort(
                 f"Lead status is '{lead.status}'; only 'qualified' leads can be sent."
@@ -291,6 +305,7 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
                 subject      = outreach.subject,
                 html_content = outreach.body_html,
                 attachment_paths = attachments,
+                from_name    = from_name,
             )
             outreach.status = "sent"
             outreach.sent_at = datetime.now(timezone.utc)

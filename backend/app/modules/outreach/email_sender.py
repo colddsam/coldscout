@@ -94,6 +94,7 @@ async def send_email(
     subject: str,
     html_content: str,
     attachment_paths: list[str] = None,
+    from_name: str = None,
 ) -> bool:
     """
     Transmits an HTML email via the configured SMTP relay (Brevo).
@@ -108,6 +109,8 @@ async def send_email(
         attachment_paths: Optional list of absolute file paths to attach.
                           Each path is validated against the allowed directory
                           before being opened (see ``_safe_attachment_path``).
+        from_name:        Optional display name for the 'From' header. 
+                          Defaults to settings.FROM_NAME.
 
     Returns:
         bool: True on successful delivery.
@@ -116,7 +119,8 @@ async def send_email(
         Exception: Re-raised on final SMTP failure so Tenacity can record it.
     """
     message = EmailMessage()
-    message["From"] = formataddr((settings.FROM_NAME, settings.FROM_EMAIL))
+    sender_name = from_name or settings.FROM_NAME
+    message["From"] = formataddr((sender_name, settings.FROM_EMAIL))
     message["To"] = to_email
     message["Subject"] = subject
     if settings.REPLY_TO_EMAIL:

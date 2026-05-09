@@ -136,11 +136,27 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                 
                 subject = ai_data.get('subject', f"Following up: {lead.business_name}")
                 
+                # Resolve freelancer name and identity for branding
+                from app.models.user import User
+                from app.models.profile import UserProfile
+                user_stmt = (
+                    select(User.full_name, UserProfile.username)
+                    .outerjoin(UserProfile, User.id == UserProfile.user_id)
+                    .where(User.id == lead.user_id)
+                )
+                user_res = await db.execute(user_stmt)
+                user_data = user_res.first()
+                from_name = None
+                if user_data:
+                    full_name, username = user_data
+                    from_name = full_name or username or "Admin"
+
                 success = await send_email(
                     to_email=lead.email,
                     subject=subject,
                     html_content=html_body,
-                    attachment_paths=[]
+                    attachment_paths=[],
+                    from_name=from_name,
                 )
                 
                 # Retry up to 2 more times on transient failures
@@ -155,7 +171,8 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                             to_email=lead.email,
                             subject=subject,
                             html_content=html_body,
-                            attachment_paths=[]
+                            attachment_paths=[],
+                            from_name=from_name,
                         )
 
                 if success:

@@ -256,11 +256,13 @@ async def create_booking(
         guest_email_body += f"Meeting Link: {meeting_link}\n"
     
     try:
+        from_name = user.full_name or profile.username or "Admin"
         # Email to Lead
         await send_email(
             to_email=req.guest_email,
             subject=f"Booking Confirmation: {username}",
-            html_content=f"<p>{guest_email_body.replace(chr(10), '<br>')}</p>"
+            html_content=f"<p>{guest_email_body.replace(chr(10), '<br>')}</p>",
+            from_name=from_name,
         )
         
         # Email to Freelancer
@@ -351,12 +353,14 @@ async def request_custom_time(
 
     # Email notifications for custom request
     try:
+        from_name = user.full_name or profile.username or "Admin"
         # To Lead
         lead_body = f"Hi {req.guest_name},\n\nThank you for requesting a custom time with {username}. We have notified them of your availability ({req.proposed_times}) and they will get back to you soon."
         await send_email(
             to_email=req.guest_email,
             subject=f"Meeting Request Sent: {username}",
-            html_content=f"<p>{lead_body.replace(chr(10), '<br>')}</p>"
+            html_content=f"<p>{lead_body.replace(chr(10), '<br>')}</p>",
+            from_name=from_name,
         )
         
         # To Freelancer

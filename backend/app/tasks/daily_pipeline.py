@@ -1010,7 +1010,20 @@ async def run_outreach_stage(manual: bool = False, user_id: Optional[int] = None
                 logger.debug(f"No queued emails found for outreach dispatch (user_id={user_id}).")
                 return
 
-            logger.info(f"Processing batch of {len(queued_emails)} emails for outreach.")
+            # Resolve freelancer name and identity for branding
+            from app.models.user import User
+            from app.models.profile import UserProfile
+            user_stmt = (
+                select(User.full_name, UserProfile.username)
+                .outerjoin(UserProfile, User.id == UserProfile.user_id)
+                .where(User.id == user_id)
+            )
+            user_res = await db.execute(user_stmt)
+            user_data = user_res.first()
+            from_name = None
+            if user_data:
+                full_name, username = user_data
+                from_name = full_name or username or "Admin"
 
             for email_task in queued_emails:
                 attachments = email_task.attachment_names if email_task.has_attachment else []
@@ -1021,6 +1034,7 @@ async def run_outreach_stage(manual: bool = False, user_id: Optional[int] = None
                         subject      = email_task.subject,
                         html_content = email_task.body_html,
                         attachment_paths = attachments,
+                        from_name    = from_name,
                     )
 
                     email_task.status  = "sent"
