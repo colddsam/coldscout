@@ -27,7 +27,9 @@ async def get_resolved_booking_url(db: AsyncSession, user_id: Optional[int] = No
 
     # 1 & 2. Try to find the specific freelancer's booking setup
     if user_id is not None:
+        logger.info(f"Booking: Resolving for user_id: {user_id} (type: {type(user_id)})")
         try:
+
             # Ensure user_id is an integer for SQL comparison. Incoming values
             # from the job queue or API might be strings (e.g. '10'), which
             # causes the join/where clause to fail silently and fallback to
@@ -46,62 +48,37 @@ async def get_resolved_booking_url(db: AsyncSession, user_id: Optional[int] = No
                 
                 # A. Check Availability Toggle
                 if getattr(fl_profile, "availability", "") == "not_available" or not getattr(fl_profile, "show_availability", True):
+                    logger.info(f"Booking: User {user_id} is marked as not available.")
                     return None
                 
                 # B. Native Scheduling (Primary Platform Choice)
                 if username:
-                    return f"{settings.FRONTEND_DOMAIN}/book/{username.strip().lower()}"
+                    native_url = f"{settings.FRONTEND_DOMAIN}/book/{username.strip().lower()}"
+                    logger.info(f"Booking: Found username '{username}' for user {user_id}. Returning native URL: {native_url}")
+                    return native_url
 
                 # C. External Override (Fallback)
                 booking_url = (fl_profile.booking_url or "").strip()
                 if booking_url:
+                    logger.info(f"Booking: No username found for user {user_id}. Returning external override: {booking_url}")
                     return booking_url
 
                 # D. Direct Mailto Fallback (Per User)
                 # If no meeting link is possible, direct the lead to email the freelancer.
                 if email:
+                    logger.info(f"Booking: No links found for user {user_id}. Returning mailto:{email}")
                     return f"mailto:{email}"
+
                     
         except Exception as e:
             logger.warning(f"Error fetching booking data for user {user_id}: {e}")
 
-    # 3. Try to find the freelancer profile for the system admin (Case-Insensitive)
-    if settings.ADMIN_EMAIL:
-        try:
-            admin_res = await db.execute(
-                select(FreelancerProfile)
-                .join(User, FreelancerProfile.user_id == User.id)
-                .where(func.lower(User.email) == settings.ADMIN_EMAIL.lower())
-            )
-            admin_profile = admin_res.scalars().first()
-            
-            admin_url = (admin_profile.booking_url or "").strip() if admin_profile else None
-            if admin_url:
-                return admin_url
-                
-        except Exception as e:
-            logger.warning(f"Error fetching admin profile: {e}")
-
-    # 4. Try the first available freelancer profile if admin override is missing
-    try:
-        first_res = await db.execute(
-            select(FreelancerProfile)
-            .where(FreelancerProfile.booking_url.isnot(None), FreelancerProfile.booking_url != "")
-            .limit(1)
-        )
-        first_profile = first_res.scalars().first()
-        
-        fallback_url = (first_profile.booking_url or "").strip() if first_profile else None
-        if fallback_url:
-            return fallback_url
-            
-    except Exception as e:
-        logger.warning(f"Error fetching fallback profile: {e}")
-
-    # 5. Use system default from .env
+    # 3. Try the system-wide default from .env if the specific user lookup failed
     sys_default = (settings.BOOKING_LINK or "").strip()
     if sys_default:
+        logger.info(f"Booking: Falling back to system default: {sys_default}")
         return sys_default
 
-    # 6. Fallback to mailto: (None)
+    # 4. Final fallback to mailto: (None)
+    logger.info("Booking: No resolution possible. Triggering template mailto: fallback.")
     return None
