@@ -32,6 +32,7 @@ from sqlalchemy import select
 from app.core.database import get_session_maker
 from app.models.user import User
 from app.modules.notifications import events as notif_events
+from app.core.network_security import safe_fetch
 
 
 GITHUB_REPO = "colddsam/coldscout"
@@ -67,9 +68,15 @@ async def _fetch_latest_release() -> Optional[dict]:
         headers["Authorization"] = f"Bearer {token}"
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S) as client:
-            resp = await client.get(RELEASES_URL, headers=headers)
-        if resp.status_code != 200:
-            logger.debug(f"app_update_check: GitHub returned {resp.status_code}")
+            resp, _ = await safe_fetch(
+                client,
+                RELEASES_URL,
+                method="GET",
+                headers=headers,
+                timeout=HTTP_TIMEOUT_S,
+            )
+        if not resp or resp.status_code != 200:
+            logger.debug(f"app_update_check: GitHub returned {resp.status_code if resp else 'No response'}")
             return None
         for release in resp.json():
             if release.get("draft") or release.get("prerelease"):

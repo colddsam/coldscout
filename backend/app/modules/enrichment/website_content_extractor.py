@@ -25,6 +25,8 @@ from bs4 import BeautifulSoup
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
+from app.core.network_security import safe_fetch
+
 logger = logging.getLogger(__name__)
 
 
@@ -179,12 +181,21 @@ async def extract_website_content(url: str) -> dict:
         try:
             async with httpx.AsyncClient(
                 verify=False,
-                follow_redirects=True,          # ← the fix
                 headers={"User-Agent": _USER_AGENT},
             ) as client:
-                res = await client.get(url, timeout=10.0)
-                res.raise_for_status()
-                html_content = res.text
+                response, _ = await safe_fetch(
+                    client,
+                    url,
+                    method="GET",
+                    headers={"User-Agent": _USER_AGENT},
+                    timeout=10.0,
+                    max_redirects=5,
+                )
+                if not response or response.status_code != 200:
+                    logger.error(f"Fallback httpx failed for {url}: No response or non-200 status")
+                    return result
+
+                html_content = response.text
 
                 # Best-effort mobile check via httpx (no JS execution available)
                 if "viewport" not in html_content.lower():

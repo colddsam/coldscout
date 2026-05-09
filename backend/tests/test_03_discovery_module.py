@@ -1,11 +1,12 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from app.modules.discovery.google_places import GooglePlacesClient
 from app.modules.discovery.scraper import scrape_contact_email
 
 @pytest.mark.asyncio
 async def test_search_places_mock():
-    with patch("app.modules.discovery.google_places.httpx.AsyncClient.post") as mock_post:
+    # Patch request since GooglePlacesClient might be updated to use it or safe_fetch
+    with patch("httpx.AsyncClient.post") as mock_post:
         # Mocking the response
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -24,17 +25,16 @@ async def test_search_places_mock():
         assert results[0]["displayName"]["text"] == "Mock Business 1"
         assert results[1]["id"] == "456"
 
-from app.modules.discovery.scraper import scrape_contact_email
-
 @pytest.mark.asyncio
 async def test_scraper_mock():
-    # Example test mocking playwright or requests depending on the scraper implementation
-    # We will mock the external call to avoid hitting real websites
-    with patch("app.modules.discovery.scraper.httpx.AsyncClient.get") as mock_get:
+    # Use patch directly on safe_fetch to isolate the extraction logic from network complexities
+    with patch("app.modules.discovery.scraper.safe_fetch") as mock_safe_fetch:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = "<html><body>Contact us at contact@test.com and ignore example@sentry.io</body></html>"
-        mock_get.return_value = mock_response
+        
+        # safe_fetch returns (response, redirect_chain)
+        mock_safe_fetch.return_value = (mock_response, ["https://example.com"])
 
         result = await scrape_contact_email("https://example.com")
         
