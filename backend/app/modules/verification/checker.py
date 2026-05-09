@@ -16,6 +16,7 @@ from typing import Tuple, Optional
 from loguru import logger
 
 import httpx
+from app.core.network_security import safe_fetch
 
 # ── Result type ───────────────────────────────────────────────────────────────
 
@@ -75,22 +76,37 @@ async def verify_url(url: str, field_name: str = "website") -> VerifyResult:
         return ("failed", "format_valid", f"URL does not match expected {platform} profile format")
 
     # HTTP reachability check (HEAD with GET fallback)
-    # SSRF/Security hardening: Enforce SSL verification for known platforms
+    # SSRF/Security hardening: Uses safe_fetch to validate all hops.
     is_social = field_name in _SOCIAL_PATTERNS
     verify_ssl = True if is_social else False
 
     try:
         async with httpx.AsyncClient(
             timeout=10,
-            follow_redirects=True,
             verify=verify_ssl,
             headers={"User-Agent": "ColdScout-Verifier/1.0"},
         ) as client:
-            try:
-                resp = await client.head(url)
-            except httpx.HTTPError:
+            # Try HEAD first via safe_fetch
+            resp, _ = await safe_fetch(
+                client,
+                url,
+                method="HEAD",
+                timeout=10.0,
+                max_redirects=5,
+            )
+            
+            if not resp:
                 # Some servers block HEAD; try GET
-                resp = await client.get(url)
+                resp, _ = await safe_fetch(
+                    client,
+                    url,
+                    method="GET",
+                    timeout=10.0,
+                    max_redirects=5,
+                )
+
+            if not resp:
+                return ("failed", "http_reachable", "Connection failed or blocked by safety policy")
 
             if resp.status_code < 400:
                 return ("verified", "http_reachable", None)

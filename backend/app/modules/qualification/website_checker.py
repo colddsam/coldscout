@@ -20,6 +20,8 @@ import dns.resolver
 from typing import Tuple
 from loguru import logger
 
+from app.core.network_security import safe_fetch
+
 # List of free website builder domains that may not require a real site
 FREE_BUILDER_DOMAINS = (
     "wixsite.com", "wix.com", "weebly.com", "blogspot.com",
@@ -103,13 +105,16 @@ async def website_responds(url: str) -> bool:
 
     try:
         # Create an HTTP client with default headers and no SSL verification
+        # SSRF protection is provided by safe_fetch.
         async with httpx.AsyncClient(
             verify=False, headers=_DEFAULT_HEADERS
         ) as client:
             # Send an HTTP GET request to the URL with a timeout of 8 seconds
-            response = await client.get(url, timeout=8.0, follow_redirects=True)
+            response, _ = await safe_fetch(
+                client, url, method="GET", timeout=8.0, max_redirects=5
+            )
             # Return True if the HTTP status code is < 400
-            return response.status_code < 400
+            return bool(response and response.status_code < 400)
     except Exception as e:
         # Log any unexpected HTTP check errors
         logger.debug(f"HTTP check failed for {url}: {repr(e)}")
@@ -159,13 +164,16 @@ async def get_website_quality(url: str) -> dict:
 
     try:
         # Create an HTTP client with default headers and no SSL verification
+        # SSRF protection is provided by safe_fetch.
         async with httpx.AsyncClient(
             verify=False, headers=_DEFAULT_HEADERS
         ) as client:
             # Send an HTTP GET request to the URL with a timeout of 8 seconds
-            response = await client.get(url, timeout=8.0, follow_redirects=True)
+            response, _ = await safe_fetch(
+                client, url, method="GET", timeout=8.0, max_redirects=5
+            )
             # Check if the HTTP status code is < 400
-            if response.status_code < 400:
+            if response and response.status_code < 400:
                 # Mark the site as having responded
                 result["responded"] = True
                 # Parse the HTML response

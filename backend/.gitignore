@@ -34,6 +34,7 @@ pytest_err*.txt
 pytest_final.txt
 
 # Scratch/Debug files
+check_users*.py
 *debug_output*.txt
 git_diff*.txt
 git_status*.txt

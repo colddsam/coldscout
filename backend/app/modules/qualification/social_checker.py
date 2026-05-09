@@ -7,6 +7,7 @@ import httpx
 from bs4 import BeautifulSoup
 from typing import Tuple, List, Dict
 from loguru import logger
+from app.core.network_security import safe_fetch
 
 # Compiled regex patterns — require a trailing slash after the platform domain
 # to prevent false positives (e.g. 'x.com' inside 'example.com' or 'expedia.com')
@@ -46,11 +47,14 @@ async def check_social_media(url: str) -> Tuple[bool, List[Dict[str, str]]]:
         # verify=False is intentional: we are scanning arbitrary third-party business
         # websites which frequently have misconfigured or expired SSL certificates.
         # Strict verification would lead to high false-negative rates for lead discovery.
+        # SSRF protection is provided by safe_fetch.
         async with httpx.AsyncClient(verify=False) as client:
-            response = await client.get(
+            response, _ = await safe_fetch(
+                client,
                 url,
+                method="GET",
                 timeout=10.0,
-                follow_redirects=True,
+                max_redirects=5,
                 headers={
                     "User-Agent": (
                         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -59,9 +63,9 @@ async def check_social_media(url: str) -> Tuple[bool, List[Dict[str, str]]]:
                     )
                 },
             )
-            if response.status_code != 200:
+            if not response or response.status_code != 200:
                 logger.debug(
-                    f"Social check skipped for {url}: HTTP {response.status_code}"
+                    f"Social check skipped for {url}: Response failed or status != 200"
                 )
                 return False, []
 

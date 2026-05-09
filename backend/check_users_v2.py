@@ -1,9 +1,9 @@
-
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
+from app.config import get_settings
 
-DATABASE_URL = "postgresql+asyncpg://postgres.bbmvzahgkrmkciiejunt:SamratSaheli@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
+DATABASE_URL = get_settings().DATABASE_URL
 
 async def check_users():
     # Use a minimal pool size to avoid connection limits

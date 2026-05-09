@@ -37,6 +37,8 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from app.core.network_security import safe_fetch
+
 
 # ── Data shapes ────────────────────────────────────────────────────────────
 
@@ -144,30 +146,35 @@ async def _fetch(
     url: str,
     timeout: float = 8.0,
 ) -> tuple[Optional[httpx.Response], list[str]]:
-    """GET ``url``, return the response and its redirect chain. None on fail."""
-    chain: list[str] = []
-    try:
-        resp = await client.get(url, timeout=timeout, follow_redirects=True)
-        # Build chain (httpx's history is a list of pre-redirect responses).
-        for r in resp.history:
-            chain.append(str(r.url))
-        chain.append(str(resp.url))
-        return resp, chain
-    except Exception as e:
-        logger.debug(f"_fetch: {url} failed — {e!r}")
-        return None, chain
+    """GET ``url``, return the response and its redirect chain. None on fail.
+    
+    SSRF mitigation: uses safe_fetch to validate all hops.
+    """
+    return await safe_fetch(
+        client,
+        url,
+        method="GET",
+        headers=_DEFAULT_HEADERS,
+        timeout=timeout,
+        max_redirects=5,
+    )
 
 
 async def _head_ok(client: httpx.AsyncClient, url: str) -> bool:
     """Return True if a HEAD/GET to url returns < 400 in <4s."""
     try:
-        resp = await client.head(url, timeout=4.0, follow_redirects=True)
-        if resp.status_code < 400:
+        resp, _ = await safe_fetch(
+            client, url, method="HEAD", timeout=4.0, max_redirects=3
+        )
+        if resp and resp.status_code < 400:
             return True
+
         # Some hosts disallow HEAD — fall back to a tiny GET.
-        if resp.status_code in (403, 405, 501):
-            resp = await client.get(url, timeout=4.0, follow_redirects=True)
-            return resp.status_code < 400
+        if resp and resp.status_code in (403, 405, 501):
+            resp_get, _ = await safe_fetch(
+                client, url, method="GET", timeout=4.0, max_redirects=3
+            )
+            return bool(resp_get and resp_get.status_code < 400)
         return False
     except Exception:
         return False

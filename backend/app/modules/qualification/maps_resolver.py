@@ -33,6 +33,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
+from app.core.network_security import safe_fetch
 
 
 # ── Data shapes ────────────────────────────────────────────────────────────
@@ -299,42 +300,6 @@ _ALLOWED_GOOGLE_DOMAINS = {
 }
 
 
-def _is_safe_google_url(url: str) -> bool:
-    """SSRF mitigation: only allow redirects to known-safe Google Maps domains."""
-    try:
-        parsed = urlparse(url)
-        if parsed.scheme not in ("http", "https"):
-            return False
-
-        # Hostname check
-        host = (parsed.hostname or "").lower()
-        if not host:
-            return False
-
-        # Check against whitelist — allow subdomains of google.com
-        is_whitelisted = any(
-            host == domain or host.endswith(f".{domain}")
-            for domain in _ALLOWED_GOOGLE_DOMAINS
-        )
-        if not is_whitelisted:
-            return False
-
-        # Prevent localhost/private IPs even if somehow dns-spoofed
-        import ipaddress
-
-        try:
-            ip = ipaddress.ip_address(host)
-            if ip.is_private or ip.is_loopback:
-                return False
-        except ValueError:
-            # It's a hostname, not an IP address string — this is fine
-            pass
-
-        return True
-    except Exception:
-        return False
-
-
 async def _unfurl(client: httpx.AsyncClient, url: str) -> str:
     """Follow up to 5 redirects manually and return the final URL.
 
@@ -342,66 +307,42 @@ async def _unfurl(client: httpx.AsyncClient, url: str) -> str:
     Maps share links (``maps.app.goo.gl``, ``goo.gl/maps``) only resolve
     once you actually GET them.
     """
-    if not _is_safe_google_url(url):
-        logger.warning(f"SSRF: Blocked unsafe initial URL: {url}")
-        return url
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
     }
 
-    current_url = url
-    max_redirects = 5
+    # Use centralized safe_fetch with Google domain whitelist
+    resp, _ = await safe_fetch(
+        client,
+        url,
+        method="HEAD",
+        headers=headers,
+        allowed_domains=_ALLOWED_GOOGLE_DOMAINS,
+        max_redirects=5,
+    )
 
-    try:
-        for _ in range(max_redirects):
-            # We use a custom manual loop because httpx's follow_redirects=True
-            # doesn't allow per-hop validation against our whitelist.
-            resp = await client.head(
-                current_url,
-                headers=headers,
-                timeout=8.0,
-                follow_redirects=False,
-            )
-
-            if resp.status_code in (301, 302, 303, 307, 308):
-                next_url = resp.headers.get("Location")
-                if not next_url:
-                    break
-
-                # Resolve relative URLs
-                if not next_url.startswith("http"):
-                    from urllib.parse import urljoin
-                    next_url = urljoin(current_url, next_url)
-
-                if not _is_safe_google_url(next_url):
-                    logger.warning(f"SSRF: Blocked unsafe redirect to {next_url}")
-                    break
-
-                current_url = next_url
-                continue
-
-            # If not a redirect, check if we need to fall back to GET for Maps consent pages
-            if resp.status_code == 200:
-                if "/maps/" in str(resp.url):
-                    return str(resp.url)
-                # If it's a 200 but not a maps path, try a GET just in case (Maps behavior)
-                resp = await client.get(
-                    current_url,
-                    headers=headers,
-                    timeout=10.0,
-                    follow_redirects=False,
-                )
-                return str(resp.url)
-
-            break
-
-        return current_url
-    except Exception as e:
-        logger.debug(f"_unfurl: {url} failed — {e!r}")
+    if not resp:
+        # If HEAD failed (whitelist block or network error), return the original URL
+        # which will likely fail extraction later anyway.
         return url
+
+    # If it's a 200 but not a maps path, try a GET just in case (Maps behavior)
+    # Some shortlinks resolve to a 200 "consent" or "loading" page before hitting /maps/
+    if resp.status_code == 200 and "/maps/" not in str(resp.url):
+        resp_get, _ = await safe_fetch(
+            client,
+            str(resp.url),
+            method="GET",
+            headers=headers,
+            allowed_domains=_ALLOWED_GOOGLE_DOMAINS,
+            max_redirects=0,  # Already resolved redirects
+        )
+        if resp_get:
+            return str(resp_get.url)
+
+    return str(resp.url)
 
 
 def _normalize_maps_url(raw: str) -> Optional[str]:
