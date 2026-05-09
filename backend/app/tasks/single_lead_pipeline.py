@@ -158,7 +158,7 @@ async def _personalize_and_dispatch_one(lead_id_str: str, user_id: Optional[int]
         from_name = None
         if row:
             full_name, username = row
-            from_name = full_name or username
+            from_name = full_name or username or settings.FROM_NAME
         
         if lead.status != "qualified":
             raise _SingleLeadAbort(

@@ -15,8 +15,9 @@ from app.models.booking import Booking
 from app.models.profile import FreelancerProfile
 from app.modules.scheduling.google_calendar import create_google_meet_event
 from app.modules.outreach.email_sender import send_email
-from pydantic import BaseModel
-from datetime import datetime, timezone
+from pydantic import BaseModel, EmailStr
+from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 router = APIRouter(prefix="/bookings", tags=["booking-management"])
 
@@ -24,6 +25,14 @@ class ManualBlockRequest(BaseModel):
     title: str
     start_time: datetime
     end_time: datetime
+
+class InstantMeetingRequest(BaseModel):
+    guest_name: str
+    guest_email: EmailStr
+    title: str
+    description: Optional[str] = None
+    duration_minutes: int = 30
+    start_time: Optional[datetime] = None
 
 @router.post("/manual-block")
 async def create_manual_block(
@@ -45,6 +54,104 @@ async def create_manual_block(
     db.add(booking)
     await db.commit()
     return {"status": "success", "booking_id": booking.id}
+
+@router.post("/instant")
+async def create_instant_meeting(
+    req: InstantMeetingRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Freelancer generates an instant meeting for a guest."""
+    start_time = req.start_time or datetime.now(timezone.utc)
+    end_time = start_time + timedelta(minutes=req.duration_minutes)
+
+    # Find freelancer profile
+    fl_result = await db.execute(
+        select(FreelancerProfile).where(FreelancerProfile.user_id == current_user.id)
+    )
+    freelancer = fl_result.scalars().first()
+    if not freelancer:
+        raise HTTPException(status_code=404, detail="Freelancer profile not found")
+
+    meeting_link = None
+    google_event_id = None
+
+    # Create Google Meet link if connected
+    if freelancer.google_calendar_credentials:
+        try:
+            event = await create_google_meet_event(
+                creds_data=freelancer.google_calendar_credentials,
+                summary=req.title,
+                description=req.description or "Instant meeting generated via Cold Scout.",
+                start_time=start_time,
+                end_time=end_time,
+                attendee_email=req.guest_email
+            )
+            meeting_link = event.get('meet_link')
+            google_event_id = event.get('event_id')
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to create Google Meet event for instant meeting: {e}")
+
+    booking = Booking(
+        freelancer_id=current_user.id,
+        guest_name=req.guest_name,
+        guest_email=req.guest_email,
+        guest_notes=req.description,
+        start_time=start_time,
+        end_time=end_time,
+        status="approved",
+        booking_type="instant",
+        meeting_link=meeting_link,
+        google_event_id=google_event_id
+    )
+    db.add(booking)
+    await db.commit()
+    await db.refresh(booking)
+
+    # Send Notifications
+    from_name = current_user.full_name
+    if not from_name and getattr(current_user, 'profile', None):
+        from_name = current_user.profile.username
+    if not from_name:
+        from_name = current_user.email or "Cold Scout"
+    
+    # Guest Notification
+    guest_body = f"Hi {req.guest_name},\n\n{from_name} has generated an instant meeting with you.\n\nTitle: {req.title}\nTime: {start_time.strftime('%b %d, %H:%M UTC')}\n"
+    if meeting_link:
+        guest_body += f"Meeting Link: {meeting_link}\n"
+    if req.description:
+        guest_body += f"\nDescription: {req.description}\n"
+        
+    try:
+        await send_email(
+            to_email=req.guest_email,
+            subject=f"Meeting Invite: {req.title}",
+            html_content=f"<p>{guest_body.replace(chr(10), '<br>')}</p>",
+            from_name=from_name
+        )
+        
+        # Freelancer Notification
+        fl_body = f"Hi {current_user.full_name or 'there'},\n\nYou have generated an instant meeting with {req.guest_name}.\n\nTitle: {req.title}\nTime: {start_time.strftime('%b %d, %H:%M UTC')}\n"
+        if meeting_link:
+            fl_body += f"Meeting Link: {meeting_link}\n"
+            
+        await send_email(
+            to_email=current_user.email,
+            subject=f"Instant Meeting Created: {req.title}",
+            html_content=f"<p>{fl_body.replace(chr(10), '<br>')}</p>",
+            from_name="Cold Scout"
+        )
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to send instant meeting emails: {e}")
+
+    return {
+        "status": "success",
+        "booking_id": booking.id,
+        "meeting_link": meeting_link,
+        "start_time": start_time.isoformat()
+    }
 
 @router.get("/")
 async def list_bookings(
