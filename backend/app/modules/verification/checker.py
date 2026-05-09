@@ -75,11 +75,15 @@ async def verify_url(url: str, field_name: str = "website") -> VerifyResult:
         return ("failed", "format_valid", f"URL does not match expected {platform} profile format")
 
     # HTTP reachability check (HEAD with GET fallback)
+    # SSRF/Security hardening: Enforce SSL verification for known platforms
+    is_social = field_name in _SOCIAL_PATTERNS
+    verify_ssl = True if is_social else False
+
     try:
         async with httpx.AsyncClient(
             timeout=10,
             follow_redirects=True,
-            verify=False,  # Some sites have cert issues
+            verify=verify_ssl,
             headers={"User-Agent": "ColdScout-Verifier/1.0"},
         ) as client:
             try:

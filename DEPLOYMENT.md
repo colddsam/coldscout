@@ -96,7 +96,7 @@ Core requirement for persistent storage and authentication.
 
 ```
 # Change this:
-postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres
+postgresql://USER:[PASSWORD]@db.[REF].supabase.co:5432/postgres
 
 # To this:
 postgresql+asyncpg://postgres:[password]@db.[ref].supabase.co:5432/postgres
@@ -271,9 +271,9 @@ Complete reference for all **46 configuration parameters**.
 
 ### Database
 
-| **Database** | `DATABASE_URL` | `postgresql+asyncpg://...` (Required) | ✅ |
+| **Database** | `DATABASE_URL` | `postgresql+asyncpg://[USER]:[PASSWORD]@[HOST]:[PORT]/[DB_NAME]` | ✅ |
 | | `REDIS_URL` | Redis URI (Required for Pipeline Log UI) | ✅ |
-| | `SUPABASE_URL` | `https://xxx.supabase.co` | ✅ |
+| | `SUPABASE_URL` | `https://[PROJECT].supabase.co` | ✅ |
 | | `SUPABASE_ANON_KEY` | `eyJ0eXAiOiJKV1Q...` | ✅ |
 
 ### AI Processing
@@ -361,7 +361,7 @@ Complete reference for all **46 configuration parameters**.
 
 | Variable | Example | Required |
 |----------|---------|----------|
-| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` | ✅ |
+| `VITE_SUPABASE_URL` | `https://[PROJECT].supabase.co` | ✅ |
 | `VITE_SUPABASE_ANON_KEY` | `eyJ0eXAiOiJKV1Q...` | ✅ |
 | `VITE_PROXY_URL` | `https://api.coldscout.onrender.com` | ✅ |
 | `VITE_API_KEY` | Must match backend `API_KEY` | ✅ |

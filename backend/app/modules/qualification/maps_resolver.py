@@ -278,31 +278,127 @@ def _maybe_extract_search_query(url: str) -> Optional[str]:
     return None
 
 
-async def _unfurl(client: httpx.AsyncClient, url: str) -> str:
-    """Follow up to 5 redirects and return the final URL.
+# ── SSRF Safety ────────────────────────────────────────────────────────────
 
+
+_ALLOWED_GOOGLE_DOMAINS = {
+    "google.com",
+    "www.google.com",
+    "maps.google.com",
+    "goo.gl",
+    "maps.app.goo.gl",
+    "g.page",
+    "share.google",
+    "google.co.in",  # Common regional variants
+    "google.co.uk",
+    "google.de",
+    "google.fr",
+    "google.it",
+    "google.es",
+    "google.co.jp",
+}
+
+
+def _is_safe_google_url(url: str) -> bool:
+    """SSRF mitigation: only allow redirects to known-safe Google Maps domains."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+
+        # Hostname check
+        host = (parsed.hostname or "").lower()
+        if not host:
+            return False
+
+        # Check against whitelist — allow subdomains of google.com
+        is_whitelisted = any(
+            host == domain or host.endswith(f".{domain}")
+            for domain in _ALLOWED_GOOGLE_DOMAINS
+        )
+        if not is_whitelisted:
+            return False
+
+        # Prevent localhost/private IPs even if somehow dns-spoofed
+        import ipaddress
+
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private or ip.is_loopback:
+                return False
+        except ValueError:
+            # It's a hostname, not an IP address string — this is fine
+            pass
+
+        return True
+    except Exception:
+        return False
+
+
+async def _unfurl(client: httpx.AsyncClient, url: str) -> str:
+    """Follow up to 5 redirects manually and return the final URL.
+
+    SSRF mitigation: every hop is validated against a Google domain whitelist.
     Maps share links (``maps.app.goo.gl``, ``goo.gl/maps``) only resolve
-    once you actually GET them, so we fire a HEAD-then-GET sequence.
-    We use a standard Browser User-Agent to avoid being blocked or
-    served simplified mobile pages by Google.
+    once you actually GET them.
     """
+    if not _is_safe_google_url(url):
+        logger.warning(f"SSRF: Blocked unsafe initial URL: {url}")
+        return url
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
     }
+
+    current_url = url
+    max_redirects = 5
+
     try:
-        # HEAD first — cheap if the server supports it.
-        resp = await client.head(url, headers=headers, timeout=8.0, follow_redirects=True)
-        if str(resp.url) and str(resp.url) != url:
-            # If the URL changed but doesn't have a place segment, it might
-            # be a consent page. We need to GET it.
-            if "/maps/" in str(resp.url):
+        for _ in range(max_redirects):
+            # We use a custom manual loop because httpx's follow_redirects=True
+            # doesn't allow per-hop validation against our whitelist.
+            resp = await client.head(
+                current_url,
+                headers=headers,
+                timeout=8.0,
+                follow_redirects=False,
+            )
+
+            if resp.status_code in (301, 302, 303, 307, 308):
+                next_url = resp.headers.get("Location")
+                if not next_url:
+                    break
+
+                # Resolve relative URLs
+                if not next_url.startswith("http"):
+                    from urllib.parse import urljoin
+                    next_url = urljoin(current_url, next_url)
+
+                if not _is_safe_google_url(next_url):
+                    logger.warning(f"SSRF: Blocked unsafe redirect to {next_url}")
+                    break
+
+                current_url = next_url
+                continue
+
+            # If not a redirect, check if we need to fall back to GET for Maps consent pages
+            if resp.status_code == 200:
+                if "/maps/" in str(resp.url):
+                    return str(resp.url)
+                # If it's a 200 but not a maps path, try a GET just in case (Maps behavior)
+                resp = await client.get(
+                    current_url,
+                    headers=headers,
+                    timeout=10.0,
+                    follow_redirects=False,
+                )
                 return str(resp.url)
 
-        # Fall back to GET for the full redirect chain.
-        resp = await client.get(url, headers=headers, timeout=10.0, follow_redirects=True)
-        return str(resp.url)
+            break
+
+        return current_url
     except Exception as e:
         logger.debug(f"_unfurl: {url} failed — {e!r}")
         return url
@@ -780,7 +876,7 @@ async def resolve_maps_url(raw_input: str) -> Optional[str]:
     }
     is_maps_url = bool(parsed.netloc) and "maps" in (parsed.netloc + parsed.path)
 
-    async with httpx.AsyncClient(verify=False, follow_redirects=True) as client:
+    async with httpx.AsyncClient(verify=True, follow_redirects=True) as client:
         # 3. Unfurl shortlinks and any Maps URL — rich places sometimes
         # only embed the full data block after a redirect.
         unfurled = cleaned

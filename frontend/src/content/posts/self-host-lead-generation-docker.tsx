@@ -89,8 +89,8 @@ cd coldscout`}</code></pre>
       <pre><code>{`cp .env.example .env`}</code></pre>
       <p>The fields you must set:</p>
       <pre><code>{`# Database
-DATABASE_URL=postgres://...
-SUPABASE_URL=https://....supabase.co
+DATABASE_URL=postgresql+asyncpg://[USER]:[PASSWORD]@[HOST]:[PORT]/[DB_NAME]
+SUPABASE_URL=https://[PROJECT].supabase.co
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 

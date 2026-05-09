@@ -43,6 +43,9 @@ async def check_social_media(url: str) -> Tuple[bool, List[Dict[str, str]]]:
         url = "http://" + url
 
     try:
+        # verify=False is intentional: we are scanning arbitrary third-party business
+        # websites which frequently have misconfigured or expired SSL certificates.
+        # Strict verification would lead to high false-negative rates for lead discovery.
         async with httpx.AsyncClient(verify=False) as client:
             response = await client.get(
                 url,
