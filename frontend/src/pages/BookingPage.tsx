@@ -88,7 +88,8 @@ export default function BookingPage() {
       const dayStart = startOfDay(selectedDate!);
       const start = dayStart.toISOString();
       const end = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000).toISOString();
-      return getBookingSlots(username!, start, end, activeDuration);
+      const visitorTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      return getBookingSlots(username!, start, end, activeDuration, visitorTimezone);
     },
     enabled: !!username && !!selectedDate && !showEventPicker,
   });
@@ -217,6 +218,12 @@ export default function BookingPage() {
                     </a>
                   </div>
                 )}
+                {profile.freelancer?.scheduling_preferences?.timezone && (
+                  <div className="flex items-start gap-3 text-white/70">
+                    <Globe className="w-5 h-5 mt-0.5 shrink-0 text-blue-400" />
+                    <span className="text-sm">Timezone: {profile.freelancer.scheduling_preferences.timezone}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -262,14 +269,16 @@ export default function BookingPage() {
                       <div>
                         <div className="text-sm text-white/50">Date & Time</div>
                         <div className="text-white font-medium">{selectedSlot ? format(parseISO(selectedSlot), 'EEEE, MMMM d, yyyy') : ''}</div>
-                        <div className="text-white font-medium">{selectedSlot ? format(parseISO(selectedSlot), 'h:mm a') : ''}</div>
+                        <div className="text-white font-medium">
+                          {selectedSlot ? format(parseISO(selectedSlot), 'h:mm a') : ''} ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <Globe className="w-5 h-5 text-white/50" />
                       <div>
                         <div className="text-sm text-white/50">Location</div>
-                        <div className="text-white font-medium">Google Meet</div>
+                        <div className="text-white font-medium">Web Conferencing</div>
                       </div>
                     </div>
                   </div>
@@ -444,7 +453,11 @@ export default function BookingPage() {
                     })}
                   </div>
                   
-                  <div className="mt-8 pt-8 border-t border-white/10 text-center">
+                  <div className="mt-8 pt-8 border-t border-white/10 flex flex-col items-center">
+                    <div className="flex items-center gap-2 text-xs text-white/40 mb-6 bg-white/[0.03] px-3 py-1.5 rounded-full border border-white/5">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>Slots shown in <strong>{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong></span>
+                    </div>
                     <p className="text-sm text-white/50 mb-4">Don't see a time that works for you?</p>
                     <Button variant="outline" onClick={() => setIsCustomModalOpen(true)} className="w-full">
                       Request a Custom Time
@@ -476,10 +489,20 @@ export default function BookingPage() {
                           </button>
                         ))}
                       </div>
+                    ) : slotData?.is_closed ? (
+                      <div className="text-center py-12 flex flex-col items-center">
+                        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                          <Clock className="w-8 h-8 text-red-400" />
+                        </div>
+                        <p className="text-white font-medium mb-2">Schedule Closed</p>
+                        <p className="text-sm text-white/40 max-w-[200px]">
+                          Working hours for this day have ended. Please select a future date.
+                        </p>
+                      </div>
                     ) : (
                       <div className="text-center py-12">
                         <p className="text-white/50 mb-2">No slots available on this day.</p>
-                        <p className="text-sm text-white/30">Try selecting another date.</p>
+                        <p className="text-sm text-white/30">Try selecting another date or a different duration.</p>
                       </div>
                     )}
                   </div>

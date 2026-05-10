@@ -6,6 +6,7 @@ Handles both legacy redirects (if configured) and native booking flow.
 """
 
 from datetime import datetime, timedelta, timezone
+import zoneinfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,8 @@ settings = get_settings()
 
 class SlotResponse(BaseModel):
     slots: List[datetime]
+    freelancer_timezone: str
+    is_closed: bool = False
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +96,7 @@ async def get_booking_slots(
     start_date: datetime = Query(...),
     end_date: datetime = Query(...),
     duration: int = Query(30, description="Duration in minutes"),
+    visitor_timezone: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """Fetch available time slots for a freelancer."""
@@ -124,7 +128,49 @@ async def get_booking_slots(
         duration_minutes=duration
     )
 
-    return {"slots": slots}
+    # Determine if "Closed"
+    # A day is "Closed" if slots are empty AND it's a day in the past or current day out of hours
+    is_closed = False
+    fl_tz_name = freelancer.scheduling_preferences.get("timezone", "UTC")
+    
+    if not slots:
+        try:
+            tz = zoneinfo.ZoneInfo(fl_tz_name)
+            now_fl = datetime.now(tz)
+            # If the requested window (start_date) is for today or earlier in FL time
+            requested_fl = start_date.astimezone(tz)
+            
+            # If Lead is looking at Today or Past
+            if requested_fl.date() <= now_fl.date():
+                # Check if working hours for this day exist and if we are past the end
+                working_hours = freelancer.scheduling_preferences.get("working_hours", {})
+                day_name = requested_fl.strftime("%A")
+                day_periods = working_hours.get(day_name, [])
+                
+                if not day_periods:
+                    is_closed = True # No working hours = Closed
+                else:
+                    # Find the latest end time for this day
+                    latest_end = None
+                    for p in day_periods:
+                        try:
+                            p_end = datetime.strptime(p['end'], "%H:%M").time()
+                            if latest_end is None or p_end > latest_end:
+                                latest_end = p_end
+                        except: continue
+                    
+                    if latest_end:
+                        if requested_fl.date() < now_fl.date() or now_fl.time() > latest_end:
+                            is_closed = True
+
+        except Exception:
+            pass
+
+    return {
+        "slots": slots,
+        "freelancer_timezone": fl_tz_name,
+        "is_closed": is_closed
+    }
 
 class CreateBookingRequest(BaseModel):
     guest_name: str
@@ -141,7 +187,9 @@ async def create_booking(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new booking."""
+    from loguru import logger
     username = username.strip().lower()
+    logger.info(f"Booking attempt for {username} by {req.guest_email} at {req.start_time}")
 
     # Find user profile
     from app.models.user import User
@@ -221,6 +269,10 @@ async def create_booking(
             logging.error(f"Failed to create Google Meet event: {e}")
             # Fall back to pending/manual if Google Calendar fails
             pass
+            
+    # NEW: Fallback to permanent meeting link from profile if still None
+    if status == 'approved' and not meeting_link:
+        meeting_link = getattr(freelancer, "meeting_link", None)
 
     booking = Booking(
         freelancer_id=freelancer.user_id,
@@ -239,21 +291,54 @@ async def create_booking(
     await db.commit()
     await db.refresh(booking)
 
+    # Resolve timezone for display
+    fl_tz_name = (freelancer.scheduling_preferences or {}).get("timezone", "UTC")
+    try:
+        fl_tz = zoneinfo.ZoneInfo(fl_tz_name)
+    except Exception:
+        fl_tz = timezone.utc
+        fl_tz_name = "UTC"
+    
+    # Ensure req.start_time is offset-aware (it should be from Pydantic, but just in case)
+    start_utc = req.start_time
+    if start_utc.tzinfo is None:
+        start_utc = start_utc.replace(tzinfo=timezone.utc)
+    
+    display_time = start_utc.astimezone(fl_tz)
+    # Use 12-hour format for better readability
+    time_str = display_time.strftime('%b %d, %I:%M %p')
+    
+    # Resolve explicit timezone label
+    tz_label = ""
+    if fl_tz_name == "UTC":
+        tz_label = "UTC"
+    elif "Kolkata" in fl_tz_name or "India" in fl_tz_name:
+        tz_label = "IST"
+    else:
+        # Try to get the short name (e.g. EST, PDT)
+        tz_label = display_time.strftime('%Z') or fl_tz_name
+        
+    time_str += f" {tz_label}"
+
     from app.modules.notifications.events import system_message
     from app.modules.outreach.email_sender import send_email
 
     # Notify Freelancer
+    alert_body = f"{req.guest_name} booked a session for {time_str}."
+    if status == 'approved' and not meeting_link:
+        alert_body += "\n\nIMPORTANT: No meeting link was provided for this session. Please update your profile or contact the lead."
+    
     await system_message(
         db,
         user_id=freelancer.user_id,
         title="New Booking Request",
-        body=f"{req.guest_name} booked a session for {req.start_time.strftime('%b %d, %H:%M')}."
+        body=alert_body
     )
     
     # Optional: Send email to guest (using existing send_email utility, assuming default outbound config)
-    guest_email_body = f"Hi {req.guest_name},\n\nYour booking with {username} for {req.start_time.strftime('%b %d, %H:%M')} is {status}.\n"
+    guest_html = f"<p>Hi {req.guest_name},</p><p>Your booking with <strong>{username}</strong> for <strong>{time_str}</strong> is <strong>{status}</strong>.</p>"
     if meeting_link:
-        guest_email_body += f"Meeting Link: {meeting_link}\n"
+        guest_html += f"<p><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></p>"
     
     try:
         from_name = user.full_name or profile.username or "Admin"
@@ -261,21 +346,23 @@ async def create_booking(
         await send_email(
             to_email=req.guest_email,
             subject=f"Booking Confirmation: {username}",
-            html_content=f"<p>{guest_email_body.replace(chr(10), '<br>')}</p>",
+            html_content=guest_html,
             from_name=from_name,
         )
         
         # Email to Freelancer
-        fl_email_body = f"Hi {user.first_name or 'Freelancer'},\n\nYou have a new booking from {req.guest_name} ({req.guest_email}) for {req.start_time.strftime('%b %d, %H:%M')}.\nStatus: {status}\n"
+        fl_html = f"<p>Hi {user.full_name or 'Freelancer'},</p><p>You have a new booking from <strong>{req.guest_name}</strong> ({req.guest_email}) for <strong>{time_str}</strong>.</p>"
+        fl_html += f"<ul><li><strong>Status:</strong> {status}</li>"
         if meeting_link:
-            fl_email_body += f"Meeting Link: {meeting_link}\n"
+            fl_html += f"<li><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></li>"
         if req.guest_notes:
-            fl_email_body += f"Notes: {req.guest_notes}\n"
+            fl_html += f"<li><strong>Notes:</strong> {req.guest_notes}</li>"
+        fl_html += "</ul>"
             
         await send_email(
             to_email=user.email,
             subject=f"New Booking: {req.guest_name}",
-            html_content=f"<p>{fl_email_body.replace(chr(10), '<br>')}</p>"
+            html_content=fl_html
         )
     except Exception as e:
         import logging

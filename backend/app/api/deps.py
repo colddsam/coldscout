@@ -23,13 +23,32 @@ from app.config import get_settings
 from app.models.user import User
 from app.schemas.user import TokenPayload
 
-"""
-Configuration and Dependencies
------------------------------
+import time
+from typing import Dict, Tuple
 
-The following dependencies are used throughout this module to provide
-reusable functionality for authentication and authorization.
-"""
+class UserCache:
+    """Memory cache for authenticated users to avoid redundant DB hits."""
+    def __init__(self, ttl: int = 60):
+        self._cache: Dict[str, Tuple[User, float]] = {}
+        self.ttl = ttl
+
+    def get(self, key: str) -> Optional[User]:
+        if key not in self._cache:
+            return None
+        user, timestamp = self._cache[key]
+        if time.time() - timestamp > self.ttl:
+            del self._cache[key]
+            return None
+        return user
+
+    def set(self, key: str, user: User):
+        self._cache[key] = (user, time.time())
+
+    def invalidate(self, key: str):
+        if key in self._cache:
+            del self._cache[key]
+
+_user_cache = UserCache(ttl=60)  # 1 minute cache for user sessions
 
 settings = get_settings()
 
@@ -131,6 +150,7 @@ async def get_or_create_user_by_supabase_uid(
         if updated:
             await db.commit()
             await db.refresh(user)
+            _user_cache.invalidate(supabase_uid)
         return user
 
     # Check if user exists by email (might be a legacy user)
@@ -155,6 +175,7 @@ async def get_or_create_user_by_supabase_uid(
             
         await db.commit()
         await db.refresh(user)
+        _user_cache.invalidate(supabase_uid)
         logger.info(f"Linked existing user {email} to Supabase UID {supabase_uid}")
         return user
 
@@ -173,6 +194,7 @@ async def get_or_create_user_by_supabase_uid(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+    _user_cache.invalidate(supabase_uid)
     logger.info(f"Created new {role} user {email} with Supabase UID {supabase_uid}")
     return new_user
 
@@ -227,20 +249,42 @@ async def get_current_user(
         raw_role = user_metadata.get("role", "freelancer")
         role = raw_role if raw_role in ("client", "freelancer") else "freelancer"
 
+        # Try cache first
+        cached_user = _user_cache.get(supabase_uid)
+        if cached_user:
+            # Re-associate the detached object with the current session.
+            # 'merge' with load=False handles detached objects efficiently.
+            user = await db.merge(cached_user, load=False)
+            return user
+
         # Get or create user (upsert pattern)
-        user = await get_or_create_user_by_supabase_uid(
-            db=db,
-            supabase_uid=supabase_uid,
-            email=email,
-            auth_provider=provider,
-            full_name=full_name,
-            avatar_url=avatar_url,
-            role=role,
-        )
+        import asyncio
+        try:
+            user = await asyncio.wait_for(
+                get_or_create_user_by_supabase_uid(
+                    db=db,
+                    supabase_uid=supabase_uid,
+                    email=email,
+                    auth_provider=provider,
+                    full_name=full_name,
+                    avatar_url=avatar_url,
+                    role=role,
+                ),
+                timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"User authentication timeout (5s) for {email}")
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Authentication server timeout"
+            )
 
         if not user.is_active:
             logger.warning(f"Rejecting inactive user: {email}")
             raise HTTPException(status_code=400, detail="Inactive user")
+
+        # Cache the verified user
+        _user_cache.set(supabase_uid, user)
 
         logger.info(f"Authenticated user {email} via Supabase JWT.")
         return user

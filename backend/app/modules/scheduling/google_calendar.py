@@ -54,16 +54,20 @@ def credentials_to_dict(credentials: Credentials) -> dict:
     }
 
 def get_credentials(creds_data: dict) -> Credentials:
-    """Reconstruct Google Credentials object from dictionary, refreshing if needed."""
+    """
+    Reconstruct Google Credentials object from dictionary, refreshing if needed.
+    
+    Supports both native OAuth flow data and Supabase-sourced provider tokens.
+    """
     if not creds_data:
         return None
         
     creds = Credentials(
         token=creds_data.get('token'),
         refresh_token=creds_data.get('refresh_token'),
-        token_uri=creds_data.get('token_uri'),
-        client_id=creds_data.get('client_id'),
-        client_secret=creds_data.get('client_secret'),
+        token_uri=creds_data.get('token_uri', "https://oauth2.googleapis.com/token"),
+        client_id=creds_data.get('client_id', settings.GOOGLE_CLIENT_ID),
+        client_secret=creds_data.get('client_secret', settings.GOOGLE_CLIENT_SECRET),
         scopes=creds_data.get('scopes', SCOPES)
     )
     

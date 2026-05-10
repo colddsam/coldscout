@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import zoneinfo
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
@@ -33,19 +34,28 @@ async def calculate_available_slots(
     #   "timezone": "UTC"
     # }
     if not scheduling_preferences:
-        # Default 9 to 5 UTC Monday to Friday if no preferences
-        scheduling_preferences = {
-            "working_hours": {
-                "Monday": [{"start": "09:00", "end": "17:00"}],
-                "Tuesday": [{"start": "09:00", "end": "17:00"}],
-                "Wednesday": [{"start": "09:00", "end": "17:00"}],
-                "Thursday": [{"start": "09:00", "end": "17:00"}],
-                "Friday": [{"start": "09:00", "end": "17:00"}]
-            },
-            "timezone": "UTC"
-        }
+        scheduling_preferences = {}
         
-    working_hours = scheduling_preferences.get("working_hours", {})
+    working_hours = scheduling_preferences.get("working_hours")
+    # Only use defaults if explicitly None/Missing. 
+    # If it's an empty dict {}, it means they turned off all days.
+    if working_hours is None:
+        # Default 9 to 5 Monday to Friday if no working hours set
+        working_hours = {
+            "Monday": [{"start": "09:00", "end": "17:00"}],
+            "Tuesday": [{"start": "09:00", "end": "17:00"}],
+            "Wednesday": [{"start": "09:00", "end": "17:00"}],
+            "Thursday": [{"start": "09:00", "end": "17:00"}],
+            "Friday": [{"start": "09:00", "end": "17:00"}]
+        }
+    
+    tz_name = scheduling_preferences.get("timezone", "UTC")
+    try:
+        tz = zoneinfo.ZoneInfo(tz_name)
+    except Exception:
+        tz = zoneinfo.ZoneInfo("UTC")
+        tz_name = "UTC"
+
     
     # 2. Fetch DB Bookings
     result = await db.execute(
@@ -53,8 +63,8 @@ async def calculate_available_slots(
             and_(
                 Booking.freelancer_id == freelancer_id,
                 Booking.status.in_(['approved', 'pending']),
-                Booking.end_time > start_date,
-                Booking.start_time < end_date
+                Booking.end_time > start_date - timedelta(days=1),
+                Booking.start_time < end_date + timedelta(days=1)
             )
         )
     )
@@ -64,7 +74,7 @@ async def calculate_available_slots(
     # 3. Fetch Google Calendar busy slots
     if google_creds:
         try:
-            gcal_busy = await get_busy_slots(google_creds, start_date, end_date)
+            gcal_busy = await get_busy_slots(google_creds, start_date - timedelta(days=1), end_date + timedelta(days=1))
             for slot in gcal_busy:
                 busy_periods.append({
                     "start": datetime.fromisoformat(slot['start'].replace('Z', '+00:00')),
@@ -76,52 +86,81 @@ async def calculate_available_slots(
             
     # 4. Generate potential slots
     available_slots = []
-    current_time = start_date
     
-    # Simple logic: iterate day by day, check working hours, generate slots
-    while current_time < end_date:
-        day_name = current_time.strftime("%A")
+    # Logic: Iterate day by day in the freelancer's LOCAL timezone
+    # We expand the window by 1 day in both directions to ensure we catch all
+    # freelancer local days that could possibly overlap with the lead's UTC window.
+    current_fl_local = start_date.astimezone(tz)
+    end_fl_local = end_date.astimezone(tz)
+    
+    # Iterate from one day before the start to one day after the end
+    iter_local = (current_fl_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    limit_local = (end_fl_local + timedelta(days=1)).replace(hour=23, minute=59, second=59)
+
+    while iter_local <= limit_local:
+        day_name = iter_local.strftime("%A")
         day_hours = working_hours.get(day_name, [])
         
         for period in day_hours:
             try:
-                p_start = datetime.strptime(period['start'], "%H:%M").time()
-                p_end = datetime.strptime(period['end'], "%H:%M").time()
+                p_start_str = period.get('start', '09:00')
+                p_end_str = period.get('end', '17:00')
                 
-                slot_start = datetime.combine(current_time.date(), p_start).replace(tzinfo=timezone.utc)
-                slot_end = datetime.combine(current_time.date(), p_end).replace(tzinfo=timezone.utc)
+                p_start_time = datetime.strptime(p_start_str, "%H:%M").time()
+                p_end_time = datetime.strptime(p_end_str, "%H:%M").time()
                 
-                # If the slot is in the past, skip to current time
-                if slot_start < datetime.now(timezone.utc):
-                    slot_start = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-                    # Round up to next 30 min
-                    minutes = slot_start.minute
+                # Create local boundary for this specific day
+                local_period_start = datetime.combine(iter_local.date(), p_start_time).replace(tzinfo=tz)
+                local_period_end = datetime.combine(iter_local.date(), p_end_time).replace(tzinfo=tz)
+                
+                # Convert period to UTC for matching against Lead's window and Busy periods
+                utc_period_start = local_period_start.astimezone(timezone.utc)
+                utc_period_end = local_period_end.astimezone(timezone.utc)
+                
+                # Normalize to current time (no past slots) + 1 hour notice period
+                now_utc = datetime.now(timezone.utc) + timedelta(hours=1)
+                
+                # Skip periods that are entirely in the past
+                if utc_period_end <= now_utc:
+                    continue
+                    
+                # Adjust start if period has already begun or is within notice window
+                adjusted_period_start = max(utc_period_start, now_utc)
+                
+                # Generate slots within this period
+                curr_slot_start = adjusted_period_start
+                
+                # Round up to the next 15 or 30 minute interval for consistent slotting
+                if curr_slot_start > utc_period_start:
+                    minutes = curr_slot_start.minute
                     remainder = minutes % 30
                     if remainder > 0:
-                        slot_start += timedelta(minutes=30 - remainder)
-                
-                curr_slot = slot_start
-                while curr_slot + timedelta(minutes=duration_minutes) <= slot_end:
-                    curr_slot_end = curr_slot + timedelta(minutes=duration_minutes)
+                        curr_slot_start += timedelta(minutes=30 - remainder)
+                    curr_slot_start = curr_slot_start.replace(second=0, microsecond=0)
+
+                while curr_slot_start + timedelta(minutes=duration_minutes) <= utc_period_end:
+                    curr_slot_end = curr_slot_start + timedelta(minutes=duration_minutes)
                     
-                    # Check overlap with busy periods
-                    is_busy = False
-                    for busy in busy_periods:
-                        if (curr_slot < busy['end'] and curr_slot_end > busy['start']):
-                            is_busy = True
-                            break
-                            
-                    if not is_busy and curr_slot >= start_date and curr_slot_end <= end_date:
-                        available_slots.append(curr_slot)
+                    # INCLUSION LOGIC:
+                    # A slot belongs to a day if it STARTS within that day's window.
+                    # We relax the 'end' check because a slot starting at 11:30 PM
+                    # should be visible on the 'Today' page even if it ends at 12:30 AM.
+                    if curr_slot_start >= start_date and curr_slot_start < end_date:
+                        # Check overlap with busy periods
+                        is_busy = False
+                        for busy in busy_periods:
+                            if (curr_slot_start < busy['end'] and curr_slot_end > busy['start']):
+                                is_busy = True
+                                break
                         
-                    # Next slot increment: use 15 min for short meetings, else use duration or 30 min
-                    increment = 15 if duration_minutes <= 30 else min(duration_minutes, 30)
-                    curr_slot += timedelta(minutes=increment)
-            except Exception as e:
-                import logging
-                logging.error(f"Error parsing working hours for {day_name}: {e}")
+                        if not is_busy:
+                            available_slots.append(curr_slot_start)
+                    
+                    curr_slot_start += timedelta(minutes=duration_minutes)
+            except (ValueError, KeyError):
+                continue
                 
-        current_time += timedelta(days=1)
-        current_time = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        iter_local += timedelta(days=1)
         
-    return available_slots
+    # Remove duplicates and sort
+    return sorted(list(set(available_slots)))

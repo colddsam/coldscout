@@ -583,17 +583,12 @@ def get_settings() -> Settings:
 
 def get_production_status() -> str:
     """
-    Determines if the system is currently authorized to execute pipeline tasks.
+    DEPRECATED: Use JobManager.is_global_active() instead.
     
-    This function reads directly from 'os.environ' rather than the cached settings
-    singleton. This design choice is critical: it allows administrative API calls 
-    (like /hold or /resume) to change system behavior in real-time without 
-    requiring an application restart.
-
-    Returns:
-        str: "RUN" if the pipeline is active, "HOLD" if it is paused.
+    Determines if the system is currently authorized to execute pipeline tasks.
+    Maintained as a legacy fallback for non-DB-aware components.
     """
-    return os.environ.get("PRODUCTION_STATUS", get_settings().PRODUCTION_STATUS).upper()
+    return os.environ.get("PRODUCTION_STATUS", "RUN").upper()
 
 
 def set_env_variable(key: str, value: str):

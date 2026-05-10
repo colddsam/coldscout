@@ -92,6 +92,10 @@ async def create_instant_meeting(
         except Exception as e:
             import logging
             logging.error(f"Failed to create Google Meet event for instant meeting: {e}")
+            
+    # NEW: Fallback to permanent meeting link from profile if still None
+    if not meeting_link:
+        meeting_link = getattr(freelancer, "meeting_link", None)
 
     booking = Booking(
         freelancer_id=current_user.id,
@@ -116,30 +120,55 @@ async def create_instant_meeting(
     if not from_name:
         from_name = current_user.email or "Cold Scout"
     
+    # Resolve timezone for display
+    import zoneinfo
+    fl_tz_name = (freelancer.scheduling_preferences or {}).get("timezone", "UTC")
+    try:
+        fl_tz = zoneinfo.ZoneInfo(fl_tz_name)
+    except Exception:
+        fl_tz = timezone.utc
+        fl_tz_name = "UTC"
+
+    display_time = start_time.astimezone(fl_tz)
+    time_str = display_time.strftime('%b %d, %I:%M %p')
+    
+    # Resolve explicit timezone label
+    tz_label = "UTC" if fl_tz_name == "UTC" else ("IST" if ("Kolkata" in fl_tz_name or "India" in fl_tz_name) else (display_time.strftime('%Z') or fl_tz_name))
+    time_str += f" {tz_label}"
+
     # Guest Notification
-    guest_body = f"Hi {req.guest_name},\n\n{from_name} has generated an instant meeting with you.\n\nTitle: {req.title}\nTime: {start_time.strftime('%b %d, %H:%M UTC')}\n"
+    guest_html = f"<p>Hi {req.guest_name},</p><p><strong>{from_name}</strong> has generated an instant meeting with you.</p>"
+    guest_html += f"<ul><li><strong>Title:</strong> {req.title}</li><li><strong>Time:</strong> {time_str}</li>"
+    
     if meeting_link:
-        guest_body += f"Meeting Link: {meeting_link}\n"
+        guest_html += f"<li><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></li>"
+    
     if req.description:
-        guest_body += f"\nDescription: {req.description}\n"
+        guest_html += f"</ul><p><strong>Description:</strong><br>{req.description.replace(chr(10), '<br>')}</p>"
+    else:
+        guest_html += "</ul>"
         
     try:
         await send_email(
             to_email=req.guest_email,
             subject=f"Meeting Invite: {req.title}",
-            html_content=f"<p>{guest_body.replace(chr(10), '<br>')}</p>",
+            html_content=guest_html,
             from_name=from_name
         )
         
         # Freelancer Notification
-        fl_body = f"Hi {current_user.full_name or 'there'},\n\nYou have generated an instant meeting with {req.guest_name}.\n\nTitle: {req.title}\nTime: {start_time.strftime('%b %d, %H:%M UTC')}\n"
+        fl_html = f"<p>Hi {current_user.full_name or 'there'},</p><p>You have generated an instant meeting with <strong>{req.guest_name}</strong>.</p>"
+        fl_html += f"<ul><li><strong>Title:</strong> {req.title}</li><li><strong>Time:</strong> {time_str}</li>"
+        
         if meeting_link:
-            fl_body += f"Meeting Link: {meeting_link}\n"
+            fl_html += f"<li><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></li>"
+            
+        fl_html += "</ul>"
             
         await send_email(
             to_email=current_user.email,
             subject=f"Instant Meeting Created: {req.title}",
-            html_content=f"<p>{fl_body.replace(chr(10), '<br>')}</p>",
+            html_content=fl_html,
             from_name="Cold Scout"
         )
     except Exception as e:

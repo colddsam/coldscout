@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import copy
 import time
-from typing import Optional
-
+import os
+from typing import Optional, Any
 from loguru import logger
 
 from app.config import get_settings, get_production_status
@@ -54,6 +54,7 @@ DEFAULT_JOBS_CONFIG: dict[str, dict] = {
     "threads_engagement":    {"status": "HOLD", "type": "cron",     "hour": 12, "minute": 0},
     "threads_response_check":{"status": "HOLD", "type": "interval", "minutes": 30},
     "booking_reminders":     {"status": "RUN",  "type": "interval", "minutes": 15},
+    "SYSTEM_GLOBAL_STATUS":  {"status": "RUN",  "type": "system"},
 }
 
 
@@ -75,37 +76,61 @@ class JobManager:
 
     # Global config cache (job_id → cfg dict)
     _global_cache: dict[str, dict] = {}
+    _global_cache_at: float = 0
     _global_cache_loaded: bool = False
 
-    # Freelancer overrides cache (user_id → {job_id: status})
-    _freelancer_cache: dict[int, dict[str, str]] = {}
-    _freelancer_cache_at: dict[int, float] = {}
-    _FREELANCER_CACHE_TTL = 15.0  # seconds
+    # Freelancer-specific caches
+    # user_id -> (status, timestamp)
+    _freelancer_status_cache: dict[int, tuple[str, float]] = {}
+    # user_id -> (overrides, timestamp)
+    _freelancer_overrides_cache: dict[int, tuple[dict[str, str], float]] = {}
+    
+    # Global status direct check cache (very short TTL)
+    # "SYSTEM_GLOBAL_STATUS" -> (status, timestamp)
+    _direct_status_cache: tuple[str, float] = ("RUN", 0)
+
+    _CACHE_TTL = 10.0  # seconds for full config
+    _FREELANCER_TTL = 30.0  # seconds for user-specific configs
+    _DIRECT_TTL = 2.0  # seconds for real-time global status check
 
     # ────────────────────────────────────────────────────────────────
     # Global config — async persistence
     # ────────────────────────────────────────────────────────────────
 
     @classmethod
-    async def refresh_global_cache(cls) -> dict[str, dict]:
+    async def refresh_global_cache(cls, force: bool = False) -> dict[str, dict]:
         """Reload ``global_job_configs`` from DB into the in-memory cache.
 
-        Seeds the table from ``DEFAULT_JOBS_CONFIG`` if empty so newly
-        provisioned environments pick up sane defaults on first boot.
+        Seeds the table from ``DEFAULT_JOBS_CONFIG`` if empty.
+        Uses a 10s TTL unless ``force=True``.
         """
+        now = time.monotonic()
+        if not force and cls._global_cache_loaded:
+            if now - cls._global_cache_at < cls._CACHE_TTL:
+                return cls._global_cache
+
+        import asyncio
         from sqlalchemy import select
+        from sqlalchemy.exc import IntegrityError
         from app.core.database import get_session_maker
         from app.models.global_job_config import GlobalJobConfig
 
         try:
+            # We use a strict timeout here to prevent the backend from hanging at boot 
+            # if Supabase is slow or the connection is unstable.
             async with get_session_maker()() as db:
-                rows = (await db.execute(select(GlobalJobConfig))).scalars().all()
+                async def _fetch():
+                    # 1. Fetch existing rows
+                    rows = (await db.execute(select(GlobalJobConfig))).scalars().all()
+                    cache = {row.job_id: _row_to_cfg(row) for row in rows}
 
-                if not rows:
-                    # First boot — seed the table from hard-coded defaults.
-                    from sqlalchemy.exc import IntegrityError
-                    try:
-                        for job_id, cfg in DEFAULT_JOBS_CONFIG.items():
+                    # 2. Check for missing jobs (first boot or new code versions)
+                    missing_ids = [k for k in DEFAULT_JOBS_CONFIG.keys() if k not in cache]
+                    
+                    if missing_ids:
+                        logger.info(f"Seeding/Backfilling {len(missing_ids)} missing job configs...")
+                        for job_id in missing_ids:
+                            cfg = DEFAULT_JOBS_CONFIG[job_id]
                             db.add(GlobalJobConfig(
                                 job_id=job_id,
                                 status=cfg.get("status", "RUN"),
@@ -115,57 +140,50 @@ class JobManager:
                                 minutes=cfg.get("minutes"),
                                 day_of_week=cfg.get("day_of_week"),
                             ))
-                        await db.commit()
-                    except IntegrityError:
-                        # Another worker seeded the table while we were working.
-                        # Swallowing and rolling back this attempt.
-                        await db.rollback()
+                        
+                        try:
+                            await db.commit()
+                            # Re-fetch after commit to get all rows
+                            rows = (await db.execute(select(GlobalJobConfig))).scalars().all()
+                            cache = {row.job_id: _row_to_cfg(row) for row in rows}
+                        except IntegrityError:
+                            # Another worker beat us to it.
+                            await db.rollback()
+                            rows = (await db.execute(select(GlobalJobConfig))).scalars().all()
+                            cache = {row.job_id: _row_to_cfg(row) for row in rows}
+                    return cache
 
-                    rows = (await db.execute(select(GlobalJobConfig))).scalars().all()
+                cache = await asyncio.wait_for(_fetch(), timeout=5.0)
+                cls._global_cache = cache
+                cls._global_cache_loaded = True
+                cls._global_cache_at = now
+                return copy.deepcopy(cache)
 
-                cache = {row.job_id: _row_to_cfg(row) for row in rows}
-
-            # Backfill any missing default jobs (e.g. a new job_id was added
-            # in code after initial seed). We do not overwrite existing
-            # operator-tuned rows.
-            missing = {k: v for k, v in DEFAULT_JOBS_CONFIG.items() if k not in cache}
-            if missing:
-                async with get_session_maker()() as db:
-                    for job_id, cfg in missing.items():
-                        db.add(GlobalJobConfig(
-                            job_id=job_id,
-                            status=cfg.get("status", "RUN"),
-                            type=cfg.get("type", "cron"),
-                            hour=cfg.get("hour"),
-                            minute=cfg.get("minute"),
-                            minutes=cfg.get("minutes"),
-                            day_of_week=cfg.get("day_of_week"),
-                        ))
-                    await db.commit()
-                cache.update(copy.deepcopy(missing))
-
-            cls._global_cache = cache
-            cls._global_cache_loaded = True
-            return cache
-        except Exception as exc:
-            logger.error(f"Failed to refresh global job config cache: {exc}")
+        except (asyncio.TimeoutError, Exception) as exc:
+            if isinstance(exc, asyncio.TimeoutError):
+                logger.warning("Global job config refresh timed out (5s). Using fallback.")
+            else:
+                logger.error(f"Failed to refresh global job config cache: {exc}")
+            
+            # If we've NEVER successfully loaded, use hard-coded fallbacks.
+            # Otherwise, keep the stale cache.
             if not cls._global_cache_loaded:
                 cls._global_cache = copy.deepcopy(DEFAULT_JOBS_CONFIG)
-            return cls._global_cache
+                cls._global_cache_loaded = True
+                cls._global_cache_at = now
+            return copy.deepcopy(cls._global_cache)
 
     @classmethod
     def load_config(cls, force_reload: bool = False) -> dict[str, dict]:
         """Sync accessor used by the scheduler. Returns the cached snapshot.
 
-        ``force_reload`` is accepted for backwards compatibility but only
-        surfaces already-loaded cache — callers wanting fresh data must
-        ``await refresh_global_cache()`` first.
+        Returns a reference to the cache for performance. Callers MUST NOT
+        mutate the returned dictionary.
         """
         if not cls._global_cache_loaded and not cls._global_cache:
-            # Cold-path fallback. The async bootstrap runs during app startup
-            # so this only fires in tests / misconfigurations.
-            cls._global_cache = copy.deepcopy(DEFAULT_JOBS_CONFIG)
-        return copy.deepcopy(cls._global_cache)
+            # Cold-path fallback.
+            return DEFAULT_JOBS_CONFIG
+        return cls._global_cache
 
     @classmethod
     async def save_global_config(
@@ -207,8 +225,12 @@ class JobManager:
                     row.updated_by = updated_by
 
             await db.commit()
+            # If we updated the global status, update the direct cache immediately
+            if "SYSTEM_GLOBAL_STATUS" in updates:
+                new_status = str(updates["SYSTEM_GLOBAL_STATUS"].get("status", "RUN")).upper()
+                cls._direct_status_cache = (new_status, time.monotonic())
 
-        return await cls.refresh_global_cache()
+        return await cls.refresh_global_cache(force=True)
 
     # ────────────────────────────────────────────────────────────────
     # Freelancer pipeline-level status (existing model)
@@ -216,16 +238,49 @@ class JobManager:
 
     @classmethod
     async def get_freelancer_production_status(cls, user_id: int) -> str:
+        """Returns 'RUN' or 'HOLD' for a specific freelancer, with TTL caching."""
+        now = time.monotonic()
+        cached = cls._freelancer_status_cache.get(user_id)
+        if cached and (now - cached[1]) < cls._FREELANCER_TTL:
+            return cached[0]
+
         from sqlalchemy import select
         from app.core.database import get_session_maker
         from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
 
+        try:
+            async with get_session_maker()() as db:
+                res = await db.execute(
+                    select(FreelancerPipelineConfig.production_status)
+                    .where(FreelancerPipelineConfig.user_id == user_id)
+                )
+                status = (res.scalar() or "RUN").upper()
+                cls._freelancer_status_cache[user_id] = (status, now)
+                return status
+        except Exception as e:
+            logger.warning(f"Failed to fetch production status for user {user_id}: {e}")
+            return "RUN"
+
+    @classmethod
+    async def set_freelancer_production_status(cls, user_id: int, status: str) -> dict:
+        from sqlalchemy.dialects.postgresql import insert
+        from app.core.database import get_session_maker
+        from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
+
+        normalized = status.upper()
         async with get_session_maker()() as db:
-            res = await db.execute(
-                select(FreelancerPipelineConfig.production_status)
-                .where(FreelancerPipelineConfig.user_id == user_id)
+            stmt = (
+                insert(FreelancerPipelineConfig)
+                .values(user_id=user_id, production_status=normalized)
+                .on_conflict_do_update(
+                    index_elements=["user_id"],
+                    set_={"production_status": normalized},
+                )
             )
-            return (res.scalar() or "RUN").upper()
+            await db.execute(stmt)
+            await db.commit()
+        cls._freelancer_status_cache[user_id] = (normalized, time.monotonic())
+        return {"user_id": user_id, "production_status": normalized}
 
     @classmethod
     async def ensure_freelancer_config(cls, user_id: int) -> None:
@@ -271,36 +326,38 @@ class JobManager:
     async def get_freelancer_job_overrides(
         cls, user_id: int, use_cache: bool = True
     ) -> dict[str, str]:
-        """Return ``{job_id: 'RUN'|'HOLD'}`` for the given user."""
+        """Return ``{job_id: 'RUN'|'HOLD'}`` for the given user, with TTL caching."""
         now = time.monotonic()
         if use_cache:
-            cached_at = cls._freelancer_cache_at.get(user_id, 0)
-            if now - cached_at < cls._FREELANCER_CACHE_TTL and user_id in cls._freelancer_cache:
-                return dict(cls._freelancer_cache[user_id])
+            cached = cls._freelancer_overrides_cache.get(user_id)
+            if cached and (now - cached[1]) < cls._FREELANCER_TTL:
+                return dict(cached[0])
 
         from sqlalchemy import select
         from app.core.database import get_session_maker
         from app.models.freelancer_job_config import FreelancerJobConfig
 
-        async with get_session_maker()() as db:
-            res = await db.execute(
-                select(FreelancerJobConfig.job_id, FreelancerJobConfig.status)
-                .where(FreelancerJobConfig.user_id == user_id)
-            )
-            overrides = {row[0]: (row[1] or "RUN").upper() for row in res.all()}
-
-        cls._freelancer_cache[user_id] = overrides
-        cls._freelancer_cache_at[user_id] = now
-        return dict(overrides)
+        try:
+            async with get_session_maker()() as db:
+                res = await db.execute(
+                    select(FreelancerJobConfig.job_id, FreelancerJobConfig.status)
+                    .where(FreelancerJobConfig.user_id == user_id)
+                )
+                overrides = {row[0]: (row[1] or "RUN").upper() for row in res.all()}
+                cls._freelancer_overrides_cache[user_id] = (overrides, now)
+                return dict(overrides)
+        except Exception as e:
+            logger.warning(f"Failed to fetch job overrides for user {user_id}: {e}")
+            return {}
 
     @classmethod
     def invalidate_freelancer_cache(cls, user_id: Optional[int] = None) -> None:
         if user_id is None:
-            cls._freelancer_cache.clear()
-            cls._freelancer_cache_at.clear()
+            cls._freelancer_status_cache.clear()
+            cls._freelancer_overrides_cache.clear()
         else:
-            cls._freelancer_cache.pop(user_id, None)
-            cls._freelancer_cache_at.pop(user_id, None)
+            cls._freelancer_status_cache.pop(user_id, None)
+            cls._freelancer_overrides_cache.pop(user_id, None)
 
     @classmethod
     async def set_freelancer_job_override(
@@ -342,9 +399,53 @@ class JobManager:
     # ────────────────────────────────────────────────────────────────
 
     @classmethod
+    def is_global_active(cls) -> bool:
+        """Returns True if the global pipeline kill-switch is set to RUN.
+        
+        Uses the shared 10s TTL cache. For near-real-time checks in tasks,
+        use ``await is_global_active_direct()``.
+        """
+        cfg = cls.load_config().get("SYSTEM_GLOBAL_STATUS", {})
+        return str(cfg.get("status", "RUN")).upper() == "RUN"
+
+    @classmethod
+    async def is_global_active_direct(cls) -> bool:
+        """Fast-path check that hits the DB directly with a very short TTL (2s).
+        
+        This satisfies the requirement to recover quickly from 'HOLD' without
+        waiting for the full 10s cache refresh or reloading the entire config.
+        """
+        now = time.monotonic()
+        if (now - cls._direct_status_cache[1]) < cls._DIRECT_TTL:
+            return cls._direct_status_cache[0] == "RUN"
+
+        from sqlalchemy import select, text
+        from app.core.database import get_session_maker
+        from app.models.global_job_config import GlobalJobConfig
+
+        try:
+            import asyncio
+            async with get_session_maker()() as db:
+                async def _fetch():
+                    # Targeted single-row fetch
+                    res = await db.execute(
+                        select(GlobalJobConfig.status)
+                        .where(GlobalJobConfig.job_id == "SYSTEM_GLOBAL_STATUS")
+                    )
+                    return (res.scalar() or "RUN").upper()
+
+                status = await asyncio.wait_for(_fetch(), timeout=2.0)
+                cls._direct_status_cache = (status, now)
+                return status == "RUN"
+        except (asyncio.TimeoutError, Exception) as e:
+            if not isinstance(e, asyncio.TimeoutError):
+                logger.warning(f"Direct global status check failed: {e}")
+            return cls.is_global_active()
+
+    @classmethod
     def is_job_active(cls, job_id: str, ignore_global_hold: bool = False) -> bool:
         """Sync gate — global PRODUCTION + global job status only."""
-        if not ignore_global_hold and get_production_status() == "HOLD":
+        if not ignore_global_hold and not cls.is_global_active():
             return False
         cfg = cls.load_config().get(job_id, {})
         return str(cfg.get("status", "RUN")).upper() == "RUN"
@@ -359,7 +460,7 @@ class JobManager:
         """Full precedence gate used by every pipeline entry point.
 
         Precedence (first HOLD wins):
-          1. Global PRODUCTION_STATUS = HOLD → block (daily + manual).
+          1. Global SYSTEM_GLOBAL_STATUS = HOLD → block (daily + manual).
           2. Global job status = HOLD → block (daily + manual).
           3. Freelancer pipeline production_status = HOLD + daily run → block.
              (Manual triggers bypass freelancer pipeline HOLD so the user
@@ -367,7 +468,7 @@ class JobManager:
           4. Per-freelancer job override = HOLD → block (daily + manual).
              The freelancer has explicitly silenced that job for themselves.
         """
-        if get_production_status() == "HOLD":
+        if not cls.is_global_active():
             return False
 
         cfg = cls.load_config().get(job_id, {})

@@ -85,8 +85,10 @@ def invalidate(user_id: int, job_id: Optional[str] = None) -> None:
         for key in list(_CACHE.keys()):
             if key[0] == user_id:
                 _CACHE.pop(key, None)
+        _USER_PREF_CACHE.pop(user_id, None)
         return
     _CACHE.pop((user_id, _normalize_job_id(job_id)), None)
+    _USER_PREF_CACHE.pop(user_id, None)
 
 
 async def is_stage_notification_enabled(
@@ -135,28 +137,44 @@ async def is_stage_notification_enabled(
     return enabled
 
 
+# user_id -> (preferences_dict, monotonic_at)
+_USER_PREF_CACHE: dict[int, tuple[dict[str, bool], float]] = {}
+_USER_PREF_TTL = 30.0  # seconds
+
+
 async def get_user_preferences(user_id: int) -> dict[str, bool]:
     """Return ``{job_id: enabled}`` for one user, with defaults filled in.
 
     Used by the API ``GET /pipeline/my-notification-config`` endpoint so
     the Scheduler page can render the toggles. Always returns an entry
-    for every governed stage (default True) so the UI doesn't need to
-    know about the opt-out semantics.
+    for every governed stage (default True).
     """
+    now = time.monotonic()
+    if user_id in _USER_PREF_CACHE:
+        cached, at = _USER_PREF_CACHE[user_id]
+        if now - at < _USER_PREF_TTL:
+            return dict(cached)
+
     out: dict[str, bool] = {job_id: True for job_id in GOVERNED_STAGES}
     if not user_id:
         return out
 
-    session_maker = get_session_maker()
-    async with session_maker() as db:
-        res = await db.execute(
-            select(
-                FreelancerNotificationConfig.job_id,
-                FreelancerNotificationConfig.enabled,
-            ).where(FreelancerNotificationConfig.user_id == user_id)
-        )
-        for row in res.all():
-            out[row[0]] = bool(row[1])
+    try:
+        session_maker = get_session_maker()
+        async with session_maker() as db:
+            res = await db.execute(
+                select(
+                    FreelancerNotificationConfig.job_id,
+                    FreelancerNotificationConfig.enabled,
+                ).where(FreelancerNotificationConfig.user_id == user_id)
+            )
+            for row in res.all():
+                out[row[0]] = bool(row[1])
+        
+        _USER_PREF_CACHE[user_id] = (out, now)
+    except Exception as e:
+        logger.warning(f"Failed to fetch user preferences for {user_id}: {e}")
+        
     return out
 
 

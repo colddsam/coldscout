@@ -19,8 +19,10 @@ from app.api import deps
 from app.core import security
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.user import Token, UserOut, SupabaseUserSync
+from app.models.profile import FreelancerProfile
+from app.schemas.user import Token, TokenPayload, UserOut, SupabaseUserSync
 from app.config import get_settings
+from app.api.deps import _user_cache
 
 router = APIRouter()
 settings = get_settings()
@@ -107,7 +109,26 @@ async def sync_supabase_user(
     if updated:
         await db.commit()
         await db.refresh(current_user)
+        if current_user.supabase_uid:
+            _user_cache.invalidate(current_user.supabase_uid)
         logger.info(f"Updated user {current_user.email} from authenticated sync")
+
+    # Persistence of Google tokens if user is a freelancer
+    if current_user.role == "freelancer" and user_data.provider_refresh_token:
+        result = await db.execute(
+            select(FreelancerProfile).where(FreelancerProfile.user_id == current_user.id)
+        )
+        profile = result.scalars().first()
+        if profile:
+            creds = profile.google_calendar_credentials or {}
+            # Update tokens while preserving other fields if any
+            creds.update({
+                "refresh_token": user_data.provider_refresh_token,
+                "token": user_data.provider_token,
+            })
+            profile.google_calendar_credentials = creds
+            await db.commit()
+            logger.info(f"Updated Google Calendar tokens for freelancer {current_user.email}")
 
     return current_user
 

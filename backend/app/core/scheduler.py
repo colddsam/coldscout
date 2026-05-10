@@ -14,7 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
-from app.config import get_settings, get_production_status
+from app.config import get_settings
 from app.core.job_manager import job_manager
 
 settings = get_settings()
@@ -74,7 +74,7 @@ def _trigger_signature(trigger) -> tuple:
 
 async def sync_scheduler_config():
     """Heartbeat: refresh DB cache, then reconcile live APScheduler state."""
-    config = await job_manager.refresh_global_cache()
+    config = await job_manager.refresh_global_cache(force=True)
 
     for job_id, cfg in config.items():
         job = scheduler.get_job(job_id)
@@ -120,9 +120,10 @@ async def setup_scheduler():
     from app.tasks.billing_tasks import check_subscription_expiry
     from app.tasks.app_update_check import check_app_update
     from app.tasks.reminders import send_booking_reminders
+    from app.tasks.booking_lifecycle import close_past_bookings
 
     # Prime the DB cache before touching APScheduler.
-    config = await job_manager.refresh_global_cache()
+    config = await job_manager.refresh_global_cache(force=True)
 
     async def _dispatch_discovery():
         await dispatch_stage_for_all_freelancers(run_discovery_stage, "discovery")
@@ -210,10 +211,19 @@ async def setup_scheduler():
     )
     logger.info("   🟢 app_update_check: interval 15 min (always active)")
 
+    scheduler.add_job(
+        close_past_bookings,
+        IntervalTrigger(hours=1),
+        id="booking_lifecycle",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    logger.info("   🟢 booking_lifecycle: interval 1 hr (always active)")
+
     scheduler.start()
 
-    if get_production_status() == "HOLD":
-        logger.warning("🚨 PRODUCTION_STATUS is HOLD. All tasks are initialized in a PAUSED state.")
+    if not job_manager.is_global_active():
+        logger.warning("🚨 Global Pipeline status is HOLD. All tasks are initialized in a PAUSED state.")
     else:
         logger.info("✅ APScheduler started with DB-backed job configuration.")
 

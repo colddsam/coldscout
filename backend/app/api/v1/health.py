@@ -10,7 +10,8 @@ scheduler, and production status.
 
 from fastapi import APIRouter, Depends
 from loguru import logger
-from app.config import get_settings, get_production_status
+from app.config import get_settings
+from app.core.job_manager import job_manager
 from app.core.scheduler import scheduler
 
 class HealthCheckRouter(APIRouter):
@@ -83,7 +84,7 @@ async def health_check(
         "environment": settings.APP_ENV,
         "last_pipeline_status": last_status,
         "scheduler_running": scheduler.running,
-        "production_status": get_production_status() == "RUN",
+        "production_status": await job_manager.is_global_active_direct(),
         "database_healthy": db_healthy,
         "redis_healthy": redis_healthy,
     }

@@ -108,7 +108,6 @@ async def _queue_worker() -> None:
     """
     global _worker_running
     from app.core.job_manager import job_manager
-    from app.config import get_production_status
     from app.core.database import get_session_maker
     from app.modules.notifications import events as notif_events
 
@@ -142,8 +141,7 @@ async def _queue_worker() -> None:
                 # reporting "completed". Manual triggers surface the same
                 # skip reason so the Pipeline Log UI clearly shows the
                 # paused state.
-                global_status = get_production_status()
-                if global_status == "HOLD":
+                if not job_manager.is_global_active():
                     # Surface as 'skipped' (not 'failed') — the pipeline
                     # is intentionally paused, this isn't an exception.
                     await mark_running(user_id, stage_name)

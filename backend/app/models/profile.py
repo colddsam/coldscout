@@ -166,6 +166,16 @@ class FreelancerProfile(Base):
     google_calendar_credentials = Column(JSON, nullable=True)
     """OAuth tokens for Google Calendar sync."""
 
+    meeting_link = Column(String(500), nullable=True)
+    """Permanent meeting link (e.g. Google Meet, Zoom) for automated delivery."""
+
+    @property
+    def is_calendar_connected(self) -> bool:
+        """Checks if a Google Calendar refresh token is present."""
+        if not self.google_calendar_credentials:
+            return False
+        return bool(self.google_calendar_credentials.get("refresh_token"))
+
     # Visibility
     is_public = Column(Boolean, default=True, nullable=False)
     show_rates = Column(Boolean, default=True, nullable=False)

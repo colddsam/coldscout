@@ -83,33 +83,29 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 
 /**
- * Signs in a user with OAuth provider.
+ * Signs in a user using an OAuth provider (Google, GitHub, etc.).
+ * 
+ * For Google, we request additional scopes for Calendar access
+ * and ensure 'offline' access to receive a refresh token.
  *
- * @param provider - The OAuth provider to use
- * @param role - The user's intended role (stored in user metadata)
- * @returns Promise with auth data or error
+ * @param provider - The OAuth provider to use.
+ * @param role - The role to assign to the user.
+ * @returns The Supabase Auth response.
  */
-export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole = 'freelancer') => {
-  // Store the role via the tab-aware adapter so it round-trips through the
-  // OAuth redirect (sessionStorage for per-tab isolation, localStorage
-  // mirror so a full-page navigation doesn't lose it).
+export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole) => {
+  // Store the intended role in local storage so it persists through the redirect.
+  // The AuthCallback page will use this to sync the user to the correct table.
   setAuthItem('llp_pending_role', role);
-
-  const isNative = Capacitor.isNativePlatform();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: isNative ? 'com.coldscout.app://auth/callback' : `${APP_URL}/auth/callback`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-      skipBrowserRedirect: isNative,
+      redirectTo: `${APP_URL}/auth/callback`,
+      skipBrowserRedirect: Capacitor.isNativePlatform(),
     },
   });
 
-  if (isNative && data?.url) {
+  if (Capacitor.isNativePlatform() && data?.url) {
     // Use '_system' to open in the device's default browser (Chrome/Safari)
     // instead of an in-app Custom Tab / SFSafariViewController.
     // Google blocks OAuth from embedded/Custom Tab user agents with

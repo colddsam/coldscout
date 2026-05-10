@@ -228,14 +228,15 @@ async def hold_pipeline():
     best-effort persistence mechanism for local development.
     """
     try:
-        from app.config import set_env_variable
-        set_env_variable("PRODUCTION_STATUS", "HOLD")
+        from app.core.job_manager import job_manager
+        # Update the special SYSTEM_GLOBAL_STATUS record
+        await job_manager.save_global_config({"SYSTEM_GLOBAL_STATUS": {"status": "HOLD"}})
 
         for job in scheduler.get_jobs():
             if job.id != "scheduler_sync":
                 scheduler.pause_job(job.id)
 
-        logger.info("🚨 Pipeline HELD — all jobs paused immediately via API.")
+        logger.info("🚨 Pipeline HELD — all jobs paused immediately via DB-backed status.")
         return {"status": "held"}
     except Exception as e:
         logger.error(f"Failed to hold pipeline: {e}")
@@ -250,15 +251,15 @@ async def resume_pipeline():
     APScheduler jobs that are configured as RUN in jobs_config.json.
     """
     try:
-        from app.config import set_env_variable
         from app.core.job_manager import job_manager
-        set_env_variable("PRODUCTION_STATUS", "RUN")
+        # Update the special SYSTEM_GLOBAL_STATUS record
+        await job_manager.save_global_config({"SYSTEM_GLOBAL_STATUS": {"status": "RUN"}})
 
         for job in scheduler.get_jobs():
             if job.id != "scheduler_sync" and job_manager.is_job_active(job.id):
                 scheduler.resume_job(job.id)
 
-        logger.info("✅ Pipeline RESUMED — active jobs resumed immediately via API.")
+        logger.info("✅ Pipeline RESUMED — active jobs resumed immediately via DB-backed status.")
         return {"status": "running"}
     except Exception as e:
         logger.error(f"Failed to resume pipeline: {e}")
@@ -271,7 +272,7 @@ from app.core.job_manager import job_manager
 @router.get("/pipeline/jobs_config")
 async def get_jobs_config():
     """Returns the authoritative DB-backed global job configuration."""
-    return await job_manager.refresh_global_cache()
+    return job_manager.load_config()
 
 
 @router.patch("/pipeline/jobs_config")
@@ -285,12 +286,10 @@ async def update_jobs_config(
     global ``PRODUCTION_STATUS`` is HOLD. Resume production first, then
     edit — this mirrors the UX contract requested by operators.
     """
-    from app.config import get_production_status
-
-    if get_production_status() == "HOLD":
+    if not await job_manager.is_global_active_direct():
         raise HTTPException(
             status_code=409,
-            detail="PRODUCTION_STATUS is HOLD. Resume the pipeline before editing the global job configuration.",
+            detail="Global pipeline status is HOLD. Resume the pipeline before editing the global job configuration.",
         )
 
     current_config = job_manager.load_config()
@@ -382,12 +381,10 @@ def _merge_effective(
 
 @router.get("/pipeline/my-job-config")
 async def get_my_job_config(current_user: User = Depends(get_current_user)):
-    """Freelancer-facing merged view of every job with effective status."""
-    from app.config import get_production_status as _prod
-
-    global_config = await job_manager.refresh_global_cache()
+    global_config = job_manager.load_config()
     overrides = await job_manager.get_freelancer_job_overrides(current_user.id, use_cache=False)
-    prod = _prod()
+    is_active = await job_manager.is_global_active_direct()
+    prod = "RUN" if is_active else "HOLD"
 
     return {
         "user_id": current_user.id,
@@ -406,12 +403,10 @@ async def update_my_job_config(
     Rejects attempts to override a job that is globally HOLD (nothing to
     override — the job is off for everyone) or while production is HOLD.
     """
-    from app.config import get_production_status as _prod
-
-    if _prod() == "HOLD":
+    if not await job_manager.is_global_active_direct():
         raise HTTPException(
             status_code=409,
-            detail="PRODUCTION_STATUS is HOLD. Wait for the administrator to resume the pipeline.",
+            detail="Global pipeline status is HOLD. Wait for the administrator to resume the pipeline.",
         )
 
     if current_user.role != "freelancer" and not current_user.is_superuser:
@@ -436,10 +431,13 @@ async def update_my_job_config(
         await job_manager.set_freelancer_job_override(current_user.id, job_id, status)
 
     overrides = await job_manager.get_freelancer_job_overrides(current_user.id, use_cache=False)
+    is_active = await job_manager.is_global_active_direct()
+    prod = "RUN" if is_active else "HOLD"
+
     return {
         "user_id": current_user.id,
-        "global_production_status": _prod(),
-        "jobs": _merge_effective(global_config, overrides, _prod()),
+        "global_production_status": prod,
+        "jobs": _merge_effective(global_config, overrides, prod),
     }
 
 
@@ -449,15 +447,15 @@ async def update_my_job_config(
 )
 async def admin_get_freelancer_job_config(target_user_id: int):
     """Superuser view of a specific freelancer's overrides."""
-    from app.config import get_production_status as _prod
-
-    global_config = await job_manager.refresh_global_cache()
+    global_config = job_manager.load_config()
     overrides = await job_manager.get_freelancer_job_overrides(target_user_id, use_cache=False)
+    is_active = await job_manager.is_global_active_direct()
+    prod = "RUN" if is_active else "HOLD"
 
     return {
         "user_id": target_user_id,
-        "global_production_status": _prod(),
-        "jobs": _merge_effective(global_config, overrides, _prod()),
+        "global_production_status": prod,
+        "jobs": _merge_effective(global_config, overrides, prod),
     }
 
 
@@ -486,10 +484,13 @@ async def admin_update_freelancer_job_config(
         await job_manager.set_freelancer_job_override(target_user_id, job_id, status)
 
     overrides = await job_manager.get_freelancer_job_overrides(target_user_id, use_cache=False)
+    is_active = await job_manager.is_global_active_direct()
+    prod = "RUN" if is_active else "HOLD"
+
     return {
         "user_id": target_user_id,
-        "global_production_status": _prod(),
-        "jobs": _merge_effective(global_config, overrides, _prod()),
+        "global_production_status": prod,
+        "jobs": _merge_effective(global_config, overrides, prod),
     }
 
 
@@ -585,14 +586,13 @@ async def get_freelancer_status(current_user: User = Depends(get_current_user)):
     Returns the current freelancer's pipeline production status.
     Superusers can see global + all freelancer statuses.
     """
-    from app.config import get_production_status as get_global_status
-
     user_status = await job_manager.get_freelancer_production_status(current_user.id)
+    is_global_active = await job_manager.is_global_active_direct()
 
     result = {
         "user_id": current_user.id,
         "production_status": user_status,
-        "global_production_status": get_global_status(),
+        "global_production_status": "RUN" if is_global_active else "HOLD",
     }
 
     # Superusers also get a list of all freelancer configs
@@ -630,22 +630,9 @@ async def update_freelancer_status(
         raise HTTPException(status_code=422, detail="production_status must be 'RUN' or 'HOLD'")
 
     target_user_id = current_user.id
-
-    async with get_session_maker()() as db:
-        result = await db.execute(
-            select(FreelancerPipelineConfig)
-            .where(FreelancerPipelineConfig.user_id == target_user_id)
-        )
-        config = result.scalars().first()
-        if not config:
-            config = FreelancerPipelineConfig(user_id=target_user_id, production_status=status_val)
-            db.add(config)
-        else:
-            config.production_status = status_val
-        await db.commit()
-
+    result = await job_manager.set_freelancer_production_status(target_user_id, status_val)
     logger.info(f"Freelancer {target_user_id} production_status set to {status_val}")
-    return {"user_id": target_user_id, "production_status": status_val}
+    return result
 
 
 @router.patch("/pipeline/freelancer-status/{target_user_id}", dependencies=[Depends(get_current_active_superuser)])
@@ -661,18 +648,6 @@ async def update_freelancer_status_admin(
     if status_val not in ("RUN", "HOLD"):
         raise HTTPException(status_code=422, detail="production_status must be 'RUN' or 'HOLD'")
 
-    async with get_session_maker()() as db:
-        result = await db.execute(
-            select(FreelancerPipelineConfig)
-            .where(FreelancerPipelineConfig.user_id == target_user_id)
-        )
-        config = result.scalars().first()
-        if not config:
-            config = FreelancerPipelineConfig(user_id=target_user_id, production_status=status_val)
-            db.add(config)
-        else:
-            config.production_status = status_val
-        await db.commit()
-
+    result = await job_manager.set_freelancer_production_status(target_user_id, status_val)
     logger.info(f"Admin set freelancer {target_user_id} production_status to {status_val}")
-    return {"user_id": target_user_id, "production_status": status_val}
+    return result

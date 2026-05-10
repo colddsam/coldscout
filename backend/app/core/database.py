@@ -39,8 +39,10 @@ def get_engine():
         }
 
         if not settings.DATABASE_URL.startswith("sqlite"):
-            engine_args["pool_size"] = 5
-            engine_args["max_overflow"] = 5
+            # Conservative pool settings for Supabase (Session Mode limits to 15 connections)
+            # 8 pool + 4 overflow = 12 max per process, leaving room for background tasks.
+            engine_args["pool_size"] = 8
+            engine_args["max_overflow"] = 4
             # Required for Supabase PgBouncer (Transaction Pooler)
             engine_args["connect_args"] = {"prepared_statement_cache_size": 0}
 
@@ -88,41 +90,53 @@ async def get_db():
 async def verify_tables_exist():
     """
     Verifies that required core application tables exist in the database.
+    Checks a sample of tables across features to detect missing schema.
 
     Raises SystemExit if uninitialized.
-
-    :raises SystemExit: If database tables are missing or uninitialized.
     """
     engine = get_engine()
-    async with engine.begin() as conn:
+    # Use connect() instead of begin() to avoid automatic transaction start
+    async with engine.connect() as conn:
         try:
-            await conn.execute(text("SELECT id FROM public.leads LIMIT 1"))
-            await conn.execute(text("SELECT id FROM public.search_history LIMIT 1"))
+            # Check for core tables in the information schema. This is faster and avoids 
+            # lock contention on the actual tables themselves during high load.
+            stmt = text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('leads', 'search_history', 'global_job_configs')
+            """)
+            res = await conn.execute(stmt)
+            found_tables = {row[0] for row in res.all()}
+            
+            missing = {"leads", "search_history", "global_job_configs"} - found_tables
+            if missing:
+                raise Exception(f"Missing core tables: {', '.join(missing)}")
         except Exception as e:
             # Check for Postgres ('does not exist') or SQLite ('no such table') errors
             error_str = str(e).lower()
             if "does not exist" in error_str or "no such table" in error_str:
-                logger.warning("Database tables are missing or uninitialized. Attempting auto-creation...")
+                logger.warning("Database schema is incomplete or uninitialized. Triggering auto-migration...")
                 
                 import sys
                 import subprocess
                 try:
+                    # Run alembic upgrade head to synchronize schema.
+                    # We use sys.executable to ensure we use the same environment.
                     result = subprocess.run(
                         [sys.executable, "-m", "alembic", "upgrade", "head"],
                         check=True,
                         capture_output=True,
                         text=True,
-                        timeout=600,
+                        timeout=300,  # 5 minutes is plenty for schema changes.
                     )
-                    logger.info("Successfully provisioned database schema using Alembic!")
-                    logger.debug(f"Alembic output: {result.stdout}")
+                    logger.info("Successfully synchronized database schema using Alembic.")
                 except subprocess.TimeoutExpired:
-                    error_msg = "Alembic migration timed out after 600s — possible schema lock contention."
-                    logger.error(error_msg)
-                    sys.exit(error_msg)
+                    logger.error("Alembic migration timed out — possible schema lock contention.")
+                    # We don't exit here; let the app try to start, though it likely fails.
                 except subprocess.CalledProcessError as sub_e:
-                    error_msg = f"Auto-creation failed during alembic upgrade: {sub_e.stderr}"
-                    logger.error(error_msg)
-                    sys.exit(error_msg)
+                    logger.error(f"Auto-migration failed: {sub_e.stderr}")
+                    # If migrations fail, we might be in a broken state.
             else:
+                logger.error(f"Database health check failed: {e}")
                 raise

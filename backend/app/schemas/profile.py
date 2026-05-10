@@ -209,14 +209,15 @@ class FreelancerProfileUpdate(BaseModel):
     include_profile_signature: Optional[bool] = None
     scheduling_preferences: Optional[dict] = None
     booking_confirmation_mode: Optional[str] = None
+    meeting_link: Optional[str] = Field(None, max_length=500)
 
-    @field_validator("booking_url")
+    @field_validator("booking_url", "meeting_link")
     @classmethod
-    def validate_booking_url(cls, v: Optional[str]) -> Optional[str]:
+    def validate_urls(cls, v: Optional[str]) -> Optional[str]:
         if v is None or v == "":
             return v
         if not v.startswith(("https://", "http://")):
-            raise ValueError("Booking URL must start with https:// or http://")
+            raise ValueError("URL must start with https:// or http://")
         return v
 
     @field_validator("availability")
@@ -254,7 +255,8 @@ class FreelancerProfileOut(BaseModel):
     include_profile_signature: bool = True
     scheduling_preferences: Optional[dict] = None
     booking_confirmation_mode: Optional[str] = None
-    google_calendar_credentials: Optional[dict] = None
+    is_calendar_connected: bool = False
+    meeting_link: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

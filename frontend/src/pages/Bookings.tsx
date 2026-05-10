@@ -4,13 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import {
   Calendar, Clock, Mail, Loader2, CheckCircle2, XCircle, ExternalLink, Plus,
-  Link2, Copy, Trash2, ToggleLeft, ToggleRight
+  Link2, Copy, Trash2, ToggleLeft, ToggleRight, Globe
 } from 'lucide-react';
 import {
   getMyBookings, approveBooking, rejectBooking, cancelBooking, createManualBlock,
   getMyEventTypes, createEventType, updateEventType, deleteEventType,
+  createInstantMeeting, getMyFreelancerProfile
 } from '../lib/api';
 import type { EventTypeItem } from '../lib/api';
+import AvailabilitySettings from '../components/bookings/AvailabilitySettings';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -23,7 +25,7 @@ interface Booking {
   start_time: string;
   end_time: string;
   duration_minutes: number;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
   booking_type: 'standard' | 'custom_link' | 'instant' | 'custom_request' | 'manual_block';
   proposed_times?: string;
   google_meet_link?: string;
@@ -34,7 +36,7 @@ const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 
 export default function Bookings() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'appointments' | 'event-types'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'event-types' | 'availability'>('appointments');
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
 
   // Block Time modal state
@@ -43,6 +45,14 @@ export default function Bookings() {
   const [blockDate, setBlockDate] = useState('');
   const [blockStart, setBlockStart] = useState('');
   const [blockEnd, setBlockEnd] = useState('');
+
+  // Instant Meeting modal state
+  const [isInstantModalOpen, setIsInstantModalOpen] = useState(false);
+  const [imGuestName, setIMGuestName] = useState('');
+  const [imGuestEmail, setIMGuestEmail] = useState('');
+  const [imTitle, setIMTitle] = useState('Discovery Call');
+  const [imDesc, setIMDesc] = useState('');
+  const [imDuration, setIMDuration] = useState(30);
 
   // Event Type modal state
   const [isETModalOpen, setIsETModalOpen] = useState(false);
@@ -106,6 +116,31 @@ export default function Bookings() {
     onError: (err: Error) => toast.error(err.message || 'Failed to block time')
   });
 
+  const createInstantMutation = useMutation({
+    mutationFn: () => {
+      if (!imGuestName.trim() || !imGuestEmail.trim() || !imTitle.trim()) {
+        throw new Error("Guest name, email, and title are required");
+      }
+      return createInstantMeeting({
+        guest_name: imGuestName.trim(),
+        guest_email: imGuestEmail.trim(),
+        title: imTitle.trim(),
+        description: imDesc.trim() || undefined,
+        duration_minutes: imDuration,
+      });
+    },
+    onSuccess: (data) => {
+      toast.success('Instant meeting created!');
+      if (data.meeting_link) {
+        toast.success(`Meeting Link: ${data.meeting_link}`, { duration: 6000 });
+      }
+      setIsInstantModalOpen(false);
+      setIMGuestName(''); setIMGuestEmail(''); setIMTitle('Discovery Call'); setIMDesc(''); setIMDuration(30);
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (err: Error) => toast.error(err.message || 'Failed to create instant meeting'),
+  });
+
   const filteredBookings = (bookings || []).filter((b: Booking) => {
     if (filter === 'all') return true;
     return b.status === filter;
@@ -115,6 +150,11 @@ export default function Bookings() {
   const { data: etData, isLoading: isETLoading } = useQuery({
     queryKey: ['event-types'],
     queryFn: () => getMyEventTypes(),
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => getMyFreelancerProfile(),
   });
 
   const eventTypes: EventTypeItem[] = Array.isArray(etData?.event_types) ? etData.event_types : [];
@@ -177,12 +217,25 @@ export default function Bookings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Bookings</h1>
-          <p className="text-sm text-gray-400 mt-1">Manage meetings and event types.</p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-sm text-gray-400">Manage meetings and event types.</p>
+            {profile?.scheduling_preferences?.timezone && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-blue-400 font-medium">
+                <Globe className="w-3 h-3" />
+                {profile.scheduling_preferences.timezone}
+              </div>
+            )}
+          </div>
         </div>
         {activeTab === 'appointments' ? (
-          <Button onClick={() => setIsBlockModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Block Time
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsInstantModalOpen(true)} className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" /> Instant Meeting
+            </Button>
+            <Button onClick={() => setIsBlockModalOpen(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Block Time
+            </Button>
+          </div>
         ) : (
           <Button onClick={() => setIsETModalOpen(true)} className="flex items-center gap-2">
             <Plus className="w-4 h-4" /> New Event Type
@@ -191,31 +244,43 @@ export default function Bookings() {
       </div>
 
       {/* Top-level tabs: Appointments | Event Types */}
-      <div className="flex gap-2 border-b border-white/10 pb-4">
-        {(['appointments', 'event-types'] as const).map((tab) => (
+      <div className="flex gap-2 border-b border-white/10 pb-4 overflow-x-auto no-scrollbar">
+        {(['appointments', 'event-types', 'availability'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-lg capitalize whitespace-nowrap transition-colors ${
               activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            {tab === 'event-types' ? 'Event Types' : 'Appointments'}
+            {tab === 'event-types' ? 'Event Types' : tab === 'availability' ? 'Availability' : 'Appointments'}
           </button>
         ))}
       </div>
 
+      {activeTab === 'availability' && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
+          <Clock className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-200">
+            <p className="font-semibold">Notice Period Active</p>
+            <p className="opacity-80">A 1-hour notice period is automatically applied to all native bookings to prevent unexpected "instant" meetings.</p>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
-        {activeTab === 'appointments' ? (
+        {activeTab === 'appointments' && (
           <motion.div key="appointments" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Sub-tabs: all / pending / approved / cancelled */}
-            <div className="flex gap-2 mb-6">
-              {['all', 'pending', 'approved', 'cancelled'].map((tab) => (
+            <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+              {['all', 'pending', 'approved', 'cancelled', 'completed'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab as 'all' | 'pending' | 'approved' | 'cancelled')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize transition-colors ${
-                    filter === tab ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white hover:bg-white/5'
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize ${
+                    filter === tab
+                      ? 'bg-white/10 border-white/20 text-white'
+                      : 'bg-transparent border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/10'
                   }`}
                 >
                   {tab}
@@ -229,122 +294,137 @@ export default function Bookings() {
               <div className="py-20 text-center border border-white/5 rounded-xl bg-surface-2/50">
                 <Calendar className="w-10 h-10 text-white/20 mx-auto mb-3" />
                 <h3 className="text-white font-medium">No bookings found</h3>
-                <p className="text-sm text-gray-400 mt-1">You don't have any {filter !== 'all' ? filter : ''} bookings.</p>
+                <p className="text-sm text-gray-400 mt-1">When someone schedules a meeting, it will appear here.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredBookings.map((booking: Booking) => (
-                  <motion.div
-                    key={booking.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-surface border border-white/10 rounded-xl p-5 flex flex-col md:flex-row gap-6 md:items-center"
-                  >
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-medium text-white">{booking.guest_name}</h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
-                          booking.status === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                          'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}>
-                          {booking.status.toUpperCase()}
-                        </span>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                        {booking.booking_type !== 'custom_request' && (
-                          <>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4" />
-                              {format(new Date(booking.start_time), 'MMM d, yyyy')}
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="w-4 h-4" />
-                              {format(new Date(booking.start_time), 'h:mm a')} 
-                              {booking.booking_type !== 'manual_block' && ` (${booking.duration_minutes} min)`}
-                            </div>
-                          </>
-                        )}
-                        {booking.booking_type !== 'manual_block' && (
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="w-4 h-4" />
-                            <a href={`mailto:${booking.guest_email}`} className="hover:text-white transition-colors">{booking.guest_email}</a>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredBookings.map((booking: Booking) => {
+                  const isPast = new Date(booking.end_time) < new Date();
+                  const isClosed = booking.status === 'completed' || (isPast && booking.status === 'approved');
+
+                  return (
+                    <motion.div
+                      key={booking.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`bg-surface border rounded-xl p-5 relative overflow-hidden group ${
+                        isClosed ? 'border-white/5 bg-white/5 opacity-60' :
+                        booking.status === 'pending' ? 'border-yellow-500/20 bg-yellow-500/5' :
+                        booking.status === 'approved' ? 'border-green-500/20 bg-green-500/5' :
+                        'border-white/10'
+                      }`}
+                    >
+                      {/* Status indicator bar */}
+                      <div className={`absolute top-0 left-0 bottom-0 w-1 ${
+                        isClosed ? 'bg-gray-500/50' :
+                        booking.status === 'pending' ? 'bg-yellow-500/50' :
+                        booking.status === 'approved' ? 'bg-green-500/50' :
+                        booking.status === 'cancelled' ? 'bg-red-500/50' :
+                        'bg-white/10'
+                      }`} />
+
+                      <div className="flex items-start justify-between">
+                        <div className="flex gap-3">
+                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white font-bold shrink-0">
+                            {booking.guest_name?.[0]?.toUpperCase() || '?'}
                           </div>
-                        )}
-                        {booking.booking_type === 'custom_request' && (
-                          <div className="flex items-center gap-1.5 text-accent">
-                            <Clock className="w-4 h-4" />
-                            Custom Request
+                          <div>
+                            <h3 className="text-white font-semibold flex items-center gap-2">
+                              {booking.guest_name}
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize font-medium ${
+                                isClosed ? 'bg-white/10 text-gray-400' :
+                                booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
+                                booking.status === 'approved' ? 'bg-green-500/20 text-green-500' :
+                                'bg-white/10 text-gray-400'
+                              }`}>
+                                {isClosed ? 'closed' : booking.status}
+                              </span>
+                            </h3>
+                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                              <Mail className="w-3 h-3" /> {booking.guest_email}
+                            </p>
                           </div>
-                        )}
+                        </div>
                         {booking.booking_type === 'manual_block' && (
-                          <div className="flex items-center gap-1.5 text-gray-500">
-                            <Calendar className="w-4 h-4" />
-                            Blocked Time
-                          </div>
+                          <span className="text-[10px] bg-white/10 text-white/50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <XCircle className="w-3 h-3" /> Block
+                          </span>
                         )}
                       </div>
 
-                      {booking.proposed_times && (
-                        <div className="text-sm text-accent bg-accent/10 p-3 rounded-lg border border-accent/20">
-                          <span className="font-medium mr-2">Proposed Times:</span>
-                          {booking.proposed_times}
+                      <div className="mt-4 grid grid-cols-2 gap-3 p-3 bg-black/40 rounded-lg border border-white/5">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Date</p>
+                          <p className="text-sm text-white font-medium flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            {format(new Date(booking.start_time), 'MMM d, yyyy')}
+                          </p>
                         </div>
-                      )}
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Time</p>
+                          <p className="text-sm text-white font-medium flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {format(new Date(booking.start_time), 'h:mm a')}
+                          </p>
+                        </div>
+                      </div>
 
                       {booking.guest_notes && (
-                        <div className="text-sm text-gray-300 bg-black/20 p-3 rounded-lg border border-white/5">
-                          <span className="text-gray-500 font-medium mr-2">Notes:</span>
-                          {booking.guest_notes}
+                        <div className="mt-3 p-3 bg-white/5 rounded-lg border border-white/5">
+                          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">Notes</p>
+                          <p className="text-xs text-gray-400 italic line-clamp-2">"{booking.guest_notes}"</p>
                         </div>
                       )}
-                      
-                      {booking.google_meet_link && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <a href={booking.google_meet_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300">
-                            Join Google Meet <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="flex items-center gap-2 md:flex-col md:w-32">
-                      {booking.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => approveMutation.mutate(booking.id)}
-                            disabled={approveMutation.isPending}
-                            className="flex-1 w-full bg-white text-black font-medium py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
-                          >
-                            <CheckCircle2 className="w-4 h-4" /> Approve
-                          </button>
-                          <button
-                            onClick={() => rejectMutation.mutate(booking.id)}
-                            disabled={rejectMutation.isPending}
-                            className="flex-1 w-full bg-surface-2 border border-white/10 text-white font-medium py-2 px-3 rounded-lg text-sm hover:bg-white/5 transition-colors flex items-center justify-center gap-1"
-                          >
-                            <XCircle className="w-4 h-4" /> Reject
-                          </button>
-                        </>
-                      )}
-                      {booking.status === 'approved' && (
-                        <button
-                          onClick={() => cancelMutation.mutate(booking.id)}
-                          disabled={cancelMutation.isPending}
-                          className="w-full bg-surface-2 border border-white/10 text-red-400 font-medium py-2 px-3 rounded-lg text-sm hover:bg-red-500/10 hover:border-red-500/20 transition-colors flex items-center justify-center gap-1"
+                      {booking.google_meet_link && booking.status === 'approved' && (
+                        <a 
+                          href={booking.google_meet_link} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg hover:bg-blue-500/20 transition-colors"
                         >
-                          Cancel
-                        </button>
+                          <ExternalLink className="w-3 h-3" /> Join Google Meet
+                        </a>
                       )}
-                    </div>
-                  </motion.div>
-                ))}
+
+                      <div className="mt-4 flex gap-2">
+                        {!isClosed && booking.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => approveMutation.mutate(booking.id)}
+                              disabled={approveMutation.isPending}
+                              className="flex-1 bg-white text-black font-medium py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                            </button>
+                            <button
+                              onClick={() => rejectMutation.mutate(booking.id)}
+                              disabled={rejectMutation.isPending}
+                              className="flex-1 bg-white/5 border border-white/10 text-white font-medium py-2 px-3 rounded-lg text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <XCircle className="w-3.5 h-3.5" /> Reject
+                            </button>
+                          </>
+                        )}
+                        {!isClosed && (booking.status === 'approved' || booking.booking_type === 'manual_block') && (
+                          <button
+                            onClick={() => cancelMutation.mutate(booking.id)}
+                            disabled={cancelMutation.isPending}
+                            className="w-full bg-surface-2 border border-white/10 text-red-400 font-medium py-2 px-3 rounded-lg text-sm hover:bg-red-500/10 hover:border-red-500/20 transition-colors flex items-center justify-center gap-1"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </motion.div>
-        ) : (
-          /* ── Event Types Tab ─────────────────────────────────────────── */
+        )}
+
+        {activeTab === 'event-types' && (
           <motion.div key="event-types" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {isETLoading ? (
               <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/50" /></div>
@@ -416,6 +496,19 @@ export default function Bookings() {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'availability' && (
+          <motion.div key="availability" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            {profile ? (
+              <AvailabilitySettings profile={profile} />
+            ) : (
+              <div className="py-20 flex flex-col items-center justify-center border border-white/5 rounded-xl bg-surface-2/50">
+                <Loader2 className="w-6 h-6 animate-spin text-white/50 mb-3" />
+                <p className="text-sm text-gray-400">Loading availability settings...</p>
               </div>
             )}
           </motion.div>
@@ -564,6 +657,89 @@ export default function Bookings() {
             </Button>
             <Button type="submit" loading={createETMutation.isPending}>
               Create Event Type
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Instant Meeting Modal */}
+      <Modal
+        open={isInstantModalOpen}
+        onClose={() => setIsInstantModalOpen(false)}
+        title="Instant Meeting"
+      >
+        <p className="text-sm text-white/70 mb-6">
+          Generate an immediate meeting link and invite a guest via email.
+        </p>
+        <form onSubmit={(e) => { e.preventDefault(); createInstantMutation.mutate(); }} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Guest Name *</label>
+              <input 
+                type="text" 
+                required 
+                value={imGuestName}
+                onChange={e => setIMGuestName(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="e.g. John Doe"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Guest Email *</label>
+              <input 
+                type="email" 
+                required 
+                value={imGuestEmail}
+                onChange={e => setIMGuestEmail(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                placeholder="john@example.com"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Meeting Title *</label>
+            <input 
+              type="text" 
+              required 
+              value={imTitle}
+              onChange={e => setIMTitle(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              placeholder="e.g. Quick Intro"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Duration</label>
+            <div className="flex flex-wrap gap-2">
+              {DURATION_OPTIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setIMDuration(d)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    imDuration === d ? 'bg-white text-black' : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                  }`}
+                >
+                  {d} min
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">Description (optional)</label>
+            <textarea 
+              value={imDesc}
+              onChange={e => setIMDesc(e.target.value)}
+              rows={2}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20 resize-none"
+              placeholder="What's this meeting about?"
+            />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <Button variant="outline" type="button" onClick={() => setIsInstantModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={createInstantMutation.isPending}>
+              Create & Invite
             </Button>
           </div>
         </form>

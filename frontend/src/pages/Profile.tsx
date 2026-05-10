@@ -19,7 +19,7 @@ import {
   User, Camera, Building2, Briefcase, FolderOpen, Shield, Check, X,
   Plus, Trash2, ExternalLink, Loader2, Globe, Phone, MapPin,
   Edit3, Eye, EyeOff, Link2, AtSign, Copy, BadgeCheck, AlertCircle,
-  RefreshCw, Clock,
+  RefreshCw, Clock, Video,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useUserScope } from '../hooks/useUserScope';
@@ -818,6 +818,7 @@ function FreelancerTab({
     behance_url: data?.behance_url || '',
     personal_website: data?.personal_website || '',
     booking_url: data?.booking_url || '',
+    meeting_link: data?.meeting_link || '',
     booking_confirmation_mode: data?.booking_confirmation_mode || 'manual',
     include_profile_signature: data?.include_profile_signature ?? false,
   });
@@ -890,8 +891,14 @@ function FreelancerTab({
               <InputField label="Behance" value={form.behance_url} onChange={set('behance_url')} placeholder="https://behance.net/..." />
               <InputField label="Personal Website" value={form.personal_website} onChange={set('personal_website')} icon={Globe} placeholder="https://yoursite.com" />
               <InputField label="Booking URL" value={form.booking_url} onChange={set('booking_url')} icon={Link2} placeholder="https://calendly.com/your-link" />
+              <InputField label="Virtual Meeting Link" value={form.meeting_link} onChange={set('meeting_link')} icon={Video} placeholder="https://meet.google.com/..." />
             </div>
-            <p className="mt-2 text-xs text-white/70">Booking URL: Your Calendly, Cal.com, or any scheduling link for leads to book meetings.</p>
+            <p className="mt-2 text-xs text-white/70">
+              Booking URL: Your external scheduling link (Calendly, etc.).
+            </p>
+            <p className="mt-1 text-xs text-white/70">
+              Virtual Meeting Link: Your permanent Google Meet/Zoom link. This will be automatically sent to guests 1 hour before meetings booked through the platform.
+            </p>
           </div>
         </SectionCard>
       </motion.div>

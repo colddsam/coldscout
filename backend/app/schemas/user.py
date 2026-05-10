@@ -144,3 +144,5 @@ class SupabaseUserSync(BaseModel):
     auth_provider: AuthProvider = "email"
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    provider_token: Optional[str] = None
+    provider_refresh_token: Optional[str] = None

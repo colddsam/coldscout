@@ -26,7 +26,7 @@ from app.models.lead import Lead, SearchHistory
 from app.models.campaign import Campaign, EmailOutreach
 from app.models.email_event import EmailEvent
 from app.models.daily_report import DailyReport
-from app.config import get_settings, get_production_status
+from app.config import get_settings
 
 settings = get_settings()
 
@@ -105,8 +105,8 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
             logger.debug(f"notify emit failed (non-fatal): {e}")
 
     # Global HOLD blocks everything
-    if get_production_status() == "HOLD":
-        logger.warning(f"🚨 Global PRODUCTION_STATUS is HOLD. Skipping {stage_name} for all freelancers.")
+    if not job_manager.is_global_active():
+        logger.warning(f"🚨 Global Pipeline status is HOLD. Skipping {stage_name} for all freelancers.")
         return
 
     active_freelancer_ids = await job_manager.get_active_freelancers()

@@ -42,22 +42,31 @@ async def get_resolved_booking_url(db: AsyncSession, user_id: Optional[int] = No
                 
                 # A. Check Availability Toggle (if freelancer profile exists)
                 if fl_profile:
-                    if getattr(fl_profile, "availability", "") == "not_available" or not getattr(fl_profile, "show_availability", True):
+                    # If marked not_available or visibility hidden, fallback to mailto (None)
+                    availability = getattr(fl_profile, "availability", "")
+                    show_availability = getattr(fl_profile, "show_availability", True)
+                    if availability == "not_available" or not show_availability:
                         logger.info(f"Booking: User {user_id} is marked as not available.")
                         return None
                 
-                # B. Native Scheduling (Primary Platform Choice)
-                if username:
+                # B. External Override (User explicitly set an external scheduling link like Calendly)
+                if fl_profile and getattr(fl_profile, "booking_url", None):
+                    booking_url = fl_profile.booking_url.strip()
+                    
+                    # CRITICAL: If the URL looks like a meeting link (Google Meet, Zoom, etc.),
+                    # we ignore it as a scheduling link and fall back to the native booking page.
+                    is_meeting = any(x in booking_url.lower() for x in ["meet.google.com", "zoom.us", "teams.microsoft", "webex"])
+                    
+                    if booking_url and not is_meeting and "user-override" not in booking_url:
+                        logger.info(f"Booking: Returning external override for user {user_id}: {booking_url}")
+                        return booking_url
+
+                # C. Native Scheduling (If username exists and user is a freelancer)
+                if username and fl_profile:
                     native_url = f"{settings.FRONTEND_DOMAIN}/book/{username.strip().lower()}"
                     logger.debug(f"Resolved native booking URL for user {user_id}: {native_url}")
                     return native_url
 
-                # C. External Override (Fallback)
-                if fl_profile:
-                    booking_url = (fl_profile.booking_url or "").strip()
-                    if booking_url and "user-override" not in booking_url:
-                        logger.info(f"Booking: No username found for user {user_id}. Returning external override: {booking_url}")
-                        return booking_url
 
                 # D. Direct Mailto Fallback (Per User)
                 if email:

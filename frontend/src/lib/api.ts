@@ -983,14 +983,26 @@ export interface FreelancerProfile {
   behance_url?: string | null;
   personal_website?: string | null;
   booking_url?: string | null;
+  meeting_link?: string | null;
   booking_confirmation_mode?: 'auto' | 'manual';
-  scheduling_preferences?: Record<string, unknown>;
+  scheduling_preferences?: SchedulingPrefs;
   is_public: boolean;
   show_rates: boolean;
   show_availability: boolean;
   include_profile_signature: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface WorkingPeriod {
+  start: string;
+  end: string;
+}
+
+export interface SchedulingPrefs {
+  working_hours?: Record<string, WorkingPeriod[]>;
+  timezone?: string;
+  is_closed?: boolean;
 }
 
 export interface FreelancerProfileUpdate {
@@ -1009,12 +1021,15 @@ export interface FreelancerProfileUpdate {
   behance_url?: string;
   personal_website?: string;
   booking_url?: string;
+  meeting_link?: string;
   booking_confirmation_mode?: 'manual' | 'auto';
   is_public?: boolean;
   show_rates?: boolean;
   show_availability?: boolean;
   include_profile_signature?: boolean;
+  scheduling_preferences?: SchedulingPrefs;
 }
+
 
 export interface PortfolioItem {
   id: number;
@@ -1859,11 +1874,13 @@ export const getDirectoryStats = () =>
 
 export interface BookingSlotResponse {
   slots: string[];
+  freelancer_timezone: string;
+  is_closed?: boolean;
 }
 
-export const getBookingSlots = (username: string, startDate: string, endDate: string, duration: number = 30) =>
+export const getBookingSlots = (username: string, startDate: string, endDate: string, duration: number = 30, visitorTimezone?: string) =>
   client.get<BookingSlotResponse>(`/api/v1/book/${username}/slots`, {
-    params: { start_date: startDate, end_date: endDate, duration }
+    params: { start_date: startDate, end_date: endDate, duration, visitor_timezone: visitorTimezone }
   }).then(r => r.data);
 
 export interface CreateBookingRequest {
@@ -1908,6 +1925,18 @@ export interface ManualBlockRequest {
 
 export const createManualBlock = (payload: ManualBlockRequest) =>
   client.post(`/api/v1/bookings/manual-block`, payload).then(r => r.data);
+
+export interface InstantMeetingRequest {
+  guest_name: string;
+  guest_email: string;
+  title: string;
+  description?: string;
+  duration_minutes: number;
+  start_time?: string;
+}
+
+export const createInstantMeeting = (payload: InstantMeetingRequest) =>
+  client.post(`/api/v1/bookings/instant`, payload).then(r => r.data);
 
 // ── Event Types ──────────────────────────────────────────────────────────────
 

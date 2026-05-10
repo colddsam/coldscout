@@ -48,10 +48,15 @@ async def lifespan(app: FastAPI):
     
     # Ensure database schema is present before accepting requests
     try:
-        await verify_tables_exist()
+        import asyncio
+        await asyncio.wait_for(verify_tables_exist(), timeout=10.0)
+    except asyncio.TimeoutError:
+        logger.error("Database verification timed out during startup. Database may be unreachable or under heavy load.")
+        # We continue here so the app can at least start; core endpoints will fail later with 500
+        # instead of preventing the whole container from booting.
     except Exception as e:
         logger.error(f"Database verification failed during startup: {e}")
-        raise
+        # Note: We don't raise here either to allow the app to boot for debugging/health check
 
     # Setup background task scheduling (Discovery, Qualification, Outreach)
     try:
