@@ -7,6 +7,16 @@ from sqlalchemy import select, and_, or_
 from app.models.booking import Booking
 from app.modules.scheduling.google_calendar import get_busy_slots
 
+# Locale-independent weekday names. Indexed by datetime.weekday()
+# (Monday=0 … Sunday=6). strftime("%A") is locale-aware and would mismatch
+# the English keys stored in scheduling_preferences when the host locale
+# is not English.
+WEEKDAY_NAMES = [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday",
+]
+
+
 async def calculate_available_slots(
     db: AsyncSession,
     freelancer_id: int,
@@ -18,11 +28,16 @@ async def calculate_available_slots(
 ) -> List[datetime]:
     """
     Calculate available time slots for a given freelancer between start_date and end_date.
-    
+
     1. Parse freelancer scheduling preferences (working hours, days off).
     2. Fetch existing bookings from the database.
     3. Fetch busy slots from Google Calendar if connected.
     4. Generate potential slots and filter out overlaps.
+
+    Availability is opt-in: if the freelancer has not configured any
+    working hours (``working_hours`` missing/empty), an empty list is
+    returned. The booking page surfaces this as "no availability"
+    rather than fabricating slots from a built-in default.
     """
     # 1. Parse preferences
     # Expected format:
@@ -35,19 +50,11 @@ async def calculate_available_slots(
     # }
     if not scheduling_preferences:
         scheduling_preferences = {}
-        
-    working_hours = scheduling_preferences.get("working_hours")
-    # Only use defaults if explicitly None/Missing. 
-    # If it's an empty dict {}, it means they turned off all days.
-    if working_hours is None:
-        # Default 9 to 5 Monday to Friday if no working hours set
-        working_hours = {
-            "Monday": [{"start": "09:00", "end": "17:00"}],
-            "Tuesday": [{"start": "09:00", "end": "17:00"}],
-            "Wednesday": [{"start": "09:00", "end": "17:00"}],
-            "Thursday": [{"start": "09:00", "end": "17:00"}],
-            "Friday": [{"start": "09:00", "end": "17:00"}]
-        }
+
+    working_hours = scheduling_preferences.get("working_hours") or {}
+    if not working_hours:
+        # Freelancer has not configured availability — show nothing.
+        return []
     
     tz_name = scheduling_preferences.get("timezone", "UTC")
     try:
@@ -98,7 +105,8 @@ async def calculate_available_slots(
     limit_local = (end_fl_local + timedelta(days=1)).replace(hour=23, minute=59, second=59)
 
     while iter_local <= limit_local:
-        day_name = iter_local.strftime("%A")
+        # Locale-independent day name to match working_hours keys.
+        day_name = WEEKDAY_NAMES[iter_local.weekday()]
         day_hours = working_hours.get(day_name, [])
         
         for period in day_hours:

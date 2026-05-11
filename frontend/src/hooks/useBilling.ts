@@ -163,43 +163,148 @@ export function useCheckout() {
     }
 
     // ── Native path: external browser checkout ─────────────────────────
+    //
+    // On Android/iOS we open Razorpay's hosted-checkout page in an in-app
+    // browser (@capacitor/browser → Chrome Custom Tabs / SFSafariViewController)
+    // because the standard checkout.js WebView blocks UPI intent switching.
+    //
+    // The hosted checkout has no native callback into the app, so we
+    // detect payment completion through three independent signals and
+    // act on whichever fires first:
+    //   1. Razorpay webhook → backend updates user.plan → we poll
+    //      /billing/subscription while the browser is open.
+    //   2. User closes the browser manually → browserFinished event.
+    //   3. The OS returns focus to the app → appStateChange.isActive.
+    //
+    // When activation is detected we close the browser (iOS only — on
+    // Android the OS owns the Custom Tab, but Browser.close() is a
+    // no-op there), surface a success toast, and refresh React Query
+    // state so the UI flips out of the Razorpay screen immediately.
     if (isNativeMobile()) {
+      const planLabel = plan === 'pro' ? 'Pro Plan' : 'Enterprise Plan';
+
       try {
-        // Construct Razorpay hosted checkout URL with order params.
-        // The external browser handles UPI intent switching natively.
         const checkoutUrl = new URL('https://api.razorpay.com/v1/checkout/embedded');
         checkoutUrl.searchParams.set('key_id', orderData.key_id);
         checkoutUrl.searchParams.set('order_id', orderData.order_id);
+        checkoutUrl.searchParams.set('amount', String(orderData.amount));
+        checkoutUrl.searchParams.set('currency', orderData.currency);
         checkoutUrl.searchParams.set('name', 'Cold Scout');
+        checkoutUrl.searchParams.set('description', `${planLabel} — Monthly`);
         checkoutUrl.searchParams.set('prefill[email]', userEmail);
         if (userName) {
           checkoutUrl.searchParams.set('prefill[name]', userName);
         }
 
-        // Open in external system browser (not in-app WebView)
-        await Browser.open({ url: checkoutUrl.toString() });
+        // Shared completion state — guards against duplicate toasts when
+        // multiple signals fire (e.g. poll succeeds, then user also
+        // closes the browser, then the app comes back to foreground).
+        let settled = false;
+        let pollHandle: ReturnType<typeof setInterval> | null = null;
+        let browserFinishedListener: Awaited<ReturnType<typeof Browser.addListener>> | null = null;
+        let appStateListener: Awaited<ReturnType<typeof App.addListener>> | null = null;
 
-        toast('Payment opened in browser. Return here when done.', { icon: '🔗' });
+        const cleanup = async () => {
+          if (pollHandle) {
+            clearInterval(pollHandle);
+            pollHandle = null;
+          }
+          if (browserFinishedListener) {
+            await browserFinishedListener.remove();
+            browserFinishedListener = null;
+          }
+          if (appStateListener) {
+            await appStateListener.remove();
+            appStateListener = null;
+          }
+        };
 
-        // When the user returns to the app, refresh subscription state.
-        // The Razorpay webhook will have updated the backend by then.
-        const resumeListener = App.addListener('appStateChange', async (state) => {
-          if (state.isActive) {
-            await Promise.all([
-              queryClient.invalidateQueries({ queryKey: ['subscription', scope] }),
-              queryClient.invalidateQueries({ queryKey: ['billing-transactions', scope] }),
-              syncUserToBackend(),
-            ]);
-            // Check if the plan was activated via webhook
-            const sub = queryClient.getQueryData<{ plan?: string }>(['subscription', scope]);
-            if (sub?.plan === plan) {
-              const planLabel = plan === 'pro' ? 'Pro Plan' : 'Enterprise Plan';
-              toast.success(`${planLabel} activated!`);
-              onSuccess?.(plan, '');
+        const refreshState = async () => {
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['subscription', scope] }),
+            queryClient.invalidateQueries({ queryKey: ['billing-transactions', scope] }),
+            syncUserToBackend(),
+          ]);
+        };
+
+        const finishAsSuccess = async () => {
+          if (settled) return;
+          settled = true;
+          await refreshState();
+          // iOS in-app browser supports programmatic close. On Android
+          // Chrome Custom Tabs ignore close() but the user is already
+          // back in the app once activation is detected.
+          try {
+            await Browser.close();
+          } catch {
+            /* no-op — close is best-effort */
+          }
+          toast.success(`${planLabel} activated!`);
+          onSuccess?.(plan, '');
+          await cleanup();
+        };
+
+        // ── Signal 1: poll /billing/subscription every 3s while the
+        // browser is open. Razorpay webhooks normally update the plan
+        // within seconds of capture.
+        pollHandle = setInterval(async () => {
+          if (settled) return;
+          try {
+            const sub = await getSubscription();
+            if (sub?.plan === plan && sub?.status === 'active') {
+              await finishAsSuccess();
             }
-            resumeListener.then((h) => h.remove());
+          } catch {
+            /* polling is best-effort; ignore transient failures */
+          }
+        }, 3000);
+
+        // Stop polling after 5 minutes regardless — avoid running
+        // forever if the user abandons the flow.
+        setTimeout(() => {
+          if (!settled && pollHandle) {
+            clearInterval(pollHandle);
+            pollHandle = null;
+          }
+        }, 5 * 60 * 1000);
+
+        // ── Signal 2: user closes the browser tab.
+        browserFinishedListener = await Browser.addListener('browserFinished', async () => {
+          if (settled) return;
+          // Re-check subscription one more time before assuming
+          // the user cancelled — the webhook may have just landed.
+          await refreshState();
+          try {
+            const sub = await getSubscription();
+            if (sub?.plan === plan && sub?.status === 'active') {
+              await finishAsSuccess();
+              return;
+            }
+          } catch {
+            /* fall through to cancellation */
+          }
+          settled = true;
+          toast('Payment cancelled.', { icon: '↩' });
+          await cleanup();
+        });
+
+        // ── Signal 3: app returns to foreground (covers cases where
+        // the browserFinished event is missed, e.g. user switches apps).
+        appStateListener = await App.addListener('appStateChange', async (state) => {
+          if (state.isActive && !settled) {
+            await refreshState();
+            try {
+              const sub = await getSubscription();
+              if (sub?.plan === plan && sub?.status === 'active') {
+                await finishAsSuccess();
+              }
+            } catch {
+              /* keep polling — don't settle as cancelled here */
+            }
           }
         });
+
+        await Browser.open({ url: checkoutUrl.toString(), presentationStyle: 'popover' });
       } catch {
         toast.error('Could not open payment page. Please try again.');
       }

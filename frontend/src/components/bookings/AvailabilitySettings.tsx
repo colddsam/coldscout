@@ -144,8 +144,8 @@ export default function AvailabilitySettings({ profile }: { profile: FreelancerP
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-            <Globe className="w-5 h-5 text-blue-400" />
+          <div className="w-10 h-10 rounded-xl bg-info/[0.10] border border-info/20 flex items-center justify-center">
+            <Globe className="w-5 h-5 text-info" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Timezone Settings</h3>
@@ -165,7 +165,7 @@ export default function AvailabilitySettings({ profile }: { profile: FreelancerP
                   toast.success(`Detected: ${detected}`);
                 }
               }}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              className="text-xs text-info hover:text-info/80 font-medium transition-colors"
             >
               Detect My Timezone
             </button>
@@ -196,8 +196,8 @@ export default function AvailabilitySettings({ profile }: { profile: FreelancerP
 
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-white/80" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Working Hours</h3>
@@ -254,13 +254,13 @@ export default function AvailabilitySettings({ profile }: { profile: FreelancerP
                       <div className="flex flex-wrap items-center gap-4">
                         <button 
                           onClick={() => handleAddTimeRange(day)}
-                          className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1"
+                          className="text-xs text-info hover:text-info/80 font-medium flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" /> Add Range
                         </button>
                         <button 
                           onClick={() => handleApplyToAll(day)}
-                          className="text-xs text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1"
+                          className="text-xs text-white/70 hover:text-white font-medium flex items-center gap-1"
                         >
                           <Globe className="w-3 h-3" /> Apply to all days
                         </button>

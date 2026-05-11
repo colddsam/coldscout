@@ -252,8 +252,8 @@ export default function BookingPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="p-12 flex flex-col items-center text-center justify-center h-full min-h-[500px]"
               >
-                <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6">
-                  <CheckCircle2 className="w-10 h-10 text-green-500" />
+                <div className="w-20 h-20 rounded-full bg-success/15 border border-success/30 flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4">{proposedTimes ? "Request Sent!" : "You're booked!"}</h2>
                 <p className="text-lg text-white/70 mb-8 max-w-md">
@@ -491,8 +491,8 @@ export default function BookingPage() {
                       </div>
                     ) : slotData?.is_closed ? (
                       <div className="text-center py-12 flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                          <Clock className="w-8 h-8 text-red-400" />
+                        <div className="w-16 h-16 rounded-full bg-danger/10 border border-danger/25 flex items-center justify-center mb-4">
+                          <Clock className="w-8 h-8 text-danger" />
                         </div>
                         <p className="text-white font-medium mb-2">Schedule Closed</p>
                         <p className="text-sm text-white/40 max-w-[200px]">

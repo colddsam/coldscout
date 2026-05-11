@@ -46,12 +46,12 @@ function daysUntil(iso?: string): number | null {
 
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    active:    { label: 'Active',    cls: 'bg-green-900/20 text-green-400 border-green-800/30' },
-    cancelled: { label: 'Cancelled', cls: 'bg-amber-900/20 text-amber-400 border-amber-800/30' },
-    expired:   { label: 'Expired',   cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
-    paid:      { label: 'Paid',      cls: 'bg-green-900/20 text-green-400 border-green-800/30' },
+    active:    { label: 'Active',    cls: 'bg-success/15 text-success border-success/30' },
+    cancelled: { label: 'Cancelled', cls: 'bg-warning/15 text-warning border-warning/30' },
+    expired:   { label: 'Expired',   cls: 'bg-danger/15 text-danger border-danger/30' },
+    paid:      { label: 'Paid',      cls: 'bg-success/15 text-success border-success/30' },
     created:   { label: 'Pending',   cls: 'bg-surface-2 text-white/70 border-white/10' },
-    failed:    { label: 'Failed',    cls: 'bg-red-900/20 text-red-400 border-red-800/30' },
+    failed:    { label: 'Failed',    cls: 'bg-danger/15 text-danger border-danger/30' },
   };
   const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-surface-2 text-white/70 border-white/10' };
   return (
@@ -146,8 +146,8 @@ function CancelDialog({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-black rounded-xl border border-white/10 shadow-xl p-6 max-w-sm w-full">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-red-900/20 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+          <div className="w-10 h-10 rounded-lg bg-danger/10 border border-danger/25 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-danger" />
           </div>
           <div>
             <p className="font-semibold text-sm text-white">Cancel Subscription</p>
@@ -169,7 +169,7 @@ function CancelDialog({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger/85 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
           >
             {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Cancel Plan'}
           </button>
@@ -239,14 +239,14 @@ export default function Billing() {
           subscription.status === 'active'
             ? 'bg-black text-white border-white/30'
             : subscription.status === 'cancelled'
-            ? 'bg-amber-900/20 border-amber-800/30'
-            : 'bg-red-900/20 border-red-800/30'
+            ? 'bg-warning/[0.10] border-warning/30'
+            : 'bg-danger/[0.10] border-danger/30'
         }`}>
           <div className="flex items-center gap-3">
             {subscription.status === 'active' ? (
               <CheckCircle2 className="w-5 h-5 text-white" />
             ) : (
-              <XCircle className="w-5 h-5 text-amber-500" />
+              <XCircle className="w-5 h-5 text-warning" />
             )}
             <div>
               <p className={`text-sm font-semibold ${subscription.status === 'active' ? 'text-white' : 'text-white'}`}>
@@ -298,7 +298,7 @@ export default function Billing() {
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => setShowCancelDialog(true)}
-              className="text-xs text-red-500 hover:text-red-700 underline underline-offset-2 transition-colors"
+              className="text-xs text-danger hover:text-danger/80 underline underline-offset-2 transition-colors"
             >
               Cancel subscription
             </button>
@@ -308,8 +308,8 @@ export default function Billing() {
 
       {/* Renewal notice for cancelled */}
       {subscription?.status === 'cancelled' && (
-        <div className="rounded-xl border border-amber-800/30 bg-amber-900/20 p-4 flex items-start gap-3">
-          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-warning/30 bg-warning/[0.08] p-4 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-white">Subscription cancelled</p>
             <p className="text-xs text-white/60 mt-0.5">

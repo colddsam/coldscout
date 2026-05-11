@@ -272,7 +272,7 @@ function IOSCard() {
 
         {installed ? (
           <div className="mt-5 inline-flex items-center gap-2 text-sm text-white/85">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
             You're already running the installed app.
           </div>
         ) : (

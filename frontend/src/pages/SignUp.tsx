@@ -142,8 +142,8 @@ export default function SignUp() {
         <motion.div variants={scaleIn} initial="hidden" animate="visible" className="w-full max-w-md z-10 relative">
         <Card className="w-full max-w-md" padding={false}>
           <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8 text-green-400" />
+            <div className="w-16 h-16 bg-success/10 border border-success/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
             <p className="text-sm text-[#B0B0B0] mb-6">
@@ -212,8 +212,8 @@ export default function SignUp() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="mb-4 p-3 bg-danger/[0.08] border border-danger/25 rounded-md">
+              <p className="text-sm text-danger">{error}</p>
             </div>
           )}
 

@@ -220,7 +220,7 @@ export default function Bookings() {
           <div className="flex items-center gap-4 mt-1">
             <p className="text-sm text-gray-400">Manage meetings and event types.</p>
             {profile?.scheduling_preferences?.timezone && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-blue-400 font-medium">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-info font-medium">
                 <Globe className="w-3 h-3" />
                 {profile.scheduling_preferences.timezone}
               </div>
@@ -259,9 +259,9 @@ export default function Bookings() {
       </div>
 
       {activeTab === 'availability' && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
-          <Clock className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-200">
+        <div className="bg-info/[0.08] border border-info/25 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
+          <Clock className="w-5 h-5 text-info shrink-0 mt-0.5" />
+          <div className="text-sm text-info">
             <p className="font-semibold">Notice Period Active</p>
             <p className="opacity-80">A 1-hour notice period is automatically applied to all native bookings to prevent unexpected "instant" meetings.</p>
           </div>
@@ -309,17 +309,17 @@ export default function Bookings() {
                       animate={{ opacity: 1, y: 0 }}
                       className={`bg-surface border rounded-xl p-5 relative overflow-hidden group ${
                         isClosed ? 'border-white/5 bg-white/5 opacity-60' :
-                        booking.status === 'pending' ? 'border-yellow-500/20 bg-yellow-500/5' :
-                        booking.status === 'approved' ? 'border-green-500/20 bg-green-500/5' :
+                        booking.status === 'pending' ? 'border-warning/25 bg-warning/[0.05]' :
+                        booking.status === 'approved' ? 'border-success/25 bg-success/[0.05]' :
                         'border-white/10'
                       }`}
                     >
                       {/* Status indicator bar */}
                       <div className={`absolute top-0 left-0 bottom-0 w-1 ${
-                        isClosed ? 'bg-gray-500/50' :
-                        booking.status === 'pending' ? 'bg-yellow-500/50' :
-                        booking.status === 'approved' ? 'bg-green-500/50' :
-                        booking.status === 'cancelled' ? 'bg-red-500/50' :
+                        isClosed ? 'bg-white/15' :
+                        booking.status === 'pending' ? 'bg-warning/60' :
+                        booking.status === 'approved' ? 'bg-success/60' :
+                        booking.status === 'cancelled' ? 'bg-danger/60' :
                         'bg-white/10'
                       }`} />
 
@@ -332,10 +332,10 @@ export default function Bookings() {
                             <h3 className="text-white font-semibold flex items-center gap-2">
                               {booking.guest_name}
                               <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize font-medium ${
-                                isClosed ? 'bg-white/10 text-gray-400' :
-                                booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
-                                booking.status === 'approved' ? 'bg-green-500/20 text-green-500' :
-                                'bg-white/10 text-gray-400'
+                                isClosed ? 'bg-white/10 text-white/60' :
+                                booking.status === 'pending' ? 'bg-warning/15 text-warning' :
+                                booking.status === 'approved' ? 'bg-success/15 text-success' :
+                                'bg-white/10 text-white/60'
                               }`}>
                                 {isClosed ? 'closed' : booking.status}
                               </span>
@@ -381,7 +381,7 @@ export default function Bookings() {
                           href={booking.google_meet_link} 
                           target="_blank" 
                           rel="noreferrer"
-                          className="mt-3 w-full flex items-center justify-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium py-2 rounded-lg hover:bg-blue-500/20 transition-colors"
+                          className="mt-3 w-full flex items-center justify-center gap-2 bg-info/[0.08] border border-info/25 text-info text-xs font-medium py-2 rounded-lg hover:bg-info/15 transition-colors"
                         >
                           <ExternalLink className="w-3 h-3" /> Join Google Meet
                         </a>
@@ -410,7 +410,7 @@ export default function Bookings() {
                           <button
                             onClick={() => cancelMutation.mutate(booking.id)}
                             disabled={cancelMutation.isPending}
-                            className="w-full bg-surface-2 border border-white/10 text-red-400 font-medium py-2 px-3 rounded-lg text-sm hover:bg-red-500/10 hover:border-red-500/20 transition-colors flex items-center justify-center gap-1"
+                            className="w-full bg-surface-2 border border-white/10 text-danger font-medium py-2 px-3 rounded-lg text-sm hover:bg-danger/10 hover:border-danger/30 transition-colors flex items-center justify-center gap-1"
                           >
                             Cancel
                           </button>
@@ -467,7 +467,7 @@ export default function Bookings() {
                         className="text-gray-500 hover:text-white transition-colors"
                         title={et.is_active ? 'Deactivate' : 'Activate'}
                       >
-                        {et.is_active ? <ToggleRight className="w-5 h-5 text-green-400" /> : <ToggleLeft className="w-5 h-5" />}
+                        {et.is_active ? <ToggleRight className="w-5 h-5 text-success" /> : <ToggleLeft className="w-5 h-5" />}
                       </button>
                     </div>
 
@@ -489,7 +489,7 @@ export default function Bookings() {
                       </button>
                       <button
                         onClick={() => { if (confirm('Delete this event type?')) deleteETMutation.mutate(et.id); }}
-                        className="flex items-center justify-center gap-1 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg py-2 px-3 transition-colors"
+                        className="flex items-center justify-center gap-1 text-xs font-medium text-danger bg-danger/10 hover:bg-danger/20 rounded-lg py-2 px-3 transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>

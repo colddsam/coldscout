@@ -204,16 +204,32 @@ export default function App() {
             background: '#1C1C1C',
             color: '#F0F0F0',
             border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
+            borderRadius: '10px',
             fontSize: '13px',
             fontFamily: '"Almarai", -apple-system, BlinkMacSystemFont, sans-serif',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
+            padding: '10px 14px',
           },
           success: {
-            iconTheme: { primary: '#FFFFFF', secondary: '#1C1C1C' },
+            style: {
+              background: '#0F1A14',
+              border: '1px solid rgba(52, 211, 153, 0.35)',
+              borderLeft: '3px solid #34D399',
+              color: '#E6F7EE',
+            },
+            iconTheme: { primary: '#34D399', secondary: '#0F1A14' },
           },
           error: {
-            iconTheme: { primary: '#E0E0E0', secondary: '#1C1C1C' },
+            style: {
+              background: '#1A0F0F',
+              border: '1px solid rgba(248, 113, 113, 0.35)',
+              borderLeft: '3px solid #F87171',
+              color: '#FBE6E6',
+            },
+            iconTheme: { primary: '#F87171', secondary: '#1A0F0F' },
+          },
+          loading: {
+            iconTheme: { primary: '#60A5FA', secondary: '#0F1722' },
           },
         }}
       />

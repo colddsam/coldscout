@@ -30,8 +30,8 @@ const SessionExpiredModal: React.FC = () => {
       maxWidth="max-w-md"
     >
       <div className="flex flex-col items-center text-center space-y-4 py-2">
-        <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
-          <LogOut className="w-6 h-6 text-red-400" />
+        <div className="w-12 h-12 bg-danger/10 border border-danger/30 rounded-full flex items-center justify-center">
+          <LogOut className="w-6 h-6 text-danger" />
         </div>
 
         <div className="space-y-2">

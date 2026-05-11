@@ -148,7 +148,7 @@ export default function Combobox({
       <div className="space-y-1">
         {label && (
           <label className="block text-xs font-medium text-secondary">
-            {label} {required && <span className="text-red-400">*</span>}
+            {label} {required && <span className="text-danger">*</span>}
             <span className="ml-2 text-[10px] uppercase tracking-wider text-accent/80">
               Custom
             </span>
@@ -194,7 +194,7 @@ export default function Combobox({
     <div ref={containerRef} className="relative space-y-1">
       {label && (
         <label className="block text-xs font-medium text-secondary">
-          {label} {required && <span className="text-red-400">*</span>}
+          {label} {required && <span className="text-danger">*</span>}
         </label>
       )}
 

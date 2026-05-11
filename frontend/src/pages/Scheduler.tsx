@@ -69,10 +69,10 @@ export default function Scheduler() {
       />
 
       {productionHold && (
-        <Card className="bg-amber-50 border-amber-200" padding={true}>
+        <Card className="bg-warning/[0.08] border-warning/30" padding={true}>
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-            <div className="text-sm text-amber-800">
+            <AlertTriangle className="w-5 h-5 text-warning mt-0.5" />
+            <div className="text-sm text-warning">
               <p className="font-semibold">Production is on HOLD.</p>
               <p>
                 {isSuperuser
@@ -403,9 +403,9 @@ function MyPreferences({
                   {rowLocked ? (
                     <Lock className="w-4 h-4 text-white/70 shrink-0" />
                   ) : effective === 'RUN' ? (
-                    <Play className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <Play className="w-4 h-4 text-success shrink-0" />
                   ) : (
-                    <Pause className="w-4 h-4 text-amber-500 shrink-0" />
+                    <Pause className="w-4 h-4 text-warning shrink-0" />
                   )}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white capitalize truncate">
@@ -430,7 +430,7 @@ function MyPreferences({
                       onClick={() => toggleNotif(j.job_id)}
                       className={`p-2 rounded-md border border-white/10 transition ${
                         notifOn
-                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          ? 'text-success hover:bg-success/10'
                           : 'text-white/60 hover:bg-white/5'
                       }`}
                     >

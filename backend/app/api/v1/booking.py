@@ -19,7 +19,7 @@ from app.models.profile import UserProfile, FreelancerProfile
 from app.models.booking import Booking
 from app.models.event_type import EventType
 from app.config import get_settings
-from app.modules.scheduling.slot_calculator import calculate_available_slots
+from app.modules.scheduling.slot_calculator import calculate_available_slots, WEEKDAY_NAMES
 from app.modules.scheduling.google_calendar import create_google_meet_event
 
 router = APIRouter(prefix="/book", tags=["booking"])
@@ -129,39 +129,40 @@ async def get_booking_slots(
     )
 
     # Determine if "Closed"
-    # A day is "Closed" if slots are empty AND it's a day in the past or current day out of hours
+    # A day is "Closed" if slots are empty AND either:
+    #   - the freelancer has no working hours configured for that weekday, OR
+    #   - the working hours for that day have already ended (requested date is today/past)
     is_closed = False
-    fl_tz_name = freelancer.scheduling_preferences.get("timezone", "UTC")
-    
+    prefs = freelancer.scheduling_preferences or {}
+    fl_tz_name = prefs.get("timezone", "UTC")
+
     if not slots:
         try:
             tz = zoneinfo.ZoneInfo(fl_tz_name)
             now_fl = datetime.now(tz)
-            # If the requested window (start_date) is for today or earlier in FL time
             requested_fl = start_date.astimezone(tz)
-            
-            # If Lead is looking at Today or Past
-            if requested_fl.date() <= now_fl.date():
-                # Check if working hours for this day exist and if we are past the end
-                working_hours = freelancer.scheduling_preferences.get("working_hours", {})
-                day_name = requested_fl.strftime("%A")
-                day_periods = working_hours.get(day_name, [])
-                
-                if not day_periods:
-                    is_closed = True # No working hours = Closed
-                else:
-                    # Find the latest end time for this day
-                    latest_end = None
-                    for p in day_periods:
-                        try:
-                            p_end = datetime.strptime(p['end'], "%H:%M").time()
-                            if latest_end is None or p_end > latest_end:
-                                latest_end = p_end
-                        except: continue
-                    
-                    if latest_end:
-                        if requested_fl.date() < now_fl.date() or now_fl.time() > latest_end:
-                            is_closed = True
+
+            working_hours = prefs.get("working_hours") or {}
+            day_name = WEEKDAY_NAMES[requested_fl.weekday()]
+            day_periods = working_hours.get(day_name, [])
+
+            if not day_periods:
+                # No working hours configured for this weekday → schedule closed.
+                is_closed = True
+            elif requested_fl.date() <= now_fl.date():
+                # Working hours exist for this day — check whether they've ended.
+                latest_end = None
+                for p in day_periods:
+                    try:
+                        p_end = datetime.strptime(p['end'], "%H:%M").time()
+                        if latest_end is None or p_end > latest_end:
+                            latest_end = p_end
+                    except Exception:
+                        continue
+
+                if latest_end:
+                    if requested_fl.date() < now_fl.date() or now_fl.time() > latest_end:
+                        is_closed = True
 
         except Exception:
             pass

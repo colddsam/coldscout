@@ -123,7 +123,7 @@ export default function Welcome() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <motion.div className="max-w-3xl" variants={staggerContainer} initial="hidden" animate="visible">
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full text-sm text-white/70 mb-6">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <CheckCircle className="w-4 h-4 text-success" />
               Account created successfully
             </motion.div>
 

@@ -103,8 +103,8 @@ export default function AuthCallback() {
 
           {status === 'success' && (
             <>
-              <div className="w-16 h-16 bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 bg-success/10 border border-success/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-success" />
               </div>
               <h2 className="text-lg font-semibold text-white mb-2">Sign in successful!</h2>
               <p className="text-sm text-white/75">Redirecting you to your dashboard...</p>
@@ -113,11 +113,11 @@ export default function AuthCallback() {
 
           {status === 'error' && (
             <>
-              <div className="w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-danger/10 border border-danger/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-danger" />
               </div>
               <h2 className="text-lg font-semibold text-white mb-2">Authentication failed</h2>
-              <p className="text-sm text-red-600 mb-4">{error || 'Something went wrong'}</p>
+              <p className="text-sm text-danger mb-4">{error || 'Something went wrong'}</p>
               <button
                 onClick={() => navigate('/login')}
                 className="w-full py-2.5 px-4 bg-white text-black rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
