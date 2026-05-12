@@ -13,7 +13,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { NAV_ITEMS } from '../../lib/constants';
 import { timeAgo } from '../../lib/utils';
-import { Menu } from 'lucide-react';
+import { Menu, Pause, Play } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import NotificationBell from '../notifications/NotificationBell';
 
@@ -42,11 +42,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <>
-      <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-black/75 backdrop-blur-md sticky top-0 z-30 border-b border-white/[0.08]">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between h-14 px-4 md:px-6 bg-black/70 backdrop-blur-md sticky top-0 z-30 border-b border-white/[0.08]">
+        <div className="flex items-center gap-3 min-w-0">
           <motion.button
             onClick={onMenuClick}
-            className="lg:hidden p-1.5 -ml-1 text-secondary hover:text-white hover:bg-white/[0.06] rounded-md transition-colors"
+            className="lg:hidden row-action -ml-1"
             whileTap={{ scale: 0.9 }}
             aria-label="Open navigation menu"
           >
@@ -57,17 +57,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="text-base font-semibold text-white tracking-tight whitespace-nowrap"
+            className="heading-section truncate"
           >
             {pageTitle}
           </motion.h1>
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           {!(role === 'client' && location.pathname === '/profile') && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-tertiary">
-              <span className="w-1 h-1 rounded-full bg-success/70" />
-              Updated {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
+            <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-mono text-tertiary">
+              <span className="relative w-1.5 h-1.5 rounded-full bg-success">
+                <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-60" />
+              </span>
+              {dataUpdatedAt ? timeAgo(new Date(dataUpdatedAt).toISOString()) : '—'}
             </span>
           )}
 
@@ -76,7 +78,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               label={health.status === 'healthy' ? 'Healthy' : 'Error'}
               variant={health.status === 'healthy' ? 'teal' : 'red'}
               pulse={health.status === 'healthy'}
-              className="hidden xs:flex"
+              className="hidden sm:inline-flex"
             />
           )}
 
@@ -84,31 +86,37 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
           {role !== 'client' && (
             <Button
-              variant={isRunning ? 'danger' : 'primary'}
+              variant={isRunning ? 'secondary' : 'primary'}
               size="sm"
               onClick={handleToggle}
               loading={systemToggle.isPending}
-              className="px-2 md:px-4 text-[10px] md:text-xs"
+              icon={isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+              aria-label={isRunning ? 'Hold system' : 'Resume system'}
+              className="!gap-1.5"
             >
-              <span className="hidden xs:inline">{isRunning ? '⏸ HOLD SYSTEM' : '▶ RESUME SYSTEM'}</span>
-              <span className="xs:hidden">{isRunning ? '⏸' : '▶'}</span>
+              <span className="hidden sm:inline">{isRunning ? 'Hold' : 'Resume'}</span>
             </Button>
           )}
         </div>
       </header>
 
       {role !== 'client' && (
-        <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Confirm System Toggle">
-          <p className="text-secondary text-sm mb-5 leading-relaxed">
+        <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title={isRunning ? 'Hold the pipeline?' : 'Resume the pipeline?'}>
+          <p className="text-[13px] text-secondary mb-5 leading-relaxed">
             {isRunning
-              ? 'This will pause ALL automated pipeline operations. Are you sure?'
-              : 'This will resume all automated pipeline operations. Are you sure?'}
+              ? 'All automated discovery, outreach and follow-up jobs will pause until you resume the system.'
+              : 'Automated discovery, outreach and follow-up jobs will resume on their scheduled cadence.'}
           </p>
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" onClick={() => setShowConfirm(false)}>
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>
               Cancel
             </Button>
-            <Button variant={isRunning ? 'danger' : 'accent'} onClick={confirmToggle}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={confirmToggle}
+              icon={isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            >
               {isRunning ? 'Hold System' : 'Resume System'}
             </Button>
           </div>

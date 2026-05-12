@@ -37,8 +37,8 @@ export default function Badge({ label, variant = 'muted', className, pulse }: Ba
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider',
-        'transition-all duration-300',
+        'inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full text-[10px] font-semibold border uppercase tracking-[0.06em]',
+        'transition-all duration-200',
         variantStyles[variant],
         className,
       )}
@@ -48,7 +48,7 @@ export default function Badge({ label, variant = 'muted', className, pulse }: Ba
         {pulse && (
           <span
             className={cn(
-              'absolute w-1.5 h-1.5 rounded-full animate-ping',
+              'absolute inset-0 w-1.5 h-1.5 rounded-full animate-ping opacity-60',
               dotColors[variant],
             )}
           />

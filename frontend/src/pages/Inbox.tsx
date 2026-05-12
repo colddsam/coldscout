@@ -11,14 +11,8 @@ import { INTENT_LABELS } from '../lib/constants';
 import { pageTransition, staggerContainer, fadeInUp, defaultViewport } from '../lib/motion';
 import type { InboxThread, IntentLabel } from '../lib/api';
 import { Send, CornerDownRight, Tag, RefreshCw } from 'lucide-react';
+import { EmptyInbox } from '../components/ui/Illustration';
 
-/**
- * The Inbox page manages email threads and AI intent classification.
- * 
- * This page acts as a centralized communication hub, allowing users to view incoming
- * replies from leads, filter them by AI-determined intent (e.g., Interested, Not Interested),
- * manually override the intent classification, and send direct replies to the lead.
- */
 export default function Inbox() {
   const [intentFilter, setIntentFilter] = useState<IntentLabel | ''>('');
   const { data: threads, isLoading, error, refetch } = useInbox(
@@ -34,17 +28,15 @@ export default function Inbox() {
   if (error) {
     return (
       <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
-        <PageHeader title="Inbox" subtitle="Reply inbox — inbox endpoint may not be available yet" />
-        <Card>
-          <div className="text-center py-12">
-            <p className="text-white/75 text-sm font-mono mb-4">
-              Inbox endpoint unavailable. This feature requires backend support for the /inbox routes.
-            </p>
-            <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={() => refetch()}>
-              Retry
-            </Button>
-          </div>
-        </Card>
+        <PageHeader eyebrow="Inbox" title="Reply Inbox" subtitle="Inbox endpoint not available" />
+        <div className="empty-state">
+          <EmptyInbox size={84} />
+          <p className="heading-section mt-4 mb-2">Inbox endpoint unavailable</p>
+          <p className="text-meta mb-5 max-w-md">This feature requires backend support for the /inbox routes.</p>
+          <Button variant="outline" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
       </motion.div>
     );
   }
@@ -64,132 +56,135 @@ export default function Inbox() {
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
       <PageHeader
+        eyebrow="Inbox"
         title="Reply Inbox"
-        subtitle={`${threads?.length ?? 0} threads`}
+        subtitle={`${threads?.length ?? 0} threads · AI-classified by intent.`}
         actions={
-          <Button variant="ghost" size="sm" icon={<RefreshCw className="w-4 h-4" />} onClick={() => refetch()}>
+          <Button variant="ghost" size="sm" icon={<RefreshCw className="w-3.5 h-3.5" />} onClick={() => refetch()}>
             Refresh
           </Button>
         }
       />
 
-      {/* Intent Filter */}
+      {/* Intent Filter (segmented) */}
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-      <Card padding={true}>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant={!intentFilter ? 'primary' : 'ghost'}
-            size="sm"
+        <div className="segmented w-full overflow-x-auto">
+          <button
+            type="button"
+            className={cn('segmented-item', !intentFilter && 'is-active')}
             onClick={() => setIntentFilter('')}
           >
             All
-          </Button>
+          </button>
           {Object.entries(INTENT_LABELS).map(([key, label]) => (
-            <Button
+            <button
               key={key}
-              variant={intentFilter === key ? 'primary' : 'ghost'}
-              size="sm"
+              type="button"
+              className={cn('segmented-item', intentFilter === key && 'is-active')}
               onClick={() => setIntentFilter(key as IntentLabel)}
             >
               {label}
-            </Button>
+            </button>
           ))}
         </div>
-      </Card>
       </motion.div>
 
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[400px]">
-        {/* Thread List (1/3) */}
-        <motion.div className="space-y-2 max-h-[600px] overflow-y-auto" variants={staggerContainer} initial="hidden" animate="visible">
-          {(!threads || threads.length === 0) ? (
-            <Card>
-              <p className="text-white/70 font-mono text-sm text-center">No threads found</p>
-            </Card>
-          ) : (
-            threads.map((thread) => (
-              <button
-                key={thread.id}
-                onClick={() => setSelectedThread(thread)}
-                className={cn(
-                  'w-full text-left bg-black rounded-lg p-4 border transition-all hover:bg-surface-2',
-                  selectedThread?.id === thread.id ? 'border-white/30 shadow-sm' : 'border-white/10',
-                )}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-white font-medium truncate">{thread.from_email || thread.lead_email}</span>
-                  <Badge
-                    label={thread.intent_label || 'unknown'}
-                    variant={thread.intent_label === 'interested' ? 'green' : thread.intent_label === 'not_interested' ? 'red' : 'muted'}
-                  />
-                </div>
-                <p className="text-xs text-white/75 truncate">{thread.subject}</p>
-                <p className="text-xs text-white/70 mt-1 font-mono">{formatDate(thread.received_at)}</p>
-              </button>
-            ))
-          )}
-        </motion.div>
-
-        {/* Thread Detail (2/3) */}
-        <div className="lg:col-span-2">
-          {!selectedThread ? (
-            <Card className="h-full flex items-center justify-center">
-              <p className="text-white/70 font-mono text-sm">Select a thread to view details</p>
-            </Card>
-          ) : (
-            <Card className="space-y-4">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm md:text-base text-white font-semibold line-clamp-2">{selectedThread.subject}</h3>
-                  <p className="text-[10px] md:text-xs text-white/75 truncate">{selectedThread.from_email || selectedThread.lead_email}</p>
-                </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Tag className="w-3.5 h-3.5 text-white/70" />
-                  <select
-                    value={selectedThread.intent_label}
-                    onChange={(e) => handleUpdateIntent(selectedThread.id, e.target.value as IntentLabel)}
-                    className="bg-surface-2 border border-white/10 rounded-md px-2 py-1 text-[10px] md:text-xs text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
-                  >
-                    {Object.entries(INTENT_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[400px]">
+          {/* Thread List (1/3) */}
+          <motion.div className="space-y-2 max-h-[600px] overflow-y-auto pr-1" variants={staggerContainer} initial="hidden" animate="visible">
+            {(!threads || threads.length === 0) ? (
+              <div className="empty-state">
+                <EmptyInbox size={72} />
+                <p className="text-meta mt-3">No threads found</p>
               </div>
+            ) : (
+              threads.map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => setSelectedThread(thread)}
+                  className={cn(
+                    'w-full text-left rounded-lg p-3 border transition-all duration-200',
+                    selectedThread?.id === thread.id
+                      ? 'border-white/20 bg-white/[0.04]'
+                      : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.035]',
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[13px] text-white font-medium truncate">{thread.from_email || thread.lead_email}</span>
+                    <Badge
+                      label={thread.intent_label || 'unknown'}
+                      variant={thread.intent_label === 'interested' ? 'green' : thread.intent_label === 'not_interested' ? 'red' : 'muted'}
+                    />
+                  </div>
+                  <p className="text-[12px] text-secondary truncate">{thread.subject}</p>
+                  <p className="text-[10px] text-tertiary mt-1.5 font-mono">{formatDate(thread.received_at)}</p>
+                </button>
+              ))
+            )}
+          </motion.div>
 
-              {/* Body */}
-              <div className="bg-surface-2 border border-white/10 rounded-md p-4 max-h-64 overflow-y-auto">
-                <p className="text-sm text-white/80 whitespace-pre-wrap font-mono">{selectedThread.body}</p>
-              </div>
+          {/* Thread Detail (2/3) */}
+          <div className="lg:col-span-2">
+            {!selectedThread ? (
+              <Card className="h-full flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <EmptyInbox size={72} className="text-white/40 mx-auto" />
+                  <p className="text-meta mt-3">Select a thread to view details</p>
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <h3 className="heading-section line-clamp-2">{selectedThread.subject}</h3>
+                    <p className="text-[12px] text-tertiary truncate mt-0.5 font-mono">{selectedThread.from_email || selectedThread.lead_email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Tag className="w-3.5 h-3.5 text-tertiary" />
+                    <select
+                      value={selectedThread.intent_label}
+                      onChange={(e) => handleUpdateIntent(selectedThread.id, e.target.value as IntentLabel)}
+                      className="input-field !py-1 !px-2 !text-xs w-auto"
+                    >
+                      {Object.entries(INTENT_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-              {/* Reply */}
-              <div className="border-t border-white/[0.08] pt-4">
-                <div className="flex items-start gap-2">
-                  <CornerDownRight className="w-4 h-4 text-white/70 mt-2.5" />
-                  <textarea
-                    className="flex-1 bg-surface-2 border border-white/10 rounded-md p-3 text-sm text-white font-mono placeholder:text-white/70 resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-400 transition-colors"
-                    placeholder="Type your reply..."
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    rows={3}
-                  />
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-4 max-h-72 overflow-y-auto">
+                  <p className="text-[13px] text-secondary whitespace-pre-wrap font-mono leading-relaxed">{selectedThread.body}</p>
                 </div>
-                <div className="flex justify-end mt-3">
-                  <Button
-                    icon={<Send className="w-4 h-4" />}
-                    onClick={handleSendReply}
-                    loading={respondMutation.isPending}
-                    disabled={!replyBody.trim()}
-                  >
-                    Send Reply
-                  </Button>
+
+                <div className="border-t border-white/[0.06] pt-4 mt-4">
+                  <div className="flex items-start gap-2">
+                    <CornerDownRight className="w-4 h-4 text-tertiary mt-2.5 flex-shrink-0" />
+                    <textarea
+                      className="input-field font-mono resize-y min-h-[88px]"
+                      placeholder="Type your reply…"
+                      value={replyBody}
+                      onChange={(e) => setReplyBody(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <Button
+                      size="sm"
+                      icon={<Send className="w-3.5 h-3.5" />}
+                      onClick={handleSendReply}
+                      loading={respondMutation.isPending}
+                      disabled={!replyBody.trim()}
+                    >
+                      Send Reply
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          )}
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
       </motion.div>
     </motion.div>
   );

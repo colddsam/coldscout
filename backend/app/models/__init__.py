@@ -26,6 +26,7 @@ from app.models.lead import Lead
 from app.models.campaign import Campaign, EmailOutreach
 from app.models.email_event import EmailEvent
 from app.models.daily_report import DailyReport
+from app.models.analytics import DailySnapshot
 from app.models.prompt_config import PromptConfig
 
 # ── Meta Threads integration models ───────────────────────────────────────────

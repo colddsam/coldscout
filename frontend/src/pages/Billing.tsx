@@ -46,16 +46,16 @@ function daysUntil(iso?: string): number | null {
 
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    active:    { label: 'Active',    cls: 'bg-success/15 text-success border-success/30' },
-    cancelled: { label: 'Cancelled', cls: 'bg-warning/15 text-warning border-warning/30' },
-    expired:   { label: 'Expired',   cls: 'bg-danger/15 text-danger border-danger/30' },
-    paid:      { label: 'Paid',      cls: 'bg-success/15 text-success border-success/30' },
-    created:   { label: 'Pending',   cls: 'bg-surface-2 text-white/70 border-white/10' },
-    failed:    { label: 'Failed',    cls: 'bg-danger/15 text-danger border-danger/30' },
+    active:    { label: 'Active',    cls: 'bg-success/10 text-success border-success/25' },
+    cancelled: { label: 'Cancelled', cls: 'bg-warning/10 text-warning border-warning/25' },
+    expired:   { label: 'Expired',   cls: 'bg-danger/10 text-danger border-danger/25' },
+    paid:      { label: 'Paid',      cls: 'bg-success/10 text-success border-success/25' },
+    created:   { label: 'Pending',   cls: 'bg-white/[0.04] text-tertiary border-white/[0.1]' },
+    failed:    { label: 'Failed',    cls: 'bg-danger/10 text-danger border-danger/25' },
   };
-  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-surface-2 text-white/70 border-white/10' };
+  const cfg = map[status ?? ''] ?? { label: status ?? '—', cls: 'bg-white/[0.04] text-tertiary border-white/[0.1]' };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.cls}`}>
+    <span className={`inline-flex items-center h-[22px] px-2 rounded-full text-[10px] font-semibold border uppercase tracking-[0.06em] ${cfg.cls}`}>
       {cfg.label}
     </span>
   );
@@ -72,54 +72,48 @@ interface PlanCardProps {
 
 function PlanCard({ plan, isCurrentPlan, onUpgrade, isLoading }: PlanCardProps) {
   const config = {
-    free:       { label: 'Open Source', price: '₹0',       icon: CheckCircle2, desc: 'Download & self-host from GitHub Releases', color: 'gray' },
-    pro:        { label: 'Pro',         price: '₹100/mo',   icon: Zap,          desc: 'Managed API + MCP Server (2,000 leads)', color: 'black' },
-    enterprise: { label: 'Enterprise',  price: '₹2,000/mo', icon: Building2,    desc: 'Dedicated instance + custom models',     color: 'black' },
+    free:       { label: 'Open Source', price: '₹0',        icon: CheckCircle2, desc: 'Download & self-host from GitHub Releases.' },
+    pro:        { label: 'Pro',         price: '₹100/mo',   icon: Zap,          desc: 'Managed API + MCP Server. 2,000 leads / month.' },
+    enterprise: { label: 'Enterprise',  price: '₹2,000/mo', icon: Building2,    desc: 'Dedicated instance + custom models.' },
   }[plan];
 
   const Icon = config.icon;
 
   return (
-    <div className={`relative rounded-xl border p-5 transition-all ${
+    <div className={`relative rounded-xl border p-5 transition-all duration-300 ${
       isCurrentPlan
-        ? 'border-white/30 bg-black text-white shadow-lg'
-        : 'border-white/10 bg-black hover:border-white/20 hover:shadow-sm'
+        ? 'border-white/[0.22] bg-white/[0.04]'
+        : 'border-white/[0.08] bg-surface-2 hover:border-white/[0.16]'
     }`}>
       {isCurrentPlan && (
-        <span className="absolute -top-3 left-4 bg-black text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">
+        <span className="absolute -top-2.5 left-4 chip !bg-black !border-white/30 text-white">
           Current Plan
         </span>
       )}
 
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-          isCurrentPlan ? 'bg-black/10' : 'bg-surface-2 border border-white/10'
-        }`}>
-          <Icon className={`w-4 h-4 ${isCurrentPlan ? 'text-white' : 'text-white'}`} />
+      <div className="flex items-start justify-between mb-4">
+        <div className="icon-bubble">
+          <Icon className="w-4 h-4" />
         </div>
-        <span className={`text-lg font-bold tracking-tight ${isCurrentPlan ? 'text-white' : 'text-white'}`}>
+        <span className="text-display-num text-[1.25rem] leading-none">
           {config.price}
         </span>
       </div>
 
-      <p className={`text-sm font-semibold mb-1 ${isCurrentPlan ? 'text-white' : 'text-white'}`}>
-        {config.label}
-      </p>
-      <p className={`text-xs ${isCurrentPlan ? 'text-white/20' : 'text-white/60'}`}>
-        {config.desc}
-      </p>
+      <p className="heading-card mb-1.5">{config.label}</p>
+      <p className="text-meta leading-relaxed">{config.desc}</p>
 
       {!isCurrentPlan && plan !== 'free' && onUpgrade && (
         <button
           onClick={() => onUpgrade(plan as BillingPlan)}
           disabled={isLoading}
-          className="mt-4 w-full py-2 rounded-lg text-xs font-semibold bg-white text-black hover:bg-gray-200 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+          className="mt-5 w-full h-9 rounded-lg text-[13px] font-semibold bg-white text-black hover:bg-[#EAEAEA] disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5"
         >
           {isLoading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <>
-              Upgrade to {config.label} <ArrowUpRight className="w-3 h-3" />
+              Upgrade to {config.label} <ArrowUpRight className="w-3.5 h-3.5" />
             </>
           )}
         </button>
@@ -143,33 +137,33 @@ function CancelDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-black rounded-xl border border-white/10 shadow-xl p-6 max-w-sm w-full">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div className="elevated-panel p-5 max-w-sm w-full relative">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-danger/10 border border-danger/25 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-danger" />
+          <div className="w-9 h-9 rounded-lg bg-danger/10 border border-danger/25 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4 text-danger" />
           </div>
-          <div>
-            <p className="font-semibold text-sm text-white">Cancel Subscription</p>
-            <p className="text-xs text-white/60">This action cannot be undone</p>
+          <div className="min-w-0">
+            <p className="heading-card">Cancel subscription?</p>
+            <p className="text-meta mt-0.5">This action cannot be undone.</p>
           </div>
         </div>
-        <p className="text-sm text-white/60 mb-5 leading-relaxed">
+        <p className="text-[13px] text-secondary mb-5 leading-relaxed">
           Your access continues until{' '}
           <span className="font-medium text-white">{formatDate(expiresAt)}</span>.
           After that, your account reverts to the Free plan.
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-white/10 text-sm font-medium hover:border-white/30 transition-colors"
+            className="h-9 px-3.5 rounded-lg border border-white/[0.12] text-[13px] font-medium text-white hover:border-white/25 hover:bg-white/[0.04] transition-all"
           >
             Keep Plan
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:bg-danger/85 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="h-9 px-3.5 rounded-lg bg-white text-black text-[13px] font-medium hover:bg-[#EAEAEA] disabled:opacity-50 transition-all inline-flex items-center justify-center gap-1.5"
           >
             {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Cancel Plan'}
           </button>
@@ -221,67 +215,67 @@ export default function Billing() {
   };
 
   return (
-    <motion.div className="max-w-4xl mx-auto px-4 py-8 space-y-8" initial="initial" animate="animate" variants={pageTransition}>
+    <motion.div className="max-w-4xl mx-auto space-y-7" initial="initial" animate="animate" variants={pageTransition}>
       {/* Header */}
       <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center">
-            <CreditCard className="w-4.5 h-4.5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Billing</h1>
+        <p className="eyebrow mb-1.5">Account</p>
+        <div className="flex items-center gap-2.5">
+          <CreditCard className="w-4 h-4 text-tertiary" />
+          <h1 className="heading-page">Billing</h1>
         </div>
-        <p className="text-sm text-white/60 ml-12">Manage your subscription and payment history.</p>
+        <p className="text-[13px] text-tertiary mt-1.5">Manage your subscription and payment history.</p>
       </motion.div>
 
       {/* Subscription Status Banner */}
       {subscription?.has_subscription && (
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible" className={`rounded-xl border p-4 flex items-center justify-between ${
-          subscription.status === 'active'
-            ? 'bg-black text-white border-white/30'
-            : subscription.status === 'cancelled'
-            ? 'bg-warning/[0.10] border-warning/30'
-            : 'bg-danger/[0.10] border-danger/30'
-        }`}>
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+          className={`rounded-xl border p-4 flex items-center justify-between gap-4 flex-wrap ${
+            subscription.status === 'active'
+              ? 'border-white/[0.18] bg-white/[0.04]'
+              : subscription.status === 'cancelled'
+              ? 'border-warning/30 bg-warning/[0.05]'
+              : 'border-danger/30 bg-danger/[0.05]'
+          }`}
+        >
           <div className="flex items-center gap-3">
             {subscription.status === 'active' ? (
-              <CheckCircle2 className="w-5 h-5 text-white" />
+              <span className="halo-dot text-success" />
             ) : (
-              <XCircle className="w-5 h-5 text-warning" />
+              <XCircle className="w-4 h-4 text-warning" />
             )}
             <div>
-              <p className={`text-sm font-semibold ${subscription.status === 'active' ? 'text-white' : 'text-white'}`}>
+              <p className="heading-section">
                 {subscription.status === 'active'
-                  ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan Active`
-                  : `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} — Cancellation Scheduled`}
+                  ? `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan · Active`
+                  : `${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} · Cancellation Scheduled`}
               </p>
-              <p className={`text-xs ${subscription.status === 'active' ? 'text-white/20' : 'text-white/60'}`}>
+              <p className="text-meta mt-0.5">
                 {subscription.status === 'cancelled'
                   ? `Access ends on ${formatDate(subscription.current_period_end)}`
                   : days !== null
                   ? days === 0
                     ? 'Expires today'
-                    : `${days} day${days !== 1 ? 's' : ''} remaining — renews ${formatDate(subscription.current_period_end)}`
+                    : `${days} day${days !== 1 ? 's' : ''} remaining · renews ${formatDate(subscription.current_period_end)}`
                   : `Expires ${formatDate(subscription.current_period_end)}`}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {subscription.status === 'active' && (
-              <>
-                <Clock className="w-4 h-4 text-white/20" />
-                <span className="text-xs text-white/20">
-                  {formatDate(subscription.current_period_start)} – {formatDate(subscription.current_period_end)}
-                </span>
-              </>
-            )}
-          </div>
+          {subscription.status === 'active' && (
+            <span className="text-[11px] text-tertiary font-mono inline-flex items-center gap-1.5">
+              <Clock className="w-3 h-3" />
+              {formatDate(subscription.current_period_start)} – {formatDate(subscription.current_period_end)}
+            </span>
+          )}
         </motion.div>
       )}
 
       {/* Plan Selection */}
       <section>
-        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Plans</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <p className="eyebrow mb-3">Plans</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {(['free', 'pro', 'enterprise'] as const).map((p) => (
             <PlanCard
               key={p}
@@ -293,12 +287,11 @@ export default function Billing() {
           ))}
         </div>
 
-        {/* Cancel button — only shown for active non-free subscriptions */}
         {subscription?.has_subscription && subscription.status === 'active' && (
           <div className="mt-4 flex justify-end">
             <button
               onClick={() => setShowCancelDialog(true)}
-              className="text-xs text-danger hover:text-danger/80 underline underline-offset-2 transition-colors"
+              className="text-[12px] text-danger hover:text-danger/80 underline underline-offset-4 transition-colors"
             >
               Cancel subscription
             </button>
@@ -306,15 +299,14 @@ export default function Billing() {
         )}
       </section>
 
-      {/* Renewal notice for cancelled */}
       {subscription?.status === 'cancelled' && (
-        <div className="rounded-xl border border-warning/30 bg-warning/[0.08] p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-warning/30 bg-warning/[0.05] p-4 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-white">Subscription cancelled</p>
-            <p className="text-xs text-white/60 mt-0.5">
+            <p className="heading-section">Subscription cancelled</p>
+            <p className="text-meta mt-0.5 leading-relaxed">
               You can re-subscribe at any time. If you re-subscribe before{' '}
-              <span className="font-medium">{formatDate(subscription.current_period_end)}</span>,
+              <span className="font-medium text-secondary">{formatDate(subscription.current_period_end)}</span>,
               your access continues uninterrupted.
             </p>
           </div>
@@ -324,50 +316,50 @@ export default function Billing() {
       {/* Transaction History */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <Receipt className="w-4 h-4 text-white/60" />
-          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Payment History</p>
+          <Receipt className="w-3.5 h-3.5 text-tertiary" />
+          <p className="eyebrow">Payment History</p>
         </div>
 
         {txLoading || subLoading ? (
-          <div className="rounded-xl border border-white/10 p-8 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-white/60" />
+          <div className="rounded-xl border border-white/[0.08] p-8 flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-tertiary" />
           </div>
         ) : transactions && transactions.length > 0 ? (
-          <div className="rounded-xl border border-white/10 overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-white/60 uppercase tracking-wider bg-surface-2 border-b border-white/[0.08] px-4 py-2.5">
+          <div className="rounded-xl border border-white/[0.08] overflow-hidden">
+            <div className="grid grid-cols-[1fr_auto_auto_auto] text-[10px] font-semibold text-tertiary uppercase tracking-[0.12em] bg-black/40 border-b border-white/[0.06] px-4 py-2.5 gap-4">
               <span>Plan</span>
-              <span className="text-right pr-6">Amount</span>
-              <span className="text-right pr-6">Status</span>
+              <span className="text-right">Amount</span>
+              <span className="text-right">Status</span>
               <span className="text-right">Date</span>
             </div>
             {transactions.map((tx, i) => (
               <div
                 key={tx.id}
-                className={`grid grid-cols-[1fr_auto_auto_auto] items-center px-4 py-3 text-sm ${
-                  i < transactions.length - 1 ? 'border-b border-white/[0.08]' : ''
-                } hover:bg-surface-2 transition-colors`}
+                className={`grid grid-cols-[1fr_auto_auto_auto] items-center px-4 py-3 text-[13px] gap-4 ${
+                  i < transactions.length - 1 ? 'border-b border-white/[0.05]' : ''
+                } hover:bg-white/[0.025] transition-colors`}
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium text-white capitalize">{tx.plan} Plan</p>
-                  <p className="text-[11px] text-subtle font-mono">{tx.razorpay_order_id}</p>
+                  <p className="text-[10px] text-tertiary font-mono truncate">{tx.razorpay_order_id}</p>
                 </div>
-                <span className="text-sm font-semibold text-white pr-6">
+                <span className="text-[13px] font-semibold text-white text-right tabular-nums">
                   {formatAmount(tx.amount, tx.currency)}
                 </span>
-                <span className="pr-6">
+                <span className="text-right">
                   <StatusBadge status={tx.status} />
                 </span>
-                <span className="text-xs text-white/60 whitespace-nowrap">
+                <span className="text-[11px] text-tertiary whitespace-nowrap text-right font-mono">
                   {formatDate(tx.created_at)}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-white/10 p-8 text-center">
-            <Receipt className="w-8 h-8 text-white/10 mx-auto mb-2" />
-            <p className="text-sm text-white/60">No payment history yet.</p>
-            <p className="text-xs text-subtle mt-1">Payments will appear here after your first subscription.</p>
+          <div className="empty-state">
+            <Receipt className="w-7 h-7 text-tertiary mb-3" />
+            <p className="heading-card mb-1">No payment history yet</p>
+            <p className="text-meta">Payments will appear here after your first subscription.</p>
           </div>
         )}
       </section>

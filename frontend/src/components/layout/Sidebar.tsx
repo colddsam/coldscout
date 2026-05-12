@@ -67,7 +67,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.08]">
+        <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06]">
           <div className="flex items-center overflow-hidden">
             <Logo
               size={collapsed && !mobileOpen ? 'sm' : 'md'}
@@ -80,28 +80,28 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           {mobileOpen && (
             <motion.button
               onClick={onMobileClose}
-              className="lg:hidden p-1.5 text-secondary hover:text-white hover:bg-white/[0.06] rounded-md transition-colors"
+              className="lg:hidden row-action"
               whileTap={{ scale: 0.9 }}
               aria-label="Close menu"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </motion.button>
           )}
         </div>
 
         {/* Nav Items */}
-        <nav className="flex-1 py-3 space-y-0.5 px-2 overflow-y-auto">
+        <nav className="flex-1 py-3 space-y-[2px] px-2 overflow-y-auto">
           {/* Home Link */}
           <Link
             to="/"
             onClick={onMobileClose}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-secondary hover:text-white hover:bg-white/[0.06]',
+              'flex items-center gap-3 px-2.5 py-2 rounded-md text-[13px] transition-all duration-200',
+              'text-secondary hover:text-white hover:bg-white/[0.05]',
               collapsed && !mobileOpen && 'justify-center px-0',
             )}
           >
-            <Home className="w-[18px] h-[18px] flex-shrink-0" />
+            <Home className="w-[17px] h-[17px] flex-shrink-0" strokeWidth={1.75} />
             <AnimatePresence>
               {(!collapsed || mobileOpen) && (
                 <motion.span
@@ -116,7 +116,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             </AnimatePresence>
           </Link>
 
-          <div className="border-b border-white/[0.06] my-1.5 mx-1" />
+          {(!collapsed || mobileOpen) && (
+            <p className="eyebrow px-3 pt-4 pb-1.5 text-[10px]">Workspace</p>
+          )}
+          {(collapsed && !mobileOpen) && <div className="hairline-fade my-3 mx-2" />}
 
           {NAV_ITEMS.filter((item) => {
             if (!(item.roles as readonly string[]).includes(role)) return false;
@@ -131,24 +134,33 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                 onClick={onMobileClose}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 group relative',
+                    'flex items-center gap-3 px-2.5 py-2 rounded-md text-[13px] transition-all duration-200 group relative',
                     isActive
-                      ? 'bg-white/[0.08] text-white shadow-[inset_2px_0_0_var(--accent)]'
-                      : 'text-secondary hover:text-white hover:bg-white/[0.06]',
+                      ? 'text-white bg-white/[0.06]'
+                      : 'text-secondary hover:text-white hover:bg-white/[0.04]',
                     collapsed && !mobileOpen && 'justify-center px-0',
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
-                    {Icon && (
+                    {/* Left accent rail for active items — replaces inset shadow */}
+                    {isActive && (
                       <motion.span
-                        className={cn('flex-shrink-0', isActive ? 'text-accent' : '')}
-                        whileHover={!isActive ? { scale: 1.1 } : undefined}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                        layoutId="sidebar-active-rail"
+                        className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-full bg-white"
+                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    {Icon && (
+                      <span
+                        className={cn(
+                          'flex-shrink-0 transition-colors',
+                          isActive ? 'text-white' : 'text-secondary group-hover:text-white',
+                        )}
                       >
-                        <Icon className="w-[18px] h-[18px]" />
-                      </motion.span>
+                        <Icon className="w-[17px] h-[17px]" strokeWidth={isActive ? 2 : 1.75} />
+                      </span>
                     )}
                     <AnimatePresence>
                       {(!collapsed || mobileOpen) && (
@@ -158,7 +170,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                           exit={{ opacity: 0, width: 0 }}
                           className={cn(
                             'whitespace-nowrap overflow-hidden',
-                            isActive ? 'font-semibold' : 'font-medium',
+                            isActive ? 'font-semibold tracking-tight' : 'font-medium',
                           )}
                         >
                           {item.label}
@@ -168,7 +180,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
                     {/* Tooltip for collapsed state */}
                     {collapsed && !mobileOpen && (
-                      <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-surface-3 text-white text-xs font-medium rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-white/[0.12] shadow-lg">
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-surface-3 text-white text-[11px] font-medium rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-white/[0.12] shadow-lg">
                         {item.label}
                       </div>
                     )}
@@ -179,36 +191,32 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           })}
         </nav>
 
-        {/* Bottom Area — pb-safe keeps the logout/sponsor row clear of the
-            iOS gesture bar and Android 3-button nav inset. */}
-        <div className="border-t border-white/[0.08] p-3 space-y-1.5 pb-safe-plus-3">
-          {/* Logout */}
-          <button
-            onClick={() => {
-              logout();
-              onMobileClose?.();
-            }}
-            className={cn(
-              'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-secondary hover:text-white hover:bg-white/[0.06]',
-              collapsed && !mobileOpen && 'justify-center px-0',
-            )}
-            title="Logout"
-          >
-            <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-            <AnimatePresence>
-              {(!collapsed || mobileOpen) && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-medium whitespace-nowrap overflow-hidden"
-                >
-                  Logout
-                </motion.span>
+        {/* Bottom Area */}
+        <div className="border-t border-white/[0.06] p-2 space-y-[2px] pb-safe-plus-3">
+          {/* System Status — freelancer only */}
+          {role !== 'client' && (
+            <motion.div
+              className={cn(
+                'flex items-center gap-2 px-2.5 py-2 rounded-md bg-white/[0.025] border border-white/[0.06]',
+                collapsed && !mobileOpen && 'justify-center px-0',
               )}
-            </AnimatePresence>
-          </button>
+              layout
+            >
+              <StatusDot status={isRunning ? 'live' : 'hold'} />
+              <AnimatePresence>
+                {(!collapsed || mobileOpen) && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="text-[10px] font-mono text-secondary uppercase tracking-[0.14em] font-semibold whitespace-nowrap overflow-hidden"
+                  >
+                    {isRunning ? 'System Run' : 'System Hold'}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
 
           {/* Sponsor */}
           <a
@@ -216,18 +224,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'text-secondary hover:text-white hover:bg-white/[0.06]',
+              'flex items-center gap-3 w-full px-2.5 py-2 rounded-md text-[13px] transition-all duration-200',
+              'text-secondary hover:text-white hover:bg-white/[0.04]',
               collapsed && !mobileOpen && 'justify-center px-0',
             )}
             title="Sponsor the project"
           >
-            <Heart
-              className={cn(
-                'w-[18px] h-[18px] flex-shrink-0',
-                !collapsed || mobileOpen ? 'fill-current' : '',
-              )}
-            />
+            <Heart className="w-[17px] h-[17px] flex-shrink-0" strokeWidth={1.75} />
             <AnimatePresence>
               {(!collapsed || mobileOpen) && (
                 <motion.span
@@ -242,44 +245,47 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             </AnimatePresence>
           </a>
 
-          {/* System Status — freelancer only */}
-          {role !== 'client' && (
-            <motion.div
-              className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-white/[0.08]',
-                collapsed && !mobileOpen && 'justify-center px-0',
+          {/* Logout */}
+          <button
+            onClick={() => {
+              logout();
+              onMobileClose?.();
+            }}
+            className={cn(
+              'flex items-center gap-3 w-full px-2.5 py-2 rounded-md text-[13px] transition-all duration-200',
+              'text-secondary hover:text-white hover:bg-white/[0.04]',
+              collapsed && !mobileOpen && 'justify-center px-0',
+            )}
+            title="Logout"
+          >
+            <LogOut className="w-[17px] h-[17px] flex-shrink-0" strokeWidth={1.75} />
+            <AnimatePresence>
+              {(!collapsed || mobileOpen) && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="font-medium whitespace-nowrap overflow-hidden"
+                >
+                  Logout
+                </motion.span>
               )}
-              layout
-            >
-              <StatusDot status={isRunning ? 'live' : 'hold'} />
-              <AnimatePresence>
-                {(!collapsed || mobileOpen) && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="text-[10px] font-mono text-secondary uppercase tracking-[0.12em] font-semibold whitespace-nowrap overflow-hidden"
-                  >
-                    {isRunning ? 'SYSTEM RUN' : 'SYSTEM HOLD'}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
+            </AnimatePresence>
+          </button>
 
           {/* Collapse Toggle (desktop) */}
           <motion.button
             onClick={onToggle}
-            className="hidden lg:flex items-center justify-center w-full p-2 rounded-lg text-secondary hover:text-white hover:bg-white/[0.06] transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="hidden lg:flex items-center justify-center w-full p-1.5 mt-1 rounded-md text-tertiary hover:text-white hover:bg-white/[0.04] transition-colors"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <motion.span
               animate={{ rotate: collapsed ? 180 : 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
-              <ChevronLeft className="w-[18px] h-[18px]" />
+              <ChevronLeft className="w-4 h-4" />
             </motion.span>
           </motion.button>
         </div>

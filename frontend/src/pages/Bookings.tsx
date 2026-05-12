@@ -213,45 +213,44 @@ export default function Bookings() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Bookings</h1>
-          <div className="flex items-center gap-4 mt-1">
-            <p className="text-sm text-gray-400">Manage meetings and event types.</p>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <p className="eyebrow mb-1.5">Calendar</p>
+          <h1 className="heading-page">Bookings</h1>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <p className="text-[13px] text-tertiary">Manage meetings and event types.</p>
             {profile?.scheduling_preferences?.timezone && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-info font-medium">
+              <span className="chip">
                 <Globe className="w-3 h-3" />
                 {profile.scheduling_preferences.timezone}
-              </div>
+              </span>
             )}
           </div>
         </div>
         {activeTab === 'appointments' ? (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsInstantModalOpen(true)} className="flex items-center gap-2">
-              <Link2 className="w-4 h-4" /> Instant Meeting
+            <Button size="sm" variant="outline" icon={<Link2 className="w-3.5 h-3.5" />} onClick={() => setIsInstantModalOpen(true)}>
+              Instant Meeting
             </Button>
-            <Button onClick={() => setIsBlockModalOpen(true)} className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Block Time
+            <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setIsBlockModalOpen(true)}>
+              Block Time
             </Button>
           </div>
         ) : (
-          <Button onClick={() => setIsETModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> New Event Type
+          <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setIsETModalOpen(true)}>
+            New Event Type
           </Button>
         )}
       </div>
 
-      {/* Top-level tabs: Appointments | Event Types */}
-      <div className="flex gap-2 border-b border-white/10 pb-4 overflow-x-auto no-scrollbar">
+      {/* Top-level tabs */}
+      <div className="segmented overflow-x-auto">
         {(['appointments', 'event-types', 'availability'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg capitalize whitespace-nowrap transition-colors ${
-              activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
+            className={`segmented-item ${activeTab === tab ? 'is-active' : ''}`}
           >
             {tab === 'event-types' ? 'Event Types' : tab === 'availability' ? 'Availability' : 'Appointments'}
           </button>
@@ -259,11 +258,11 @@ export default function Bookings() {
       </div>
 
       {activeTab === 'availability' && (
-        <div className="bg-info/[0.08] border border-info/25 rounded-xl p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-500">
-          <Clock className="w-5 h-5 text-info shrink-0 mt-0.5" />
-          <div className="text-sm text-info">
-            <p className="font-semibold">Notice Period Active</p>
-            <p className="opacity-80">A 1-hour notice period is automatically applied to all native bookings to prevent unexpected "instant" meetings.</p>
+        <div className="rounded-xl border border-info/25 bg-info/[0.05] p-4 flex items-start gap-3">
+          <Clock className="w-4 h-4 text-info shrink-0 mt-0.5" />
+          <div className="text-[13px] text-info/95 leading-relaxed">
+            <p className="font-semibold mb-1">Notice Period Active</p>
+            <p className="text-info/80">A 1-hour notice period is automatically applied to all native bookings to prevent unexpected "instant" meetings.</p>
           </div>
         </div>
       )}
@@ -271,16 +270,16 @@ export default function Bookings() {
       <AnimatePresence mode="wait">
         {activeTab === 'appointments' && (
           <motion.div key="appointments" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            {/* Sub-tabs: all / pending / approved / cancelled */}
-            <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+            {/* Sub-tabs: all / pending / approved / cancelled / completed */}
+            <div className="flex gap-1.5 mb-5 overflow-x-auto flex-wrap">
               {['all', 'pending', 'approved', 'cancelled', 'completed'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab as 'all' | 'pending' | 'approved' | 'cancelled')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors capitalize ${
+                  className={`chip capitalize ${
                     filter === tab
-                      ? 'bg-white/10 border-white/20 text-white'
-                      : 'bg-transparent border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/10'
+                      ? '!text-white !bg-white/[0.08] !border-white/20'
+                      : 'hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
                   {tab}
@@ -289,12 +288,12 @@ export default function Bookings() {
             </div>
 
             {isLoading ? (
-              <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/50" /></div>
+              <div className="py-20 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-tertiary" /></div>
             ) : filteredBookings.length === 0 ? (
-              <div className="py-20 text-center border border-white/5 rounded-xl bg-surface-2/50">
-                <Calendar className="w-10 h-10 text-white/20 mx-auto mb-3" />
-                <h3 className="text-white font-medium">No bookings found</h3>
-                <p className="text-sm text-gray-400 mt-1">When someone schedules a meeting, it will appear here.</p>
+              <div className="empty-state">
+                <Calendar className="w-7 h-7 text-tertiary mb-3" />
+                <p className="heading-card mb-1">No bookings found</p>
+                <p className="text-meta max-w-sm">When someone schedules a meeting, it will appear here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -427,17 +426,16 @@ export default function Bookings() {
         {activeTab === 'event-types' && (
           <motion.div key="event-types" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {isETLoading ? (
-              <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/50" /></div>
+              <div className="py-20 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-tertiary" /></div>
             ) : eventTypes.length === 0 ? (
-              <div className="py-20 text-center border border-white/5 rounded-xl bg-surface-2/50">
-                <Link2 className="w-10 h-10 text-white/20 mx-auto mb-3" />
-                <h3 className="text-white font-medium">No custom event types yet</h3>
-                <p className="text-sm text-gray-400 mt-1 max-w-md mx-auto mb-6">
-                  By default, leads will see a "30 Minute Meeting" on your booking page.
-                  Create custom event types to offer different durations (e.g., 15-min intro, 60-min deep dive).
+              <div className="empty-state">
+                <Link2 className="w-7 h-7 text-tertiary mb-3" />
+                <p className="heading-card mb-1">No custom event types yet</p>
+                <p className="text-meta max-w-md mb-5">
+                  By default, leads will see a 30 Minute Meeting on your booking page. Create custom event types for different durations.
                 </p>
-                <Button onClick={() => setIsETModalOpen(true)} className="inline-flex items-center gap-2">
-                  <Plus className="w-4 h-4" /> Create Your First Event Type
+                <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setIsETModalOpen(true)}>
+                  Create First Event Type
                 </Button>
               </div>
             ) : (
@@ -506,9 +504,9 @@ export default function Bookings() {
             {profile ? (
               <AvailabilitySettings profile={profile} />
             ) : (
-              <div className="py-20 flex flex-col items-center justify-center border border-white/5 rounded-xl bg-surface-2/50">
-                <Loader2 className="w-6 h-6 animate-spin text-white/50 mb-3" />
-                <p className="text-sm text-gray-400">Loading availability settings...</p>
+              <div className="empty-state">
+                <Loader2 className="w-5 h-5 animate-spin text-tertiary mb-3" />
+                <p className="text-meta">Loading availability settings…</p>
               </div>
             )}
           </motion.div>
@@ -530,7 +528,7 @@ export default function Bookings() {
               required 
               value={blockTitle}
               onChange={e => setBlockTitle(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="input-field"
               placeholder="e.g. Lunch, Out of Office"
             />
           </div>
@@ -541,7 +539,7 @@ export default function Bookings() {
               required 
               value={blockDate}
               onChange={e => setBlockDate(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="input-field"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -552,7 +550,7 @@ export default function Bookings() {
                 required 
                 value={blockStart}
                 onChange={e => setBlockStart(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="input-field"
               />
             </div>
             <div>
@@ -562,7 +560,7 @@ export default function Bookings() {
                 required 
                 value={blockEnd}
                 onChange={e => setBlockEnd(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="input-field"
               />
             </div>
           </div>
@@ -594,7 +592,7 @@ export default function Bookings() {
               required 
               value={etTitle}
               onChange={e => handleTitleChange(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="input-field"
               placeholder="e.g. 15 Min Discovery Call"
             />
           </div>
@@ -680,7 +678,7 @@ export default function Bookings() {
                 required 
                 value={imGuestName}
                 onChange={e => setIMGuestName(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="input-field"
                 placeholder="e.g. John Doe"
               />
             </div>
@@ -691,7 +689,7 @@ export default function Bookings() {
                 required 
                 value={imGuestEmail}
                 onChange={e => setIMGuestEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="input-field"
                 placeholder="john@example.com"
               />
             </div>
@@ -703,7 +701,7 @@ export default function Bookings() {
               required 
               value={imTitle}
               onChange={e => setIMTitle(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="input-field"
               placeholder="e.g. Quick Intro"
             />
           </div>

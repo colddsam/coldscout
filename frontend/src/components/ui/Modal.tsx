@@ -60,20 +60,20 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
             exit="exit"
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08]">
-                <h3 className="text-base font-semibold text-white tracking-tight">{title}</h3>
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.08]">
+                <h3 className="heading-section">{title}</h3>
                 <motion.button
                   onClick={onClose}
-                  className="text-secondary hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-ring"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  className="row-action -mr-1"
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
                   aria-label="Close"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </motion.button>
               </div>
             )}
-            <div className="p-6">{children}</div>
+            <div className="p-5">{children}</div>
           </motion.div>
         </motion.div>
       )}

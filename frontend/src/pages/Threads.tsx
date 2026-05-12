@@ -92,102 +92,101 @@ function OverviewTab() {
     <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="visible">
       {/* System Status Banner */}
       <motion.div variants={staggerItem}>
-      <Card className={cn(
-        'flex items-center gap-3',
-        enabled ? 'border-white' : 'border-white/10 bg-white/[0.02]'
-      )}>
-        {enabled
-          ? <Power className="w-5 h-5 text-white" />
-          : <PowerOff className="w-5 h-5 text-[#8A8A8A]" />
-        }
-        <div>
-          <p className="text-sm font-semibold text-white">
-            Threads Pipeline: {enabled ? 'Active' : 'Inactive'}
-          </p>
-          <p className="text-xs text-[#B0B0B0]">
-            {enabled
-              ? 'The pipeline is processing leads automatically.'
-              : 'Set THREADS_ENABLED=true in .env and restart to activate.'}
-          </p>
+        <div className={cn(
+          'rounded-xl border p-4 flex items-center gap-3',
+          enabled ? 'border-white/[0.18] bg-white/[0.04]' : 'border-white/[0.08] bg-surface-2'
+        )}>
+          <div className={cn('icon-bubble flex-shrink-0', enabled && 'border-white/20 bg-white/[0.06] text-white')}>
+            {enabled ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
+          </div>
+          <div className="min-w-0">
+            <p className="heading-section">
+              Threads Pipeline · {enabled ? 'Active' : 'Inactive'}
+            </p>
+            <p className="text-meta mt-0.5">
+              {enabled
+                ? 'The pipeline is processing leads automatically.'
+                : 'Set THREADS_ENABLED=true in .env and restart to activate.'}
+            </p>
+          </div>
         </div>
-      </Card>
       </motion.div>
 
       {/* KPI Cards */}
       <motion.div variants={staggerItem}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Profiles"
-          value={stats?.profiles.total ?? 0}
-          icon={<Users className="w-5 h-5" />}
-          trend={`${stats?.profiles.qualified ?? 0} qualified`}
-        />
-        <StatCard
-          label="Engaged"
-          value={stats?.profiles.engaged ?? 0}
-          icon={<MessageCircle className="w-5 h-5" />}
-        />
-        <StatCard
-          label="Posts"
-          value={stats?.posts ?? 0}
-          icon={<AtSign className="w-5 h-5" />}
-        />
-        <StatCard
-          label="Replies Today"
-          value={`${stats?.rate_limiter?.replies_today ?? 0} / ${stats?.rate_limiter?.daily_cap ?? 20}`}
-          icon={<Radio className="w-5 h-5" />}
-          trend={stats?.rate_limiter?.can_reply ? 'Ready to reply' : 'Cap reached'}
-        />
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <StatCard
+            label="Profiles"
+            value={stats?.profiles.total ?? 0}
+            icon={<Users />}
+            trend={`${stats?.profiles.qualified ?? 0} qualified`}
+          />
+          <StatCard
+            label="Engaged"
+            value={stats?.profiles.engaged ?? 0}
+            icon={<MessageCircle />}
+          />
+          <StatCard
+            label="Posts"
+            value={stats?.posts ?? 0}
+            icon={<AtSign />}
+          />
+          <StatCard
+            label="Replies Today"
+            value={`${stats?.rate_limiter?.replies_today ?? 0} / ${stats?.rate_limiter?.daily_cap ?? 20}`}
+            icon={<Radio />}
+            trend={stats?.rate_limiter?.can_reply ? 'Ready to reply' : 'Cap reached'}
+            trendDirection={stats?.rate_limiter?.can_reply ? 'up' : 'down'}
+          />
+        </div>
       </motion.div>
 
       {/* Pipeline Triggers */}
       <motion.div variants={staggerItem}>
-      <Card>
-        <h3 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Manual Pipeline Triggers</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Search className="w-4 h-4" />}
-            loading={discovery.isPending}
-            onClick={() => discovery.mutate()}
-            disabled={!enabled}
-          >
-            Run Discovery
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<CheckCircle className="w-4 h-4" />}
-            loading={qualification.isPending}
-            onClick={() => qualification.mutate()}
-            disabled={!enabled}
-          >
-            Run Qualification
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<MessageCircle className="w-4 h-4" />}
-            loading={engagement.isPending}
-            onClick={() => engagement.mutate()}
-            disabled={!enabled}
-          >
-            Run Engagement
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Eye className="w-4 h-4" />}
-            loading={responseCheck.isPending}
-            onClick={() => responseCheck.mutate()}
-            disabled={!enabled}
-          >
-            Check Responses
-          </Button>
-        </div>
-      </Card>
+        <Card title="Manual Pipeline Triggers">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Search className="w-3.5 h-3.5" />}
+              loading={discovery.isPending}
+              onClick={() => discovery.mutate()}
+              disabled={!enabled}
+            >
+              Discovery
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<CheckCircle className="w-3.5 h-3.5" />}
+              loading={qualification.isPending}
+              onClick={() => qualification.mutate()}
+              disabled={!enabled}
+            >
+              Qualification
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<MessageCircle className="w-3.5 h-3.5" />}
+              loading={engagement.isPending}
+              onClick={() => engagement.mutate()}
+              disabled={!enabled}
+            >
+              Engagement
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Eye className="w-3.5 h-3.5" />}
+              loading={responseCheck.isPending}
+              onClick={() => responseCheck.mutate()}
+              disabled={!enabled}
+            >
+              Check Responses
+            </Button>
+          </div>
+        </Card>
       </motion.div>
     </motion.div>
   );
@@ -256,11 +255,11 @@ function ProfilesTab() {
   return (
     <div className="space-y-4">
       <Card padding={true}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+            className="input-field max-w-[200px]"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -269,13 +268,14 @@ function ProfilesTab() {
             <option value="disqualified">Disqualified</option>
             <option value="converted">Converted</option>
           </select>
-          <span className="text-xs text-[#B0B0B0] font-mono">
+          <span className="text-[11px] text-tertiary font-mono ml-auto">
             {profiles?.length ?? 0} profiles
           </span>
         </div>
       </Card>
       <Card padding={false}>
         <DataTable
+          className="border-0 rounded-none"
           columns={columns}
           data={(profiles ?? []) as unknown as (ThreadsProfile & Record<string, unknown>)[]}
           loading={isLoading}
@@ -340,11 +340,11 @@ function EngagementsTab() {
   return (
     <div className="space-y-4">
       <Card padding={true}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white/80 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+            className="input-field max-w-[200px]"
           >
             <option value="">All Statuses</option>
             <option value="sent">Sent</option>
@@ -352,13 +352,14 @@ function EngagementsTab() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
           </select>
-          <span className="text-xs text-[#B0B0B0] font-mono">
+          <span className="text-[11px] text-tertiary font-mono ml-auto">
             {engagements?.length ?? 0} engagements
           </span>
         </div>
       </Card>
       <Card padding={false}>
         <DataTable
+          className="border-0 rounded-none"
           columns={columns}
           data={(engagements ?? []) as unknown as (ThreadsEngagement & Record<string, unknown>)[]}
           loading={isLoading}
@@ -406,38 +407,37 @@ function SearchConfigsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card padding={true}>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[#B0B0B0] font-mono">
+          <span className="text-[11px] text-tertiary font-mono">
             {configs?.length ?? 0} search configs
           </span>
           <Button
             variant="outline"
             size="sm"
-            icon={showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            icon={showAddForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
             onClick={() => setShowAddForm(!showAddForm)}
           >
             {showAddForm ? 'Cancel' : 'Add Keyword'}
           </Button>
         </div>
 
-        {/* Add Form */}
         {showAddForm && (
-          <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row gap-3">
+          <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-[1fr_180px_auto] gap-2">
             <input
               type="text"
               placeholder="Keyword (e.g. need a website)"
               value={newKeyword}
               onChange={(e) => setNewKeyword(e.target.value)}
-              className="flex-1 bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-[#7A7A7A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors"
+              className="input-field"
             />
             <input
               type="text"
               placeholder="Category (optional)"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="bg-surface-2 border border-white/10 rounded-md px-4 py-2 text-sm text-white placeholder:text-[#7A7A7A] focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/20 transition-colors min-w-[160px]"
+              className="input-field"
             />
             <Button size="sm" onClick={handleCreate} loading={createConfig.isPending}>
               Create
@@ -446,65 +446,60 @@ function SearchConfigsTab() {
         )}
       </Card>
 
-      {/* Configs List */}
       {isLoading ? (
         <Card>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-12 bg-white/5 rounded animate-pulse" />
+              <div key={i} className="h-12 shimmer-bg rounded-lg" />
             ))}
           </div>
         </Card>
       ) : !configs?.length ? (
-        <Card>
-          <div className="flex flex-col items-center justify-center py-12 text-[#B0B0B0]">
-            <Search className="w-8 h-8 mb-3 text-[#8A8A8A]" />
-            <p className="font-mono text-sm">No search configs yet</p>
-            <p className="text-xs mt-1">Add keywords to start discovering leads on Threads</p>
-          </div>
-        </Card>
+        <div className="empty-state">
+          <Search className="w-7 h-7 text-tertiary mb-3" />
+          <p className="heading-card mb-1">No search configs yet</p>
+          <p className="text-meta max-w-xs">Add keywords to start discovering leads on Threads.</p>
+        </div>
       ) : (
         <div className="space-y-2">
           {configs.map((config) => (
-            <Card key={config.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div key={config.id} className="rounded-lg border border-white/[0.06] bg-surface-2 p-3 flex items-center justify-between gap-3 transition-colors hover:border-white/[0.14]">
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => handleToggle(config)}
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center transition-all',
+                    'w-9 h-9 rounded-full flex items-center justify-center transition-all flex-shrink-0',
                     config.is_active
-                      ? 'bg-white text-black'
-                      : 'bg-white/10 text-[#B0B0B0] hover:bg-white/20'
+                      ? 'bg-white text-black hover:bg-[#EAEAEA]'
+                      : 'bg-white/[0.06] text-tertiary hover:bg-white/[0.1] hover:text-white'
                   )}
                   title={config.is_active ? 'Active — click to pause' : 'Paused — click to activate'}
                 >
-                  {config.is_active ? <Play className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
+                  {config.is_active ? <Play className="w-3.5 h-3.5 fill-current" /> : <PowerOff className="w-3.5 h-3.5" />}
                 </button>
-                <div>
-                  <p className="text-sm font-semibold text-white">{config.keyword}</p>
-                  <p className="text-xs text-[#B0B0B0]">
-                    {config.category && <span className="mr-2">{config.category}</span>}
-                    <span className="font-mono">{config.search_type}</span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-white truncate">{config.keyword}</p>
+                  <p className="text-[11px] text-tertiary font-mono flex flex-wrap items-center gap-x-2 mt-0.5">
+                    {config.category && <span>{config.category}</span>}
+                    <span>{config.search_type}</span>
                     {config.last_searched_at && (
-                      <span className="ml-2 text-[#8A8A8A]">
-                        last: {formatDate(config.last_searched_at)}
-                      </span>
+                      <span>· last {formatDate(config.last_searched_at)}</span>
                     )}
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Trash2 className="w-4 h-4" />}
+              <button
                 onClick={() => {
                   if (confirm(`Delete keyword "${config.keyword}"?`)) {
                     deleteConfig.mutate(config.id);
                   }
                 }}
-                className="text-[#B0B0B0] hover:text-white"
-              />
-            </Card>
+                className="row-action flex-shrink-0"
+                aria-label={`Delete keyword ${config.keyword}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -520,17 +515,14 @@ export default function Threads() {
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
       <PageHeader
+        eyebrow="Channel"
         title="Threads Pipeline"
-        subtitle="Meta Threads lead discovery, qualification & engagement"
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge label="BETA" variant="amber" />
-          </div>
-        }
+        subtitle="Meta Threads lead discovery, qualification & engagement."
+        actions={<Badge label="Beta" variant="amber" />}
       />
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 border-b border-white/10">
+      <div className="flex gap-1 border-b border-white/[0.08] overflow-x-auto">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -538,13 +530,13 @@ export default function Threads() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-[1px]',
+                'inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 text-[13px] font-medium transition-all border-b-2 -mb-[1px] whitespace-nowrap',
                 activeTab === tab.id
                   ? 'border-white text-white'
-                  : 'border-transparent text-[#B0B0B0] hover:text-white hover:border-white/30',
+                  : 'border-transparent text-tertiary hover:text-white hover:border-white/20',
               )}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );

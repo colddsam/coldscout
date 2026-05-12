@@ -761,6 +761,123 @@ export const getReportByDate = (date: string) =>
 export const downloadReport = (date: string) =>
   client.get(`/api/v1/reports/${date}/download`, { responseType: 'blob' }).then((r) => r.data);
 
+// ── Advanced Analytics ─────────────────────────────────────────────────────
+
+export interface FunnelStage {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface FunnelConversions {
+  discovered_to_qualified: number;
+  qualified_to_sent: number;
+  sent_to_opened: number;
+  opened_to_clicked: number;
+  opened_to_replied: number;
+  sent_to_replied: number;
+}
+
+export interface FunnelTotals {
+  discovered: number;
+  qualified: number;
+  sent: number;
+  opened: number;
+  clicked: number;
+  replied: number;
+}
+
+export interface FunnelResponse {
+  window_days: number;
+  totals: FunnelTotals;
+  stages: FunnelStage[];
+  conversions: FunnelConversions;
+}
+
+export interface NicheRow {
+  category: string;
+  discovered: number;
+  sent: number;
+  opened: number;
+  replied: number;
+  open_rate: number;
+  reply_rate: number;
+}
+
+export interface TimingPeak {
+  weekday: number;
+  hour: number;
+  count: number;
+}
+
+export interface TimingResponse {
+  window_days: number;
+  weekday_labels: string[];
+  opens: number[][];
+  replies: number[][];
+  peak_open: TimingPeak | null;
+  peak_reply: TimingPeak | null;
+}
+
+export interface VolumePoint {
+  date: string;
+  emails_sent: number;
+  emails_opened: number;
+  replies_received: number;
+  leads_found: number;
+  open_rate: number;
+  reply_rate: number;
+}
+
+export interface SentimentBucket {
+  key: 'positive' | 'neutral' | 'negative' | 'unsubscribe';
+  label: string;
+  count: number;
+  share: number;
+}
+
+export interface SentimentResponse {
+  window_days: number;
+  total_replies: number;
+  buckets: SentimentBucket[];
+}
+
+export interface AdviceResponse {
+  bullets: string[];
+  metrics: unknown;
+  source: 'groq' | 'fallback';
+}
+
+export const getFunnelStats = (days = 30) =>
+  client
+    .get<FunnelResponse>('/api/v1/analytics/funnel', { params: { days } })
+    .then((r) => r.data);
+
+export const getNichePerformance = (days = 90) =>
+  client
+    .get<NicheRow[]>('/api/v1/analytics/niches', { params: { days } })
+    .then((r) => r.data);
+
+export const getTimingInsights = (days = 60) =>
+  client
+    .get<TimingResponse>('/api/v1/analytics/timing', { params: { days } })
+    .then((r) => r.data);
+
+export const getVolumeSeries = (days = 30) =>
+  client
+    .get<VolumePoint[]>('/api/v1/analytics/volume', { params: { days } })
+    .then((r) => r.data);
+
+export const getSentimentBreakdown = (days = 30) =>
+  client
+    .get<SentimentResponse>('/api/v1/analytics/sentiment', { params: { days } })
+    .then((r) => r.data);
+
+export const getWeeklyAdvice = () =>
+  client
+    .get<AdviceResponse>('/api/v1/analytics/advice', { timeout: 60_000 })
+    .then((r) => r.data);
+
 // Inbox (may not exist in backend — will gracefully 404)
 /**
  * Retrieves threaded email conversations from the Smart Inbox.

@@ -1187,14 +1187,38 @@ async def poll_replies(manual: bool = False, user_id: Optional[int] = None):
 
                     # Classify reply intent
                     from app.modules.tracking.reply_classifier import (
-                        classify_reply, draft_reply_response,
+                        classification_to_sentiment,
+                        classify_reply,
+                        draft_reply_response,
                     )
                     from app.modules.notifications.whatsapp_bot import send_whatsapp_alert
+                    from app.models.email_event import EmailEvent
 
                     classification_data      = await classify_reply(body, subject)
                     lead.reply_classification = classification_data.get("classification")
                     lead.reply_confidence     = classification_data.get("confidence")
                     lead.reply_key_signal     = classification_data.get("key_signal")
+
+                    # Persist a "replied" EmailEvent row with the derived
+                    # sentiment so the analytics engine can split positive /
+                    # negative / neutral / unsubscribe replies per day.
+                    sentiment = classification_to_sentiment(
+                        lead.reply_classification, body
+                    )
+                    db.add(EmailEvent(
+                        lead_id=lead.id,
+                        outreach_id=outreach.id if outreach else None,
+                        event_type="replied",
+                        sentiment=sentiment,
+                        occurred_at=reply_time,
+                    ))
+
+                    # An unsubscribe takes the lead out of all follow-up
+                    # sequences immediately — record it on the lead so the
+                    # UI surfaces it and follow-ups stop.
+                    if sentiment == "unsubscribe":
+                        lead.followup_sequence_active = False
+                        lead.status = "unsubscribed"
 
                     if lead.reply_classification in [
                         "interested", "question", "pricing_inquiry"

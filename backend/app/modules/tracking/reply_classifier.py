@@ -10,6 +10,55 @@ from app.models.lead import Lead
 
 REPLY_CATEGORIES = ["interested", "not_interested", "auto_reply", "wrong_person", "question", "pricing_inquiry"]
 
+
+# Maps the fine-grained reply classification into the coarse sentiment
+# bucket stored on EmailEvent.sentiment (used by the analytics dashboard).
+#   positive    → engaged / replying with intent
+#   negative    → explicitly declines or pushes back
+#   neutral     → no signal either way (auto-reply, wrong person)
+#   unsubscribe → opt-out request; takes precedence over other sentiment
+_SENTIMENT_MAP: dict[str, str] = {
+    "interested":      "positive",
+    "pricing_inquiry": "positive",
+    "question":        "positive",
+    "not_interested":  "negative",
+    "auto_reply":      "neutral",
+    "wrong_person":    "neutral",
+}
+
+# Phrases that signal a hard opt-out regardless of the LLM classification.
+# Lowercased; matched as a substring against the reply body.
+_UNSUBSCRIBE_MARKERS: tuple[str, ...] = (
+    "unsubscribe",
+    "opt out",
+    "opt-out",
+    "remove me",
+    "stop emailing",
+    "do not email",
+    "don't email",
+    "take me off",
+    "no longer interested",
+)
+
+
+def classification_to_sentiment(
+    classification: str | None,
+    body: str | None = None,
+) -> str:
+    """
+    Collapses the LLM classification (plus optional reply body) into one of
+    ``positive``, ``neutral``, ``negative``, ``unsubscribe`` for analytics.
+
+    Unsubscribe markers in the body short-circuit the mapping — even an
+    otherwise "interested"-looking reply that says "please unsubscribe me"
+    must be recorded as an opt-out, not a positive lead signal.
+    """
+    if body:
+        haystack = body.lower()
+        if any(marker in haystack for marker in _UNSUBSCRIBE_MARKERS):
+            return "unsubscribe"
+    return _SENTIMENT_MAP.get((classification or "").lower(), "neutral")
+
 async def classify_reply(email_body: str, email_subject: str) -> dict:
     """
     Classifies a prospect's email reply into a structured intent category.

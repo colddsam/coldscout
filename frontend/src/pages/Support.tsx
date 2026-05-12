@@ -97,13 +97,14 @@ export default function Support() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 relative z-10">
 
         {/* Page Header */}
-        <motion.div className="text-center mb-16" variants={fadeInUp} initial="hidden" animate="visible">
-          <div className="inline-flex items-center justify-center p-3 bg-white/5 border border-white/10 rounded-2xl mb-6 shadow-glow-white animate-float">
-            <Headphones className="w-8 h-8 text-white" />
+        <motion.div className="text-center mb-14" variants={fadeInUp} initial="hidden" animate="visible">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-white/[0.04] border border-white/[0.1] rounded-2xl mb-6 animate-float">
+            <Headphones className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-gradient">Customer Support</h1>
-          <p className="text-[#8A8A8A] text-lg max-w-2xl mx-auto">
-            We're here to help. Whether you have a technical issue, billing question, or just need some guidance — our support team has you covered.
+          <p className="eyebrow mb-3">Help Center</p>
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-4 text-gradient">Customer Support</h1>
+          <p className="text-tertiary text-base max-w-xl mx-auto leading-relaxed">
+            We're here to help. Whether you have a technical issue, billing question, or just need guidance — our support team has you covered.
           </p>
         </motion.div>
 
@@ -112,8 +113,8 @@ export default function Support() {
           {/* Contact Us */}
           <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/5 rounded-lg">
-                <Mail className="w-5 h-5 text-white" />
+              <div className="icon-bubble">
+                <Mail className="w-4 h-4" />
               </div>
               <h2 className="text-2xl font-semibold text-white">1. How to Reach Us</h2>
             </div>
@@ -143,8 +144,8 @@ export default function Support() {
           {/* Response Times */}
           <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/5 rounded-lg">
-                <Clock className="w-5 h-5 text-white" />
+              <div className="icon-bubble">
+                <Clock className="w-4 h-4" />
               </div>
               <h2 className="text-2xl font-semibold text-white">2. Support Hours & Response Times</h2>
             </div>
@@ -178,8 +179,8 @@ export default function Support() {
           {/* What We Can Help With */}
           <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/5 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-white" />
+              <div className="icon-bubble">
+                <MessageSquare className="w-4 h-4" />
               </div>
               <h2 className="text-2xl font-semibold text-white">3. What We Can Help With</h2>
             </div>
@@ -207,8 +208,8 @@ export default function Support() {
           {/* Self-Service Resources */}
           <motion.section className="bg-surface-2 rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/5 rounded-lg">
-                <BookOpen className="w-5 h-5 text-white" />
+              <div className="icon-bubble">
+                <BookOpen className="w-4 h-4" />
               </div>
               <h2 className="text-2xl font-semibold text-white">4. Self-Service Resources</h2>
             </div>
@@ -249,8 +250,8 @@ export default function Support() {
           {/* Escalation */}
           <motion.section className="bg-white/[0.03] rounded-2xl p-8 border border-white/[0.08] card-glow text-left" variants={staggerItem}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-white/5 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-[#B0B0B0]" />
+              <div className="icon-bubble">
+                <AlertCircle className="w-4 h-4" />
               </div>
               <h2 className="text-2xl font-semibold text-white">5. Escalation & Unresolved Issues</h2>
             </div>

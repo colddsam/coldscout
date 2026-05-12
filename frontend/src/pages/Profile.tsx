@@ -83,12 +83,10 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
+      <label className="eyebrow block mb-1.5">{label}</label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tertiary pointer-events-none" />
         )}
         <input
           type={type}
@@ -97,10 +95,7 @@ function InputField({
           placeholder={placeholder}
           maxLength={maxLength}
           disabled={disabled}
-          className={`w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
-            placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
-            transition-colors disabled:bg-surface-2 disabled:text-white/75
-            ${Icon ? 'pl-9' : ''}`}
+          className={`input-field ${Icon ? '!pl-9' : ''}`}
         />
       </div>
     </div>
@@ -115,21 +110,17 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
+      <label className="eyebrow block mb-1.5">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
         rows={rows}
-        className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
-          placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none
-          transition-colors resize-none"
+        className="input-field resize-y"
       />
       {maxLength && (
-        <p className="text-[10px] text-white/70 mt-1 text-right">{value.length}/{maxLength}</p>
+        <p className="text-[10px] text-tertiary mt-1 text-right font-mono">{value.length}/{maxLength}</p>
       )}
     </div>
   );
@@ -143,14 +134,11 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
+      <label className="eyebrow block mb-1.5">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-white/10 bg-black px-3 py-2.5 text-sm text-white
-          focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
+        className="input-field"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((o) => (
@@ -167,19 +155,20 @@ function ToggleField({
   label: string; description?: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/[0.08] last:border-0">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-white/75 mt-0.5">{description}</p>}
+    <div className="flex items-start justify-between py-3 border-b border-white/[0.06] last:border-0 gap-4">
+      <div className="min-w-0">
+        <p className="text-[13px] font-medium text-white">{label}</p>
+        {description && <p className="text-[11px] text-tertiary mt-0.5 leading-relaxed">{description}</p>}
       </div>
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200
-          ${value ? 'bg-white' : 'bg-white/20'}`}
+        className={`relative inline-flex h-[22px] w-10 items-center rounded-full transition-colors duration-200 flex-shrink-0 mt-0.5
+          ${value ? 'bg-white' : 'bg-white/15'}`}
+        aria-pressed={value}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-black shadow transition-transform duration-200
-          ${value ? 'translate-x-6' : 'translate-x-1'}`}
+        <span className={`inline-block h-[16px] w-[16px] transform rounded-full bg-black shadow transition-transform duration-200
+          ${value ? 'translate-x-[22px]' : 'translate-x-[3px]'}`}
         />
       </button>
     </div>
@@ -203,9 +192,7 @@ function TagInput({
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-white/60 uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
+      <label className="eyebrow block mb-1.5">{label}</label>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {tags.map((tag) => (
           <motion.span
@@ -213,10 +200,10 @@ function TagInput({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium text-white border border-transparent hover:border-white/20 transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/[0.04] text-[11px] font-medium text-white border border-white/[0.08] hover:border-white/[0.2] transition-colors"
           >
             {tag}
-            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-white/70 hover:text-white transition-colors">
+            <button onClick={() => onChange(tags.filter((t) => t !== tag))} className="text-tertiary hover:text-white transition-colors" aria-label={`Remove ${tag}`}>
               <X className="w-3 h-3" />
             </button>
           </motion.span>
@@ -228,8 +215,7 @@ function TagInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
           placeholder={placeholder}
-          className="flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-white
-            placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
+          className="input-field flex-1"
         />
         <Button variant="outline" size="sm" onClick={addTag} disabled={!input.trim()}>Add</Button>
       </div>
@@ -282,22 +268,21 @@ function SetupModal({ onComplete }: { onComplete: () => void }) {
   }, [username]);
 
   return (
-    <Modal open={true} onClose={() => {}} title="Set Up Your Profile">
-      <p className="text-sm text-white/60 mb-4">Choose a unique username for your public profile.</p>
+    <Modal open={true} onClose={() => {}} title="Set up your profile">
+      <p className="text-[13px] text-secondary mb-4 leading-relaxed">Choose a unique username for your public profile URL.</p>
       <div className="space-y-4">
         <div>
           <div className="relative">
-            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70" />
+            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tertiary pointer-events-none" />
             <input
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               placeholder="your_username"
               maxLength={50}
-              className="w-full rounded-lg border border-white/10 bg-black pl-9 pr-10 py-2.5 text-sm text-white
-                placeholder:text-white/70 focus:border-white/30 focus:ring-1 focus:ring-black outline-none transition-colors"
+              className="input-field !pl-9 !pr-10"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {checking && <Loader2 className="w-4 h-4 animate-spin text-white/70" />}
+              {checking && <Loader2 className="w-4 h-4 animate-spin text-tertiary" />}
               {!checking && availability?.available && <Check className="w-4 h-4 text-success" />}
               {!checking && availability && !availability.available && <X className="w-4 h-4 text-danger" />}
             </div>
@@ -644,7 +629,7 @@ function BasicInfoTab({
   return (
     <SectionCard>
       <div className="p-6">
-        <h2 className="text-lg font-bold text-white mb-5">Basic Information</h2>
+        <h2 className="heading-section mb-4">Basic Information</h2>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-5"
           variants={staggerContainer}
@@ -726,7 +711,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-5">Company Information</h2>
+            <h2 className="heading-section mb-4">Company Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="Company Name" value={form.company_name} onChange={set('company_name')} icon={Building2} placeholder="Acme Inc." />
               <InputField label="Brand Name" value={form.brand_name} onChange={set('brand_name')} placeholder="Your Brand" />
@@ -758,7 +743,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-5">Address</h2>
+            <h2 className="heading-section mb-4">Address</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="md:col-span-2">
                 <InputField label="Street Address" value={form.address} onChange={set('address')} icon={MapPin} placeholder="123 Main St" />
@@ -775,7 +760,7 @@ function BusinessTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-5">Social Links</h2>
+            <h2 className="heading-section mb-4">Social Links</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="LinkedIn" value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/company/..." />
               <InputField label="Twitter / X" value={form.twitter_url} onChange={set('twitter_url')} placeholder="https://x.com/..." />
@@ -839,7 +824,7 @@ function FreelancerTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-5">Professional Details</h2>
+            <h2 className="heading-section mb-4">Professional Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="Professional Title" value={form.professional_title} onChange={set('professional_title')} icon={Briefcase} placeholder="Full-Stack Developer" />
               <InputField label="Experience (years)" value={form.experience_years} onChange={set('experience_years')} type="number" placeholder="5" />
@@ -882,7 +867,7 @@ function FreelancerTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-5">Social & Professional Links</h2>
+            <h2 className="heading-section mb-4">Social & Professional Links</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField label="LinkedIn" value={form.linkedin_url} onChange={set('linkedin_url')} placeholder="https://linkedin.com/in/..." />
               <InputField label="GitHub" value={form.github_url} onChange={set('github_url')} placeholder="https://github.com/..." />
@@ -906,7 +891,7 @@ function FreelancerTab({
       <motion.div variants={staggerItem}>
         <SectionCard>
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-1">Outreach Email Signature</h2>
+            <h2 className="heading-section mb-1">Outreach Email Signature</h2>
             <p className="text-xs text-white/75 mb-4">
               Append your profile (name, title, photo, contacts and social links) to outreach emails sent to your leads.
               Visibility of email/phone/location follows your basic privacy toggles. Off keeps emails identical to before.
@@ -1172,7 +1157,7 @@ function VerificationTab() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">Profile Verification</h2>
+            <h2 className="heading-section">Profile Verification</h2>
             <p className="text-sm text-white/75 mt-1">
               Verify your profile details to build trust with leads and clients.
               {totalChecked > 0 && (
@@ -1210,7 +1195,7 @@ function VerificationTab() {
           <div className="space-y-6">
             {Array.from(groups.entries()).map(([groupName, fields]) => (
               <div key={groupName}>
-                <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">{groupName}</h3>
+                <h3 className="eyebrow mb-3">{groupName}</h3>
                 <div className="space-y-2">
                   {fields.map((field) => {
                     const vStatus = verificationMap.get(field.key);
@@ -1305,7 +1290,7 @@ function PrivacyTab({
       <div className="p-6">
         <motion.div variants={staggerContainer} initial="hidden" animate="visible">
           <motion.div variants={staggerItem}>
-            <h2 className="text-lg font-bold text-white mb-1">Profile Visibility</h2>
+            <h2 className="heading-section mb-1">Profile Visibility</h2>
             <p className="text-sm text-white/60 mb-5">Control who can see your profile and information.</p>
           </motion.div>
 

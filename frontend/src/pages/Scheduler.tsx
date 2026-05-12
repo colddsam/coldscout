@@ -16,6 +16,7 @@ import { Play, Pause, Save, Lock, AlertTriangle, Bell, BellOff } from 'lucide-re
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem, scaleIn } from '../lib/motion';
 import ErrorState from '../components/ui/ErrorState';
+import { cn } from '../lib/utils';
 import type { JobEffectiveStatus } from '../lib/api';
 
 /**
@@ -62,26 +63,25 @@ export default function Scheduler() {
   }
 
   return (
-    <motion.div className="space-y-8" variants={pageTransition} initial="initial" animate="animate">
+    <motion.div className="space-y-7" variants={pageTransition} initial="initial" animate="animate">
       <PageHeader
+        eyebrow="Schedule"
         title="Job Scheduler"
-        subtitle={isSuperuser ? 'Global schedule and personal preferences' : 'Your personal job preferences'}
+        subtitle={isSuperuser ? 'Global cron schedule and personal preferences.' : 'Tune which jobs run for your account and when you get notified.'}
       />
 
       {productionHold && (
-        <Card className="bg-warning/[0.08] border-warning/30" padding={true}>
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning mt-0.5" />
-            <div className="text-sm text-warning">
-              <p className="font-semibold">Production is on HOLD.</p>
-              <p>
-                {isSuperuser
-                  ? 'Resume production from the Overview page before editing the global configuration.'
-                  : 'All jobs are paused by the administrator. You cannot modify personal preferences until production resumes.'}
-              </p>
-            </div>
+        <div className="rounded-xl border border-warning/30 bg-warning/[0.05] p-4 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+          <div className="text-[13px] text-warning/95 leading-relaxed">
+            <p className="font-semibold mb-1">Production is on HOLD.</p>
+            <p className="text-warning/80">
+              {isSuperuser
+                ? 'Resume production from the Overview page before editing the global configuration.'
+                : 'All jobs are paused by the administrator. You cannot modify personal preferences until production resumes.'}
+            </p>
           </div>
-        </Card>
+        </div>
       )}
 
       {isSuperuser && globalConfig && (
@@ -140,14 +140,17 @@ function GlobalConfigEditor({
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Global Configuration</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="heading-section">Global Configuration</h2>
+          <p className="text-meta mt-0.5">Authoritative cron schedule. Affects every freelancer.</p>
+        </div>
         <AnimatePresence>
           {hasChanges && !locked && (
             <motion.div variants={scaleIn} initial="hidden" animate="visible" exit="hidden">
               <Button
                 size="sm"
-                icon={<Save className="w-4 h-4" />}
+                icon={<Save className="w-3.5 h-3.5" />}
                 loading={saving}
                 onClick={() => {
                   onSave(local);
@@ -161,7 +164,7 @@ function GlobalConfigEditor({
         </AnimatePresence>
       </div>
 
-      <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-4" variants={staggerContainer} initial="hidden" animate="visible">
+      <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4" variants={staggerContainer} initial="hidden" animate="visible">
         {Object.entries(merged).map(([jobId, cfg]) => {
           const isRunning = String(cfg.status).toUpperCase() === 'RUN';
           const type = String(cfg.type ?? 'cron');
@@ -169,16 +172,16 @@ function GlobalConfigEditor({
           return (
             <motion.div key={jobId} variants={staggerItem}>
               <Card padding={true}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-base font-semibold text-white capitalize">{jobId.replace(/_/g, ' ')}</h3>
-                    <p className="text-xs text-white/75">{type}</p>
+                <div className="flex items-center justify-between mb-4 gap-3">
+                  <div className="min-w-0">
+                    <h3 className="heading-card capitalize truncate">{jobId.replace(/_/g, ' ')}</h3>
+                    <span className="chip mt-1.5">{type}</span>
                   </div>
                   <Button
                     variant={isRunning ? 'outline' : 'primary'}
                     size="sm"
                     disabled={locked}
-                    icon={isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    icon={isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                     onClick={() => patch(jobId, { status: isRunning ? 'HOLD' : 'RUN' })}
                   >
                     {isRunning ? 'Pause' : 'Enable'}
@@ -244,8 +247,8 @@ function NumberField({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-white/75">
-      {label}
+    <label className="flex flex-col gap-1.5">
+      <span className="eyebrow text-[10px]">{label}</span>
       <input
         type="number"
         value={value ?? ''}
@@ -256,7 +259,7 @@ function NumberField({
           const n = Number(e.target.value);
           if (Number.isFinite(n) && n >= min && n <= max) onChange(n);
         }}
-        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-surface-2 disabled:text-white/70"
+        className="input-field"
       />
     </label>
   );
@@ -272,13 +275,13 @@ function DayOfWeekField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-white/75">
-      Day of week
+    <label className="flex flex-col gap-1.5">
+      <span className="eyebrow text-[10px]">Day of week</span>
       <select
         value={value ?? ''}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="px-2 py-1 rounded-md border border-white/10 text-sm text-white disabled:bg-surface-2 disabled:text-white/70"
+        className="input-field"
       >
         <option value="">(any)</option>
         {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((d) => (
@@ -340,12 +343,11 @@ function MyPreferences({
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">My Preferences</h2>
-          <p className="text-sm text-white/75">
-            Turn individual jobs off just for your account, or silence their notifications.
-            Global HOLD jobs are locked. Each toggle only affects your own account.
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h2 className="heading-section">My Preferences</h2>
+          <p className="text-meta mt-0.5 max-w-prose">
+            Turn jobs off just for your account or silence their notifications. Global HOLD jobs are locked.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -355,7 +357,7 @@ function MyPreferences({
                 <Button
                   size="sm"
                   variant="outline"
-                  icon={<Bell className="w-4 h-4" />}
+                  icon={<Bell className="w-3.5 h-3.5" />}
                   loading={savingNotifs}
                   onClick={() => {
                     onSaveNotifs(localNotifs);
@@ -372,7 +374,7 @@ function MyPreferences({
               <motion.div variants={scaleIn} initial="hidden" animate="visible" exit="hidden">
                 <Button
                   size="sm"
-                  icon={<Save className="w-4 h-4" />}
+                  icon={<Save className="w-3.5 h-3.5" />}
                   loading={saving}
                   onClick={() => {
                     onSave(local);
@@ -388,7 +390,7 @@ function MyPreferences({
       </div>
 
       <Card padding={true}>
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-white/[0.06] -my-2">
           {view.map((j) => {
             const globalHold = j.global_status === 'HOLD';
             const rowLocked = locked || globalHold || j.system_only;
@@ -398,20 +400,22 @@ function MyPreferences({
             const notifOn = notifEnabled(j.job_id);
 
             return (
-              <li key={j.job_id} className="flex items-center justify-between py-3 gap-3">
+              <li key={j.job_id} className="flex items-center justify-between py-3.5 gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  {rowLocked ? (
-                    <Lock className="w-4 h-4 text-white/70 shrink-0" />
-                  ) : effective === 'RUN' ? (
-                    <Play className="w-4 h-4 text-success shrink-0" />
-                  ) : (
-                    <Pause className="w-4 h-4 text-warning shrink-0" />
-                  )}
+                  <span className="icon-bubble-sm icon-bubble">
+                    {rowLocked ? (
+                      <Lock className="w-3.5 h-3.5" />
+                    ) : effective === 'RUN' ? (
+                      <Play className="w-3.5 h-3.5 fill-current text-success" />
+                    ) : (
+                      <Pause className="w-3.5 h-3.5 text-warning" />
+                    )}
+                  </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white capitalize truncate">
+                    <p className="text-[13px] font-medium text-white capitalize truncate">
                       {j.job_id.replace(/_/g, ' ')}
                     </p>
-                    <p className="text-xs text-white/75 truncate">
+                    <p className="text-[11px] text-tertiary truncate mt-0.5 font-mono">
                       Global: {j.global_status}
                       {j.system_only && ' · system-only'}
                       {globalHold && !j.system_only && ' · controlled by admin'}
@@ -420,7 +424,7 @@ function MyPreferences({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {notifSupported && (
                     <button
                       type="button"
@@ -428,11 +432,10 @@ function MyPreferences({
                       aria-label={notifOn ? 'Silence notifications' : 'Enable notifications'}
                       aria-pressed={notifOn}
                       onClick={() => toggleNotif(j.job_id)}
-                      className={`p-2 rounded-md border border-white/10 transition ${
-                        notifOn
-                          ? 'text-success hover:bg-success/10'
-                          : 'text-white/60 hover:bg-white/5'
-                      }`}
+                      className={cn(
+                        'row-action',
+                        notifOn ? 'text-white' : 'text-tertiary',
+                      )}
                     >
                       {notifOn ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
                     </button>
@@ -443,7 +446,7 @@ function MyPreferences({
                     disabled={rowLocked}
                     onClick={() => toggle(j.job_id, userStatus)}
                   >
-                    {rowLocked ? 'Locked' : userStatus === 'RUN' ? 'Disable for me' : 'Enable for me'}
+                    {rowLocked ? 'Locked' : userStatus === 'RUN' ? 'Disable' : 'Enable'}
                   </Button>
                 </div>
               </li>

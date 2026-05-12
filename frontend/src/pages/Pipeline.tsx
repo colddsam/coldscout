@@ -440,47 +440,82 @@ export default function Pipeline() {
 
   return (
     <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
-      <PageHeader title="Pipeline Control" subtitle="Trigger and monitor the AI lead generation pipeline" />
+      <PageHeader
+        eyebrow="Operations"
+        title="Pipeline Control"
+        subtitle="Trigger and monitor every stage of the AI lead-generation pipeline."
+        actions={
+          <Button
+            size="sm"
+            icon={<Zap className="w-3.5 h-3.5" />}
+            onClick={handleRunFull}
+            loading={trigger.isPending && trigger.variables === 'all'}
+            disabled={hasAnyRunning}
+          >
+            {hasAnyRunning ? 'Pipeline Active' : 'Run Full Pipeline'}
+          </Button>
+        }
+      />
 
       {/* Status Banner */}
       <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-      <div className={`rounded-lg p-6 border ${hasAnyRunning ? 'bg-accent/[0.06] border-accent/25' : 'bg-surface-2 border-white/10'}`}>
-        <div className="flex items-center gap-4">
+        <div
+          className={cn(
+            'rounded-xl p-4 sm:p-5 border flex items-center gap-4',
+            hasAnyRunning
+              ? 'bg-white/[0.04] border-white/[0.16]'
+              : 'bg-surface-2 border-white/[0.08]',
+          )}
+        >
           {hasAnyRunning ? (
             <>
-              <Spinner size="md" />
-              <div>
-                <p className="text-accent font-semibold">Pipeline Active</p>
-                <p className="text-sm text-white/75">
-                  Running: {Object.entries(activeStages)
-                    .filter(([, j]) => j.status === 'running')
-                    .map(([s]) => stageDisplayName(s))
-                    .join(', ') || '—'}
-                  {Object.values(activeStages).some((j) => j.status === 'queued') && (
-                    <> · Queued: {Object.entries(activeStages)
-                      .filter(([, j]) => j.status === 'queued')
+              <span className="halo-dot text-white" />
+              <div className="min-w-0">
+                <p className="heading-section">Pipeline active</p>
+                <p className="text-[12px] text-tertiary mt-0.5">
+                  Running:{' '}
+                  <span className="text-secondary">
+                    {Object.entries(activeStages)
+                      .filter(([, j]) => j.status === 'running')
                       .map(([s]) => stageDisplayName(s))
-                      .join(', ')}
+                      .join(', ') || '—'}
+                  </span>
+                  {Object.values(activeStages).some((j) => j.status === 'queued') && (
+                    <>
+                      {' · Queued: '}
+                      <span className="text-secondary">
+                        {Object.entries(activeStages)
+                          .filter(([, j]) => j.status === 'queued')
+                          .map(([s]) => stageDisplayName(s))
+                          .join(', ')}
+                      </span>
                     </>
                   )}
                 </p>
               </div>
             </>
           ) : (
-            <div>
-              <p className="text-white font-semibold">Pipeline Idle</p>
-              <p className="text-sm text-white/75 font-mono">
-                Last run: {pipeline?.last_run?.at ? formatDate(pipeline.last_run.at) : 'Never'} ·
-                Status: {pipeline?.last_run?.status ?? '—'}
-              </p>
-            </div>
+            <>
+              <span className="w-2 h-2 rounded-full bg-tertiary" />
+              <div className="min-w-0">
+                <p className="heading-section">Pipeline idle</p>
+                <p className="text-[12px] text-tertiary mt-0.5 font-mono">
+                  Last run · {pipeline?.last_run?.at ? formatDate(pipeline.last_run.at) : 'Never'} ·
+                  Status · {pipeline?.last_run?.status ?? '—'}
+                </p>
+              </div>
+            </>
           )}
         </div>
-      </div>
       </motion.div>
 
       {/* Stage Cards */}
-      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" variants={staggerContainer} initial="hidden" animate="visible">
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {PIPELINE_STAGES.map((stage) => {
           const Icon = ICON_MAP[stage.icon] || Zap;
           const activeJob = activeStages[stage.id];
@@ -488,135 +523,116 @@ export default function Pipeline() {
 
           return (
             <motion.div key={stage.id} variants={staggerItem}>
-            <Card className={isBusy ? 'border-white/30 ring-1 ring-black/10' : ''}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-md ${isBusy ? 'bg-black' : 'bg-white/5'}`}>
-                    {isBusy && activeJob?.status === 'running' ? (
-                      <Spinner size="xs" className="text-white" />
-                    ) : isBusy && activeJob?.status === 'queued' ? (
-                      <Lock className="w-5 h-5 text-white" />
-                    ) : (
-                      <Icon className={`w-5 h-5 text-white/75`} />
-                    )}
+              <Card className={cn(isBusy && 'border-white/[0.18]')}>
+                <div className="flex items-start justify-between gap-3 mb-3.5">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className={cn('icon-bubble flex-shrink-0', isBusy && 'border-white/25 bg-white/[0.06] text-white')}>
+                      {isBusy && activeJob?.status === 'running' ? (
+                        <Spinner size="xs" className="text-white" />
+                      ) : isBusy && activeJob?.status === 'queued' ? (
+                        <Lock className="w-4 h-4" />
+                      ) : (
+                        <Icon className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="heading-card mb-1">{stage.label}</h3>
+                      <p className="text-[12px] text-tertiary leading-relaxed">{stage.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">{stage.label}</h3>
-                    <p className="text-xs text-white/75">{stage.description}</p>
-                  </div>
+                  <StageStatusBadge job={activeJob} />
                 </div>
-                <StageStatusBadge job={activeJob} />
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                icon={isBusy ? <Lock className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                onClick={() => handleRunStage(stage.id as PipelineStage)}
-                loading={trigger.isPending && trigger.variables === stage.id}
-                disabled={isBusy}
-              >
-                {activeJob?.status === 'running' ? 'Running...' : activeJob?.status === 'queued' ? 'Queued' : 'Run Stage'}
-              </Button>
-            </Card>
+                <Button
+                  size="sm"
+                  variant={isBusy ? 'secondary' : 'outline'}
+                  className="w-full"
+                  icon={isBusy ? <Lock className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  onClick={() => handleRunStage(stage.id as PipelineStage)}
+                  loading={trigger.isPending && trigger.variables === stage.id}
+                  disabled={isBusy}
+                >
+                  {activeJob?.status === 'running' ? 'Running…' : activeJob?.status === 'queued' ? 'Queued' : 'Run Stage'}
+                </Button>
+              </Card>
             </motion.div>
           );
         })}
       </motion.div>
 
-      {/* Run Full Pipeline CTA */}
-      <Button
-        className="w-full py-4 text-lg"
-        icon={<Zap className="w-5 h-5" />}
-        onClick={handleRunFull}
-        loading={trigger.isPending && trigger.variables === 'all'}
-        disabled={hasAnyRunning}
-      >
-        {hasAnyRunning ? 'Pipeline Active...' : 'Run Full Pipeline'}
-      </Button>
-
       {/* Pipeline Log */}
       <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest">
-              Pipeline Log
-            </h3>
-            <p className="text-xs text-secondary mt-1">
-              Live runs update every few seconds. History keeps the last
-              {' '}{historyData?.history?.length ?? 0} entries.
-            </p>
-          </div>
-          {/* Compact legend so the colors are self-documenting. */}
-          <div className="hidden md:flex items-center gap-1.5 text-[10px] text-secondary">
-            <Badge label="Running" variant="accent" />
-            <Badge label="Queued" variant="amber" />
-            <Badge label="Done" variant="green" />
-            <Badge label="Failed" variant="red" />
-            <Badge label="Skipped" variant="muted" />
-          </div>
-        </div>
+        <Card
+          title={
+            <>
+              <span>Pipeline Log</span>
+              <span className="text-[11px] font-mono text-tertiary font-normal ml-2">
+                {historyData?.history?.length ?? 0} entries
+              </span>
+            </>
+          }
+          actions={
+            <div className="hidden lg:flex items-center gap-1">
+              <Badge label="Running" variant="accent" />
+              <Badge label="Queued" variant="amber" />
+              <Badge label="Done" variant="green" />
+              <Badge label="Failed" variant="red" />
+            </div>
+          }
+        >
+          {liveRows.length === 0 && historyRows.length === 0 ? (
+            <div className="empty-state">
+              <p className="text-meta">
+                No log entries yet. Trigger a stage above, or wait for the next scheduled run.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5 max-h-[28rem] overflow-y-auto pr-1">
+              {liveRows.length > 0 && (
+                <section>
+                  <p className="eyebrow mb-2.5">Active runs · {liveRows.length}</p>
+                  <div className="space-y-2">
+                    {liveRows.map((row) => (
+                      <LogRowItem
+                        key={row.key}
+                        row={row}
+                        expanded={expandedRows.has(row.key)}
+                        onToggle={() => toggleRow(row.key)}
+                        showOwner={isSuperuser}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-        {liveRows.length === 0 && historyRows.length === 0 ? (
-          <div className="border border-dashed border-white/10 rounded-md p-8 text-center">
-            <p className="text-sm text-secondary">
-              No log entries yet. Trigger a pipeline stage to see output, or
-              wait for the next scheduled run.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-1">
-            {liveRows.length > 0 && (
-              <section>
-                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-2">
-                  Active runs ({liveRows.length})
-                </h4>
-                <div className="space-y-2">
-                  {liveRows.map((row) => (
-                    <LogRowItem
-                      key={row.key}
-                      row={row}
-                      expanded={expandedRows.has(row.key)}
-                      onToggle={() => toggleRow(row.key)}
-                      showOwner={isSuperuser}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {historyRows.length > 0 && (
-              <section>
-                <h4 className="text-[10px] font-semibold uppercase tracking-widest text-secondary mb-2">
-                  Run history
-                </h4>
-                <div className="space-y-2">
-                  {historyRows.map((row) => (
-                    <LogRowItem
-                      key={row.key}
-                      row={row}
-                      expanded={expandedRows.has(row.key)}
-                      onToggle={() => toggleRow(row.key)}
-                      showOwner={isSuperuser}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        )}
-      </Card>
+              {historyRows.length > 0 && (
+                <section>
+                  <p className="eyebrow mb-2.5">Run history</p>
+                  <div className="space-y-2">
+                    {historyRows.map((row) => (
+                      <LogRowItem
+                        key={row.key}
+                        row={row}
+                        expanded={expandedRows.has(row.key)}
+                        onToggle={() => toggleRow(row.key)}
+                        showOwner={isSuperuser}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+        </Card>
       </motion.div>
 
       {/* Confirm Modal */}
-      <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Run Full Pipeline">
-        <p className="text-white/75 text-sm mb-4">
-          This will trigger all pipeline stages sequentially: Discovery → Qualification →
-          Personalization → Outreach → Report. Are you sure?
+      <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Run the full pipeline?">
+        <p className="text-secondary text-[13px] mb-5 leading-relaxed">
+          This will trigger every stage sequentially: Discovery → Qualification → Personalization → Outreach → Report.
         </p>
-        <div className="flex gap-3 justify-end">
-          <Button variant="ghost" onClick={() => setShowConfirm(false)}>Cancel</Button>
-          <Button onClick={confirmRun}>Confirm Run</Button>
+        <div className="flex gap-2 justify-end">
+          <Button variant="ghost" size="sm" onClick={() => setShowConfirm(false)}>Cancel</Button>
+          <Button size="sm" icon={<Zap className="w-3.5 h-3.5" />} onClick={confirmRun}>Confirm Run</Button>
         </div>
       </Modal>
     </motion.div>

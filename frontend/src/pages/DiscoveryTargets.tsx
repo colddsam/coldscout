@@ -217,7 +217,7 @@ export default function DiscoveryTargets() {
   if (cfgQ.isError) {
     return (
       <motion.div className="space-y-6" variants={pageTransition} initial="initial" animate="animate">
-        <PageHeader title="Discovery Targets" subtitle="Could not load your discovery config" />
+        <PageHeader eyebrow="Discovery" title="Targets" subtitle="Could not load your discovery config" />
         <ErrorState
           title="Failed to load"
           message="Could not fetch discovery configuration from the server."
@@ -235,8 +235,9 @@ export default function DiscoveryTargets() {
       animate="animate"
     >
       <PageHeader
-        title="Discovery Targets"
-        subtitle="Decide where and what kind of leads the next discovery run will look for. Each freelancer has their own setup — admins included."
+        eyebrow="Discovery"
+        title="Targets"
+        subtitle="Decide where and what kind of leads the next discovery run will look for. Per-freelancer setup."
       />
 
       {/* Mode card */}

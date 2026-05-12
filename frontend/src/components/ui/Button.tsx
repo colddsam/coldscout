@@ -21,23 +21,23 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, Moti
 
 const variants: Record<string, string> = {
   primary:
-    'bg-white text-black hover:bg-[#E5E5E5] font-medium border border-white shadow-[0_1px_0_rgba(255,255,255,0.4)_inset,0_4px_12px_rgba(0,0,0,0.4)]',
+    'bg-white text-black hover:bg-[#EAEAEA] active:bg-[#DADADA] font-medium border border-white/90 shadow-[0_1px_0_rgba(255,255,255,0.55)_inset,0_2px_8px_rgba(0,0,0,0.35)]',
   accent:
-    'bg-accent text-black hover:bg-accent-hover font-medium border border-accent/40 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_4px_16px_rgba(255,255,255,0.1)]',
+    'bg-white text-black hover:bg-[#EAEAEA] active:bg-[#DADADA] font-medium border border-white/90 shadow-[0_1px_0_rgba(255,255,255,0.55)_inset,0_2px_8px_rgba(0,0,0,0.35)]',
   secondary:
-    'bg-[#121212] text-white border border-white/10 hover:border-white/22 hover:bg-white/[0.06] font-medium',
+    'bg-white/[0.04] text-white border border-white/10 hover:border-white/25 hover:bg-white/[0.08] font-medium',
   danger:
-    'bg-[#121212] text-white/90 border border-white/25 hover:bg-white/10 hover:border-white/45 font-medium',
+    'bg-transparent text-white/90 border border-white/15 hover:bg-white/[0.06] hover:border-white/30 font-medium',
   ghost:
-    'bg-transparent text-[#B0B0B0] hover:text-white hover:bg-white/[0.06]',
+    'bg-transparent text-secondary hover:text-white hover:bg-white/[0.06]',
   outline:
-    'bg-transparent text-white border border-white/12 hover:border-white/25 hover:bg-white/[0.04] font-medium',
+    'bg-transparent text-white border border-white/12 hover:border-white/30 hover:bg-white/[0.04] font-medium',
 };
 
 const sizes: Record<string, string> = {
-  sm: 'px-3 py-1.5 text-xs h-8',
-  md: 'px-4 py-2 text-sm h-9',
-  lg: 'px-5 py-2.5 text-sm h-11',
+  sm: 'px-3 py-1.5 text-xs h-8 rounded-md',
+  md: 'px-3.5 py-2 text-[13px] h-9 rounded-lg',
+  lg: 'px-5 py-2.5 text-sm h-11 rounded-lg',
 };
 
 export default function Button({
@@ -80,7 +80,7 @@ export default function Button({
       whileTap={disabled || loading ? undefined : { scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
       className={cn(
-        'ripple-container inline-flex items-center justify-center gap-2 rounded-lg font-sans whitespace-nowrap',
+        'ripple-container inline-flex items-center justify-center gap-2 font-sans whitespace-nowrap',
         'transition-all duration-200 ease-out',
         // Disabled / loading: dim the surface and silence pointer events
         // so the variant's hover/active styles don't briefly fire on a

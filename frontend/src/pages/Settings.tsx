@@ -13,62 +13,15 @@ import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem } from '../lib/motion';
 import NotificationsSettings from '../components/notifications/NotificationsSettings';
 
-/**
- * The Settings page provides global system administration capabilities.
- * 
- * It includes a raw JSON editor for advanced configuration of pipeline jobs (`jobs_config.json`),
- * allowing precise control over worker parameters. It also features a global production 
- * kill-switch to immediately pause or resume all pipeline activities, and displays 
- * high-level system health and security information.
- */
 export default function Settings() {
-  /**
-   * Retrieves the current jobs configuration from the `useConfigJobs` hook.
-   * 
-   * @type {object} jobsConfig - The current jobs configuration.
-   * @type {boolean} jobsLoading - Whether the jobs configuration is currently loading.
-   */
   const { data: jobsConfig, isLoading: jobsLoading } = useConfigJobs();
-
-  /**
-   * Retrieves the current system health from the `useHealth` hook.
-   * 
-   * @type {object} health - The current system health.
-   * @type {boolean} healthLoading - Whether the system health is currently loading.
-   */
   const { data: health, isLoading: healthLoading } = useHealth();
-
-  /**
-   * Retrieves the `updateConfig` function from the `useUpdateConfig` hook.
-   * 
-   * @type {function} updateConfig - A function to update the system configuration.
-   */
   const updateConfig = useUpdateConfig();
-
-  /**
-   * Retrieves the `systemToggle` function from the `useSystemToggle` hook.
-   * 
-   * @type {function} systemToggle - A function to toggle the system production status.
-   */
   const systemToggle = useSystemToggle();
 
-  /**
-   * The current JSON string representation of the jobs configuration.
-   * 
-   * @type {string} jsonStr - The current JSON string representation of the jobs configuration.
-   */
   const [jsonStr, setJsonStr] = useState('');
-
-  /**
-   * Whether the jobs configuration has been modified.
-   * 
-   * @type {boolean} dirty - Whether the jobs configuration has been modified.
-   */
   const [dirty, setDirty] = useState(false);
 
-  /**
-   * Updates the `jsonStr` state with the current jobs configuration when it becomes available.
-   */
   useEffect(() => {
     if (jobsConfig) {
       const timer = setTimeout(() => {
@@ -78,9 +31,6 @@ export default function Settings() {
     }
   }, [jobsConfig]);
 
-  /**
-   * Saves the modified jobs configuration to the system.
-   */
   const handleSave = () => {
     try {
       const parsed = JSON.parse(jsonStr);
@@ -91,9 +41,6 @@ export default function Settings() {
     }
   };
 
-  /**
-   * Resets the jobs configuration to its original state.
-   */
   const handleReset = () => {
     if (jobsConfig) {
       setJsonStr(JSON.stringify(jobsConfig, null, 2));
@@ -101,29 +48,25 @@ export default function Settings() {
     }
   };
 
-  /**
-   * Returns a `PageLoader` component if either the jobs configuration or system health is loading.
-   */
   if (jobsLoading || healthLoading) return <PageLoader />;
 
-  /**
-   * Whether the system is currently running.
-   * 
-   * @type {boolean} isRunning - Whether the system is currently running.
-   */
   const isRunning = health?.production_status === true;
 
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
-      <PageHeader title="Settings" subtitle="System configuration and administration" />
+      <PageHeader
+        eyebrow="Admin"
+        title="Settings"
+        subtitle="System configuration & administration."
+      />
 
-      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-6" variants={staggerContainer} initial="hidden" animate="visible">
+      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={staggerContainer} initial="hidden" animate="visible">
         {/* Main Config Editor (2/3) */}
         <motion.div className="lg:col-span-2 space-y-4" variants={staggerItem}>
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest">Jobs Configuration</h3>
-              <div className="flex items-center gap-2">
+          <Card
+            title="Jobs Configuration"
+            actions={
+              <>
                 {dirty && <Badge label="Modified" variant="amber" />}
                 <Button
                   variant="ghost"
@@ -143,8 +86,9 @@ export default function Settings() {
                 >
                   Save
                 </Button>
-              </div>
-            </div>
+              </>
+            }
+          >
             <JsonEditor
               value={jsonStr}
               onChange={(v) => { setJsonStr(v); setDirty(true); }}
@@ -157,22 +101,21 @@ export default function Settings() {
         <div className="space-y-4">
           {/* System Toggle */}
           <motion.div variants={staggerItem}>
-          <Card>
-            <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">Production Status</h3>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm text-white font-medium">
-                  System is {isRunning ? 'running' : 'on hold'}
-                </p>
-                <p className="text-xs text-white/70">Toggle to hold/resume all scheduled jobs</p>
+            <Card title="Production Status">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] text-white font-medium">
+                    System is {isRunning ? 'running' : 'on hold'}
+                  </p>
+                  <p className="text-meta mt-0.5">Toggle to hold or resume all scheduled jobs.</p>
+                </div>
+                <Toggle
+                  value={isRunning}
+                  onChange={() => systemToggle.mutate(isRunning ? 'hold' : 'resume')}
+                  disabled={systemToggle.isPending}
+                />
               </div>
-              <Toggle
-                value={isRunning}
-                onChange={() => systemToggle.mutate(isRunning ? 'hold' : 'resume')}
-                disabled={systemToggle.isPending}
-              />
-            </div>
-          </Card>
+            </Card>
           </motion.div>
 
           {/* Notifications */}
@@ -182,46 +125,41 @@ export default function Settings() {
 
           {/* Health Info */}
           <motion.div variants={staggerItem}>
-          <Card>
-            <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest mb-3">System Info</h3>
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between">
-                <span className="text-white/70">Version</span>
-                <span className="font-mono text-white">{health?.version ?? '—'}</span>
+            <Card title="System Info">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-tertiary">Version</span>
+                  <span className="font-mono text-white text-[12px]">{health?.version ?? '—'}</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-tertiary">Status</span>
+                  <Badge label={health?.status === 'healthy' ? 'Healthy' : 'Error'} variant={health?.status === 'healthy' ? 'teal' : 'red'} />
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-tertiary">Scheduler</span>
+                  <Badge label={health?.scheduler_running ? 'Active' : 'Inactive'} variant={health?.scheduler_running ? 'green' : 'amber'} />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Status</span>
-                <Badge label={health?.status === 'healthy' ? 'Healthy' : 'Error'} variant={health?.status === 'healthy' ? 'teal' : 'red'} />
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Scheduler</span>
-                <Badge label={health?.scheduler_running ? 'Active' : 'Inactive'} variant={health?.scheduler_running ? 'green' : 'amber'} />
-              </div>
-            </div>
-          </Card>
+            </Card>
           </motion.div>
 
           {/* Security */}
           <motion.div variants={staggerItem}>
-          <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-white/75" />
-              <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest">Security</h3>
-            </div>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-white/70">API Key</span>
-                <span className="font-mono text-white/75">••••••••••</span>
+            <Card title={<><Shield className="w-3.5 h-3.5" />Security</>}>
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-tertiary">API Key</span>
+                  <span className="font-mono text-secondary text-[12px]">••••••••••</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-tertiary">Auth</span>
+                  <Badge label="Proxy-side" variant="green" />
+                </div>
+                <p className="text-[11px] text-tertiary leading-relaxed mt-2 border-t border-white/[0.06] pt-2.5">
+                  API key is stored in the proxy server environment and never exposed to the frontend.
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Auth</span>
-                <Badge label="Proxy-side" variant="green" />
-              </div>
-              <p className="text-white/70 text-[10px] mt-2">
-                API key is stored in the proxy server environment and never exposed to the frontend.
-              </p>
-            </div>
-          </Card>
+            </Card>
           </motion.div>
         </div>
       </motion.div>

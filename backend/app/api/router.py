@@ -25,6 +25,7 @@ from app.api.v1.audit import router as audit_router
 from app.api.v1.directory import router as directory_router
 from app.api.v1.booking_integrations import router as booking_integrations_router
 from app.api.v1.booking_management import router as booking_management_router
+from app.api.v1.analytics import router as analytics_router
 from app.api.deps import get_api_key
 
 # Define routers without global dependencies first
@@ -62,6 +63,7 @@ private_router.include_router(discovery_config_router, tags=["discovery-config"]
 private_router.include_router(notifications_router, tags=["notifications"])
 private_router.include_router(audit_router, tags=["audit"])
 private_router.include_router(booking_management_router, tags=["booking-management"])
+private_router.include_router(analytics_router, tags=["analytics"])
 
 # Aggregated versioned router
 api_router = APIRouter()

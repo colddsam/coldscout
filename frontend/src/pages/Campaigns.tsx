@@ -11,64 +11,49 @@ import { useState } from 'react';
 import { Send, X, Eye, MousePointerClick, Reply } from 'lucide-react';
 import type { Campaign } from '../lib/api';
 import ErrorState from '../components/ui/ErrorState';
+import { EmptyInbox } from '../components/ui/Illustration';
+import type { ReactNode } from 'react';
+
+function MetricTile({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-center transition-colors hover:border-white/[0.12]">
+      <div className="text-tertiary mb-1.5 flex items-center justify-center">{icon}</div>
+      <p className="text-display-num text-[1.05rem] leading-none">{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.1em] text-tertiary mt-1.5">{label}</p>
+    </div>
+  );
+}
 
 function CampaignDetailPanel({ campaign }: { campaign: Campaign }) {
   const { data: stats } = useCampaignStats(campaign.id);
 
   return (
     <div className="space-y-4">
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-surface-2 border border-white/[0.08] rounded-md p-3 text-center">
-          <Send className="w-4 h-4 text-white/75 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-white">{stats?.total_sent ?? campaign.total_sent ?? 0}</p>
-          <p className="text-xs text-white/70">Sent</p>
-        </div>
-        <div className="bg-surface-2 border border-white/[0.08] rounded-md p-3 text-center">
-          <Eye className="w-4 h-4 text-white/70 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-white">{stats?.total_opened ?? campaign.total_opened ?? 0}</p>
-          <p className="text-xs text-white/70">Opened</p>
-        </div>
-        <div className="bg-surface-2 border border-white/[0.08] rounded-md p-3 text-center">
-          <MousePointerClick className="w-4 h-4 text-white/70 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-white">{stats?.total_clicked ?? campaign.total_clicked ?? 0}</p>
-          <p className="text-xs text-white/70">Clicked</p>
-        </div>
-        <div className="bg-surface-2 border border-white/[0.08] rounded-md p-3 text-center">
-          <Reply className="w-4 h-4 text-white/70 mx-auto mb-1" />
-          <p className="text-lg font-mono font-bold text-white">{stats?.total_replied ?? campaign.total_replied ?? 0}</p>
-          <p className="text-xs text-white/70">Replied</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <MetricTile icon={<Send className="w-3.5 h-3.5" />} label="Sent"    value={stats?.total_sent    ?? campaign.total_sent    ?? 0} />
+        <MetricTile icon={<Eye className="w-3.5 h-3.5" />}  label="Opened"  value={stats?.total_opened  ?? campaign.total_opened  ?? 0} />
+        <MetricTile icon={<MousePointerClick className="w-3.5 h-3.5" />} label="Clicked" value={stats?.total_clicked ?? campaign.total_clicked ?? 0} />
+        <MetricTile icon={<Reply className="w-3.5 h-3.5" />} label="Replied" value={stats?.total_replied ?? campaign.total_replied ?? 0} />
       </div>
 
-      {/* Rates */}
       {stats && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-white">{stats.open_rate ?? '—'}%</p>
-            <p className="text-xs text-white/70">Open Rate</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-white">{stats.click_rate ?? '—'}%</p>
-            <p className="text-xs text-white/70">Click Rate</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-mono font-bold text-white">{stats.reply_rate ?? '—'}%</p>
-            <p className="text-xs text-white/70">Reply Rate</p>
-          </div>
+        <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/[0.06]">
+          {[
+            { label: 'Open rate',  value: stats.open_rate },
+            { label: 'Click rate', value: stats.click_rate },
+            { label: 'Reply rate', value: stats.reply_rate },
+          ].map((r) => (
+            <div key={r.label} className="text-center">
+              <p className="text-display-num text-[1.5rem] leading-none">{r.value ?? '—'}<span className="text-tertiary text-base ml-0.5">%</span></p>
+              <p className="eyebrow mt-2 text-[10px]">{r.label}</p>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-/**
- * The Campaigns page provides a high-level view of all outbound outreach efforts.
- * 
- * It lists all recorded campaigns and allows the user to click into a specific
- * campaign to view detailed performance metrics such as total sent, opened, 
- * clicked, and replied, along with calculated conversion rates.
- */
 export default function Campaigns() {
   const { data: campaigns, isLoading, isError, refetch } = useCampaigns();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -78,7 +63,7 @@ export default function Campaigns() {
   if (isError) {
     return (
       <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
-        <PageHeader title="Campaigns" subtitle="Error loading campaigns" />
+        <PageHeader eyebrow="Outreach" title="Campaigns" subtitle="Error loading campaigns" />
         <ErrorState title="Failed to load campaigns" message="Could not fetch campaign data from the server." onRetry={refetch} />
       </motion.div>
     );
@@ -90,19 +75,21 @@ export default function Campaigns() {
     {
       key: 'name',
       label: 'Campaign',
-      render: (_, row) => <span className="text-white font-medium">{String(row.name || row.campaign_date || row.id)}</span>,
+      render: (_, row) => <span className="text-white font-medium tracking-tight">{String(row.name || row.campaign_date || row.id)}</span>,
     },
     {
       key: 'total_sent',
       label: 'Sent',
-      render: (_, row) => <span className="font-mono">{String(row.total_sent ?? 0)}</span>,
+      render: (_, row) => <span className="font-mono text-secondary">{String(row.total_sent ?? 0)}</span>,
       width: '80px',
+      numeric: true,
     },
     {
       key: 'total_opened',
       label: 'Opened',
-      render: (_, row) => <span className="font-mono">{String(row.total_opened ?? 0)}</span>,
+      render: (_, row) => <span className="font-mono text-secondary">{String(row.total_opened ?? 0)}</span>,
       width: '80px',
+      numeric: true,
     },
     {
       key: 'status',
@@ -115,40 +102,43 @@ export default function Campaigns() {
     {
       key: 'created_at',
       label: 'Created',
-      render: (_, row) => <span className="font-mono text-xs">{formatDate(String(row.created_at ?? row.campaign_date))}</span>,
+      render: (_, row) => <span className="font-mono text-[11px] text-tertiary">{formatDate(String(row.created_at ?? row.campaign_date))}</span>,
     },
   ];
 
   return (
     <motion.div className="space-y-6" initial="initial" animate="animate" variants={pageTransition}>
       <PageHeader
+        eyebrow="Outreach"
         title="Campaigns"
-        subtitle={`${campaigns?.length ?? 0} campaigns tracked`}
+        subtitle={`${campaigns?.length ?? 0} campaigns tracked · click a row for performance breakdown.`}
       />
 
-      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-6" variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
-        {/* Campaign Table (2/3 or full) */}
+      <motion.div className="grid grid-cols-1 lg:grid-cols-3 gap-4" variants={fadeInUp} initial="hidden" whileInView="visible" viewport={defaultViewport}>
         <div className={selected ? 'lg:col-span-2' : 'lg:col-span-3'}>
           <Card padding={false}>
             <DataTable
+              className="border-0 rounded-none"
               columns={columns}
               data={(campaigns ?? []) as unknown as (Campaign & Record<string, unknown>)[]}
               onRowClick={(row) => setSelectedId(String(row.id))}
-              emptyMessage="No campaigns found"
+              emptyMessage="No campaigns yet"
+              emptyHint="Once your pipeline starts sending, campaigns will appear here with full performance metrics."
+              emptyIllustration={<EmptyInbox size={84} />}
             />
           </Card>
         </div>
 
-        {/* Detail Panel (1/3) */}
         {selected && (
           <motion.div variants={scaleIn} initial="hidden" animate="visible">
-            <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-medium text-white/75 uppercase tracking-widest">Campaign Details</h3>
-                <button onClick={() => setSelectedId(null)} className="text-white/70 hover:text-white/70 transition-colors">
-                  <X className="w-4 h-4" />
+            <Card
+              title="Campaign Details"
+              actions={
+                <button onClick={() => setSelectedId(null)} className="row-action" aria-label="Close">
+                  <X className="w-3.5 h-3.5" />
                 </button>
-              </div>
+              }
+            >
               <CampaignDetailPanel campaign={selected} />
             </Card>
           </motion.div>
