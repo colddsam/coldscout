@@ -217,3 +217,42 @@ jobs:
           name: ColdScout-Release.aab
           path: frontend/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
+
+      - name: Notify Telegram
+        if: always()
+        run: |
+          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
+            if [ "${{ job.status }}" = "success" ]; then
+              STATUS_ICON="🚀"
+              TEXT="*New Android Build Created*%0A%0A*Version:* ${{ steps.version.outputs.VERSION_NAME }}%0A*Build:* ${{ steps.version.outputs.VERSION_CODE }}%0A%0AThe update is now available in the dashboard and for download."
+            else
+              STATUS_ICON="❌"
+              TEXT="*Android Build Failed*%0A%0ARun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            fi
+            
+            curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+              -d "text=${STATUS_ICON} ${TEXT}" \
+              -d "parse_mode=Markdown"
+          else
+            echo "Telegram credentials not set, skipping notification."
+          fi
+
+      - name: Send APK to Telegram
+        if: success()
+        run: |
+          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ] && [ -n "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
+            APK_FILE="release-assets/${{ steps.version.outputs.APK_NAME }}"
+            if [ -f "$APK_FILE" ]; then
+              echo "Uploading $APK_FILE to Telegram..."
+              # Use -f to fail on 4xx/5xx errors (like file too large)
+              curl -f -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+                -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+                -F "document=@$APK_FILE" \
+                -F "caption=📦 Cold Scout Android v${{ steps.version.outputs.VERSION_NAME }} (Build ${{ steps.version.outputs.VERSION_CODE }})" || echo "::warning::Telegram APK upload failed (likely exceeds 50MB limit)"
+            else
+              echo "APK file not found: $APK_FILE"
+            fi
+          else
+            echo "Telegram credentials not set, skipping file upload."
+          fi
