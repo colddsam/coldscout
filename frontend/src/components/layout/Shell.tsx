@@ -17,7 +17,6 @@ import { ensureServiceWorker } from '../../lib/push';
 import UpgradeModal from '../dashboard/UpgradeModal';
 import DashboardSkeleton from '../dashboard/DashboardSkeleton';
 import AnimatedBackground from '../ui/AnimatedBackground';
-import UpdateBanner from '../UpdateBanner';
 
 export default function Shell() {
   const [collapsed, setCollapsed] = useState(false);
@@ -72,7 +71,6 @@ export default function Shell() {
               status bar / notch never clips UpdateBanner or Topbar. Whether
               one or both render, the inset stays accounted for here. */}
           <div className="pt-safe">
-            <UpdateBanner />
             <Topbar onMenuClick={() => setMobileOpen(true)} />
           </div>
 

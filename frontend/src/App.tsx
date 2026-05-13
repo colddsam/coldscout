@@ -18,6 +18,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 
 import Shell from './components/layout/Shell';
 import SplashScreen from './components/SplashScreen';
+import UpdateBanner from './components/UpdateBanner';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -186,6 +187,9 @@ function AppShell() {
       <DeepLinkHandler />
       <AuthProvider>
         <SessionExpiredModal />
+        <div className="pt-safe sticky top-0 z-[100]">
+          <UpdateBanner />
+        </div>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* Public Routes */}

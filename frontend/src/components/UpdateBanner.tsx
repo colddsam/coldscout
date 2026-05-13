@@ -150,7 +150,7 @@ export default function UpdateBanner() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-        className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+        className="relative z-[100] bg-black/80 backdrop-blur-xl text-white border-b border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         role="status"
       >
         <div className="flex items-center gap-3 px-4 md:px-6 py-2">
