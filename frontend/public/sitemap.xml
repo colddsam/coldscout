@@ -104,6 +104,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://coldscout.colddsam.com/scanner</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://coldscout.colddsam.com/blog/automate-google-maps-lead-generation</loc>
     <lastmod>2026-05-08</lastmod>
     <changefreq>monthly</changefreq>

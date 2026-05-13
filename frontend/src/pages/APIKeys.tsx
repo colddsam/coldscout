@@ -102,11 +102,6 @@ export default function APIKeys() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [weightPreview, setWeightPreview] = useState<APIKeyCollision[]>([]);
 
-  // Strict superuser gate — the backend already enforces this, but rendering
-  // the empty page to a non-admin is a worse experience than redirecting.
-  if (user && !user.is_superuser) {
-    return <Navigate to="/settings" replace />;
-  }
 
   const providers = useMemo(() => {
     if (providerMap) return Object.keys(providerMap.providers);
@@ -215,6 +210,12 @@ export default function APIKeys() {
     }
     setModalOpen(false);
   };
+
+  // Strict superuser gate — the backend already enforces this, but rendering
+  // the empty page to a non-admin is a worse experience than redirecting.
+  if (user && !user.is_superuser) {
+    return <Navigate to="/settings" replace />;
+  }
 
   if (keysLoading || statsLoading) return <PageLoader />;
 

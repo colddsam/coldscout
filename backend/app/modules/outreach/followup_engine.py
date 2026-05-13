@@ -168,7 +168,7 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                     )
                 except Exception as e:
                     logger.warning(
-                        f"Follow-up #{followup_number} send failed for {lead.email}: {e}. "
+                        f"Follow-up #{next_count} send failed for {lead.email}: {e}. "
                         f"Will retry on next scheduled run."
                     )
                     success = False
@@ -203,7 +203,7 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                     sent_count += 1
                     await db.commit()
                 else:
-                    logger.error(f"Failed to send follow-up to {lead.email} after {MAX_RETRIES} attempts")
+                    logger.error(f"Failed to send follow-up to {lead.email} after 3 attempts")
                 
                 await asyncio.sleep(2)
             except Exception as e:
