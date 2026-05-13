@@ -218,6 +218,17 @@ export const ROUTE_META: RouteMeta[] = [
     changefreq: 'daily',
     lastmod: TODAY,
   },
+  {
+    path: '/scanner',
+    title: 'Free Lead Scanner — Audit Any Business in 30 Seconds | Cold Scout',
+    description:
+      'Free public scanner that audits a local business in 30 seconds. Run a digital presence score on any Google Maps listing — no signup, no card.',
+    keywords:
+      'free lead scanner, business audit, digital presence audit, google maps business audit, free website audit, lead score',
+    priority: 0.8,
+    changefreq: 'weekly',
+    lastmod: TODAY,
+  },
   // Auth + dashboard routes — present so the prerender layer can quickly
   // identify them as noindex and short-circuit. Excluded from sitemap.
   {

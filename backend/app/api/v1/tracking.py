@@ -10,6 +10,7 @@ import hmac
 import hashlib
 from loguru import logger
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.modules.tracking.pixel_tracker import TrackingService
 from app.config import get_settings
 
@@ -113,7 +114,8 @@ def _verify_tracking_token(token: str) -> bool:
         return False
 
 @router.get("/track/open/{token}")
-async def track_email_open(token: str, request: Request, db=Depends(get_db)):
+@limiter.limit("120/minute")
+async def track_email_open(request: Request, token: str, db=Depends(get_db)):
     """
     HTTP GET endpoint for the embedded 1x1 tracking pixel.
     Registers an 'open' event and returns a transparent GIF.
@@ -126,7 +128,8 @@ async def track_email_open(token: str, request: Request, db=Depends(get_db)):
     return Response(content=PIXEL_GIF, media_type="image/gif")
 
 @router.get("/track/click/{token}")
-async def track_email_click(token: str, url: str, request: Request, db=Depends(get_db)):
+@limiter.limit("120/minute")
+async def track_email_click(request: Request, token: str, url: str, db=Depends(get_db)):
     """
     HTTP GET endpoint for wrapped hyperlink redirection.
     Registers a 'click' event before issuing an HTTP 307 Redirect.

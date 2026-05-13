@@ -72,8 +72,15 @@ async def google_calendar_callback(
         await db.commit()
         
         return {"status": "success", "message": "Google Calendar linked successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        # Swallow Google SDK / network detail; log server-side only. The
+        # callback is user-visible so leaking exception strings could
+        # surface internal IDs or partial OAuth URLs to the browser.
+        from loguru import logger as _lg
+        _lg.exception("Google Calendar OAuth callback failed")
+        raise HTTPException(status_code=400, detail="OAuth exchange failed.")
 
 @router.delete("/google/disconnect")
 async def disconnect_google_calendar(

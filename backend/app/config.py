@@ -48,6 +48,22 @@ class Settings(BaseSettings):
     A secret key used for cryptographic purposes, such as signing cookies.
     """
 
+    ENCRYPTION_KEY: str = ""
+    """
+    Optional comma-separated list of urlsafe-base64 Fernet keys used to
+    encrypt stored API provider credentials. The first key is used for
+    new encryptions; later keys allow transparent decryption of older
+    rows during rotation (``MultiFernet``).
+
+    When empty, the system falls back to a key derived from APP_SECRET_KEY
+    so existing deployments keep working. Rotating APP_SECRET_KEY without
+    setting ENCRYPTION_KEY will invalidate every stored credential — set
+    ENCRYPTION_KEY explicitly before rotating APP_SECRET_KEY.
+
+    Generate a new key with::
+        python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    """
+
     API_KEY: str
     """
     An API key used to authenticate requests to external services.
@@ -134,22 +150,49 @@ class Settings(BaseSettings):
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:
         """
         Parses the BACKEND_CORS_ORIGINS environment variable.
-        Converts a comma-separated string of origins into a strict list of strings for the CORS middleware.
-        
+        Converts a comma-separated string of origins into a strict list of
+        concrete origin strings for the CORS middleware.
+
+        Each origin must be a fully-qualified ``scheme://host[:port]`` value.
+        Wildcards (``*``) are rejected because ``allow_credentials=True`` plus
+        a wildcard origin is a browser-rejected combination that would
+        silently disable CORS for cookie-bearing requests — better to fail
+        fast at startup with a clear error than to debug a "CORS not
+        working" report in production.
+
         Args:
             v: The environment variable value.
-        
+
         Returns:
             A list of allowed origins.
-        
+
         Raises:
-            ValueError: If the input value is invalid.
+            ValueError: If any origin is a wildcard or unparseable.
         """
         if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+            parts = [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
+            parts = [str(i).strip() for i in v if str(i).strip()]
+        elif isinstance(v, str):
+            # Pre-stringified JSON list — pass through; pydantic will parse.
+            return v  # type: ignore[return-value]
+        else:
+            raise ValueError(v)
+
+        from urllib.parse import urlparse
+        for origin in parts:
+            if origin == "*" or origin.startswith("*"):
+                raise ValueError(
+                    "BACKEND_CORS_ORIGINS cannot contain '*' — wildcard "
+                    "origins are incompatible with allow_credentials=True."
+                )
+            parsed = urlparse(origin)
+            if not parsed.scheme or not parsed.netloc:
+                raise ValueError(
+                    f"BACKEND_CORS_ORIGINS entry '{origin}' is not a valid "
+                    f"absolute origin (expected 'scheme://host[:port]')."
+                )
+        return parts
 
     # Operational Control: "RUN" allows the pipeline to execute, "HOLD" pauses all tasks
     PRODUCTION_STATUS: str = "RUN"

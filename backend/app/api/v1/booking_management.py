@@ -4,6 +4,7 @@ Private Booking Management Endpoints.
 Allows freelancers to view, approve, reject, or cancel their bookings.
 """
 
+import html
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -287,15 +288,30 @@ async def cancel_booking(
     
     await db.commit()
     
-    # Send email notification
+    # Send email notification — escape every interpolated guest-controlled
+    # field before HTML assembly. ``booking.guest_name`` was supplied by
+    # an unauthenticated booking caller and is persisted; without escaping
+    # here, a malicious payload from /book/{username} can resurface as
+    # injected HTML in the cancellation email sent back to the same guest.
     if booking.booking_type != 'manual_block':
         try:
             start_str = booking.start_time.strftime('%b %d, %H:%M')
-            body = f"Hi {booking.guest_name},\n\nYour meeting with {current_user.first_name or 'your freelancer'} on {start_str} has been cancelled.\nIf you have any questions, please reach out directly."
+            safe_guest_name = html.escape(booking.guest_name or "")
+            safe_fl_name = html.escape(
+                getattr(current_user, 'first_name', None)
+                or getattr(current_user, 'full_name', None)
+                or 'your freelancer'
+            )
+            safe_start = html.escape(start_str)
+            body_html = (
+                f"<p>Hi {safe_guest_name},</p>"
+                f"<p>Your meeting with {safe_fl_name} on {safe_start} has been cancelled.<br>"
+                f"If you have any questions, please reach out directly.</p>"
+            )
             await send_email(
                 to_email=booking.guest_email,
                 subject=f"Meeting Cancelled",
-                html_content=f"<p>{body.replace(chr(10), '<br>')}</p>"
+                html_content=body_html,
             )
         except Exception as e:
             import logging

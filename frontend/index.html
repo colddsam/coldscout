@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Pinch-zoom intentionally allowed — Lighthouse a11y + Google mobile-friendly
+         soft-penalise viewports that disable user-scalable. The PWA needs
+         viewport-fit=cover for iOS safe-areas; that's the only constraint we keep. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- ── Search Engine Verification ─────────────────────────────────────── -->
     <!-- Each verification value is a placeholder. Replace once you've claimed
@@ -20,10 +23,9 @@
       name="description"
       content="Cold Scout is an AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale. Automate your entire outreach pipeline from search to inbox."
     />
-    <meta
-      name="keywords"
-      content="AI lead generation platform, Google Maps lead scraper, B2B outreach automation, open source lead generation, cold email AI generator, local business leads, lead qualification, email campaign automation, sales pipeline, CRM, B2B leads, SaaS lead generation, automated prospecting, ICP scoring, MCP server lead generation"
-    />
+    <!-- ``<meta name="keywords">`` removed: Google ignored it since 2009 and
+         Bing discounts stuffed keyword tags. The same vocabulary appears in
+         JSON-LD ``keywords`` (still useful) and in body copy. -->
     <meta name="author" content="Cold Scout" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
@@ -107,21 +109,16 @@
       href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Instrument+Serif:ital@1&display=swap"
     />
 
-    <!-- Privacy-friendly analytics by Plausible -->
-    <script async src="https://plausible.io/js/pa-Zd8IkCjCeDsewEU490lvG.js"></script>
+    <!-- Single privacy-friendly analytics provider (Plausible).
+         Previously Ahrefs Analytics + Cloudflare Insights were also loaded —
+         three independent beacons per page hurt LCP/INP. If you need Ahrefs
+         or Cloudflare data, re-add them inside a `requestIdleCallback`
+         loader so they never block first paint. -->
+    <script defer src="https://plausible.io/js/pa-Zd8IkCjCeDsewEU490lvG.js"></script>
     <script>
       window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
       plausible.init()
     </script>
-
-    <!-- Cloudflare Web Analytics alternative — also cookieless. Replace TOKEN
-         with the project token from Cloudflare's dashboard, then uncomment. -->
-    <!-- Ahrefs Analytics -->
-    <script src="https://analytics.ahrefs.com/analytics.js" data-key="D1Yon6YZMVzmquAUfRrRxg" async></script>
-
-    <!-- Cloudflare Web Analytics -->
-    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "754e9bfde5384879b0e3b7302d02691e"}'></script>
-    <!-- End Cloudflare Web Analytics -->
 
     <!-- ── Fonts ──────────────────────────────────────────────────────────── -->
     <link

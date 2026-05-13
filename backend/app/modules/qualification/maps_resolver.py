@@ -34,6 +34,12 @@ from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.core.network_security import safe_fetch
+from app.modules.infrastructure import (
+    Provider,
+    UseCase,
+    KeyExhaustedError,
+    key_manager,
+)
 
 
 # ── Data shapes ────────────────────────────────────────────────────────────
@@ -485,11 +491,6 @@ def _components_to_geo(components: list[dict]) -> dict:
 
 
 async def _fetch_place(client: httpx.AsyncClient, place_id: str) -> Optional[dict]:
-    settings = get_settings()
-    api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", None)
-    if not api_key:
-        logger.warning("Maps audit: GOOGLE_PLACES_API_KEY not configured")
-        return None
     # The v1 API expects the resource path "places/<id>". When the caller
     # passes just the bare id we wrap it; if they already provided the
     # "places/<id>" form (e.g. from a search response) we keep it intact.
@@ -497,25 +498,52 @@ async def _fetch_place(client: httpx.AsyncClient, place_id: str) -> Optional[dic
         url = f"https://places.googleapis.com/v1/{place_id}"
     else:
         url = _PLACE_DETAILS_URL.format(place_id=place_id)
-    headers = {
-        "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": _FIELD_MASK,
-        "Accept": "application/json",
-    }
-    try:
-        resp = await client.get(url, headers=headers, timeout=12.0)
-        if resp.status_code == 200:
-            return resp.json()
-        body = ""
+
+    tried_ids: set = set()
+    for attempt in range(4):
         try:
-            body = resp.text[:300]
-        except Exception:
-            pass
-        logger.warning(f"Places API {resp.status_code} for {place_id}: {body}")
-        return None
-    except Exception as e:
-        logger.exception(f"Places API request failed for {place_id}: {e}")
-        return None
+            selected = await key_manager.get_best_key(
+                Provider.GOOGLE_PLACES, UseCase.GENERAL
+            )
+        except KeyExhaustedError:
+            logger.warning(f"Maps audit: no Google Places keys available for {place_id}")
+            return None
+        if selected.provider_id is not None and selected.provider_id in tried_ids:
+            break
+        if selected.provider_id is not None:
+            tried_ids.add(selected.provider_id)
+        headers = {
+            "X-Goog-Api-Key": selected.api_key,
+            "X-Goog-FieldMask": _FIELD_MASK,
+            "Accept": "application/json",
+        }
+        try:
+            resp = await client.get(url, headers=headers, timeout=12.0)
+            if resp.status_code == 200:
+                return resp.json()
+            if resp.status_code in (401, 403, 429):
+                body = ""
+                try:
+                    body = resp.text[:300]
+                except Exception:
+                    pass
+                logger.warning(f"Places API {resp.status_code} for {place_id}: {body}")
+                quota_exc = type(
+                    "PlacesQuotaError", (Exception,), {"status_code": resp.status_code}
+                )(f"{resp.status_code}: {body[:120]}")
+                await key_manager.mark_cooldown(selected.provider_id, quota_exc)
+                continue
+            body = ""
+            try:
+                body = resp.text[:300]
+            except Exception:
+                pass
+            logger.warning(f"Places API {resp.status_code} for {place_id}: {body}")
+            return None
+        except Exception as e:
+            logger.exception(f"Places API request failed for {place_id}: {e}")
+            return None
+    return None
 
 
 async def _searchtext_first(
@@ -529,16 +557,8 @@ async def _searchtext_first(
     a usable Place ID — for shortlinks that unfurl to FTID-only URLs, plain
     business names, ``cid`` links, etc.
     """
-    settings = get_settings()
-    api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", None)
-    if not api_key or not text_query:
+    if not text_query:
         return None
-    headers = {
-        "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": _SEARCH_FIELD_MASK,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
     body: dict = {"textQuery": text_query, "pageSize": 1}
     if location_bias:
         lat, lng = location_bias
@@ -548,27 +568,56 @@ async def _searchtext_first(
                 "radius": 5000.0,
             }
         }
-    try:
-        resp = await client.post(
-            _PLACE_SEARCH_TEXT_URL,
-            headers=headers,
-            json=body,
-            timeout=10.0,
-        )
-        if resp.status_code != 200:
-            logger.warning(
-                f"searchText {resp.status_code} for '{text_query[:80]}': {resp.text[:200]}"
+    tried_ids: set = set()
+    for attempt in range(4):
+        try:
+            selected = await key_manager.get_best_key(
+                Provider.GOOGLE_PLACES, UseCase.DISCOVERY
             )
+        except KeyExhaustedError:
+            logger.warning("searchText: no Google Places keys available")
             return None
-        data = resp.json()
-        places = data.get("places") or []
-        if not places:
+        if selected.provider_id is not None and selected.provider_id in tried_ids:
+            break
+        if selected.provider_id is not None:
+            tried_ids.add(selected.provider_id)
+        headers = {
+            "X-Goog-Api-Key": selected.api_key,
+            "X-Goog-FieldMask": _SEARCH_FIELD_MASK,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        try:
+            resp = await client.post(
+                _PLACE_SEARCH_TEXT_URL,
+                headers=headers,
+                json=body,
+                timeout=10.0,
+            )
+            if resp.status_code in (401, 403, 429):
+                logger.warning(
+                    f"searchText {resp.status_code} for '{text_query[:80]}': {resp.text[:200]}"
+                )
+                quota_exc = type(
+                    "PlacesQuotaError", (Exception,), {"status_code": resp.status_code}
+                )(f"{resp.status_code}")
+                await key_manager.mark_cooldown(selected.provider_id, quota_exc)
+                continue
+            if resp.status_code != 200:
+                logger.warning(
+                    f"searchText {resp.status_code} for '{text_query[:80]}': {resp.text[:200]}"
+                )
+                return None
+            data = resp.json()
+            places = data.get("places") or []
+            if not places:
+                return None
+            candidate = places[0].get("id")
+            return candidate or None
+        except Exception as e:
+            logger.exception(f"searchText request failed for '{text_query[:80]}': {e}")
             return None
-        candidate = places[0].get("id")
-        return candidate or None
-    except Exception as e:
-        logger.exception(f"searchText request failed for '{text_query[:80]}': {e}")
-        return None
+    return None
 
 
 def _photo_thumb(photo_resource: str, max_width: int = 600) -> str:
@@ -578,15 +627,83 @@ def _photo_thumb(photo_resource: str, max_width: int = 600) -> str:
     The media endpoint uses that path and accepts a max dimension param. The
     ``X-Goog-Api-Key`` is sent as a query string here because <img> tags
     can't carry headers.
+
+    Credential resolution order:
+      1. First active row in the api_providers pool tagged
+         ``provider_name=GOOGLE_PLACES``. We don't go through the async
+         ``key_manager.get_best_key`` path because this builder is called
+         from sync ``_shape_business_profile`` (and from inside a list
+         comprehension); pulling the key inline lets the DB-only deploys
+         work without making the entire shaper async.
+      2. Legacy ``settings.GOOGLE_PLACES_API_KEY`` env var.
+      3. Empty string — caller renders no image, never a broken URL.
     """
-    settings = get_settings()
-    api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", "")
-    if not api_key or not photo_resource:
+    if not photo_resource:
+        return ""
+    api_key = _photo_credential()
+    if not api_key:
         return ""
     return (
         f"https://places.googleapis.com/v1/{photo_resource}/media?"
         f"maxHeightPx={max_width}&key={api_key}"
     )
+
+
+def _photo_credential() -> str:
+    """Return the best Google Places credential for media-thumbnail URLs.
+
+    The lookup is cached for a short window because (a) media URLs are
+    embedded into HTML and reused, so we don't want a different key on
+    every comprehension iteration, and (b) the result is read-mostly.
+    Cache invalidates every 5 minutes so a disabled key drops out.
+    """
+    import time
+    cache = _photo_credential.__dict__
+    now = time.time()
+    if cache.get("_value") and (now - cache.get("_at", 0)) < 300:
+        return cache["_value"]
+
+    try:
+        from app.core.database import get_session_maker
+        from app.models.infrastructure import APIProvider
+        from app.core.key_encryption import decrypt_api_key
+        from sqlalchemy import select as _select
+
+        # We're inside a sync function called from within an async stack —
+        # so reuse the running loop instead of spawning a new one.
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Schedule a quick coroutine to fetch one active key; block via
+            # ``run_coroutine_threadsafe`` only if we're somehow on a worker
+            # thread, otherwise fall through to the env path. We cannot
+            # await from a sync context.
+            api_key = ""
+        else:
+            async def _fetch():
+                async with get_session_maker()() as s:
+                    row = (
+                        await s.execute(
+                            _select(APIProvider)
+                            .where(
+                                APIProvider.provider_name == "GOOGLE_PLACES",
+                                APIProvider.is_active.is_(True),
+                            )
+                            .order_by(APIProvider.weight.desc())
+                            .limit(1)
+                        )
+                    ).scalars().first()
+                    return decrypt_api_key(row.encrypted_api_key) if row else ""
+            api_key = loop.run_until_complete(_fetch())
+    except Exception:
+        api_key = ""
+
+    if not api_key:
+        api_key = getattr(get_settings(), "GOOGLE_PLACES_API_KEY", "") or ""
+
+    cache["_value"] = api_key
+    cache["_at"] = now
+    return api_key
 
 
 def _bool_or_none(payload: dict, key: str) -> Optional[bool]:

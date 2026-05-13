@@ -2106,3 +2106,115 @@ export const updateEventType = (id: number, payload: EventTypeUpdateRequest) =>
 
 export const deleteEventType = (id: number) =>
   client.delete(`/api/v1/bookings/event-types/${id}`).then(r => r.data);
+
+// ── API Key Orchestrator (superuser) ─────────────────────────────────────────
+
+export type APIKeyStatus = 'active' | 'cooldown' | 'disabled';
+
+export interface APIKeyRecord {
+  id: string;
+  provider_name: string;
+  use_case: string;
+  label: string | null;
+  api_key_preview: string;
+  is_active: boolean;
+  weight: number;
+  usage_count: number;
+  rate_limit_hits: number;
+  total_failures: number;
+  last_used_at: string | null;
+  last_failure_at: string | null;
+  last_failure_reason: string | null;
+  cooldown_until: string | null;
+  status: APIKeyStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface APIKeyCreatePayload {
+  provider_name: string;
+  use_case: string;
+  label?: string | null;
+  weight?: number;
+  api_key: string;
+}
+
+export interface APIKeyUpdatePayload {
+  label?: string | null;
+  use_case?: string;
+  is_active?: boolean;
+  weight?: number;
+  api_key?: string;
+}
+
+export interface APIKeyStatsRow {
+  provider_name: string;
+  use_case: string;
+  active_keys: number;
+  cooldown_keys: number;
+  disabled_keys: number;
+  total_usage: number;
+  total_rate_limit_hits: number;
+  total_failures: number;
+}
+
+export interface APIKeyStatsResponse {
+  rows: APIKeyStatsRow[];
+  totals: APIKeyStatsRow;
+  valid_providers: string[];
+  valid_use_cases: string[];
+}
+
+export interface APIKeyCollision {
+  id: string;
+  label: string | null;
+  use_case: string;
+  old_weight: number;
+  new_weight: number;
+}
+
+export interface APIKeyWriteResponse {
+  record: APIKeyRecord;
+  weight_collisions: APIKeyCollision[];
+}
+
+export interface APIProviderMap {
+  providers: Record<string, string[]>;
+  use_cases: string[];
+}
+
+export interface WeightPreviewResponse {
+  weight_collisions: APIKeyCollision[];
+}
+
+export const listAPIKeys = () =>
+  client.get<APIKeyRecord[]>('/api/v1/api-keys').then(r => r.data);
+
+export const createAPIKey = (payload: APIKeyCreatePayload) =>
+  client.post<APIKeyWriteResponse>('/api/v1/api-keys', payload).then(r => r.data);
+
+export const updateAPIKey = (id: string, payload: APIKeyUpdatePayload) =>
+  client.patch<APIKeyWriteResponse>(`/api/v1/api-keys/${id}`, payload).then(r => r.data);
+
+export const getAPIKeyProviderMap = () =>
+  client.get<APIProviderMap>('/api/v1/api-keys/providers').then(r => r.data);
+
+export const previewAPIKeyWeight = (payload: {
+  provider_name: string;
+  weight: number;
+  exclude_id?: string;
+}) =>
+  client.post<WeightPreviewResponse>('/api/v1/api-keys/preview-weight', payload).then(r => r.data);
+
+export const toggleAPIKey = (id: string) =>
+  client.post<APIKeyRecord>(`/api/v1/api-keys/${id}/toggle`).then(r => r.data);
+
+export const resetAPIKeyCooldown = (id: string) =>
+  client.post<APIKeyRecord>(`/api/v1/api-keys/${id}/reset-cooldown`).then(r => r.data);
+
+export const deleteAPIKey = (id: string) =>
+  client.delete(`/api/v1/api-keys/${id}`).then(r => r.data);
+
+export const getAPIKeyStats = () =>
+  client.get<APIKeyStatsResponse>('/api/v1/api-keys/stats').then(r => r.data);
+

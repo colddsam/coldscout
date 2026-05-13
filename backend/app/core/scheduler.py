@@ -121,6 +121,7 @@ async def setup_scheduler():
     from app.tasks.app_update_check import check_app_update
     from app.tasks.reminders import send_booking_reminders
     from app.tasks.booking_lifecycle import close_past_bookings
+    from app.modules.reporting.key_health_report import send_daily_key_health_report
 
     # Prime the DB cache before touching APScheduler.
     config = await job_manager.refresh_global_cache(force=True)
@@ -219,6 +220,30 @@ async def setup_scheduler():
         misfire_grace_time=3600,
     )
     logger.info("   🟢 booking_lifecycle: interval 1 hr (always active)")
+
+    # Daily API key-pool health email — fires 5 minutes after the regular
+    # daily report so the SMTP socket isn't being multiplexed and the
+    # operator inbox keeps the two reports as a single visual unit.
+    _report_minute_offset = (settings.REPORT_MINUTE + 5) % 60
+    _report_hour_offset = settings.REPORT_HOUR + (
+        1 if settings.REPORT_MINUTE + 5 >= 60 else 0
+    )
+    scheduler.add_job(
+        send_daily_key_health_report,
+        CronTrigger(
+            hour=_report_hour_offset % 24,
+            minute=_report_minute_offset,
+            timezone="Asia/Kolkata",
+        ),
+        id="api_key_health_report",
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    logger.info(
+        "   🟢 api_key_health_report: cron %02d:%02d IST (always active)",
+        _report_hour_offset % 24,
+        _report_minute_offset,
+    )
 
     scheduler.start()
 

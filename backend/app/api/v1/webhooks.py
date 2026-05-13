@@ -16,12 +16,13 @@ import hmac
 import logging
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.models.campaign import EmailOutreach
 from app.models.subscription import PaymentOrder, Subscription
 from app.models.user import User
@@ -31,6 +32,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _is_production() -> bool:
+    """Cheap predicate for "are we in prod"; checks APP_ENV case-insensitively."""
+    return (get_settings().APP_ENV or "").lower() in {"production", "prod"}
+
+
 def _verify_brevo_secret(provided: str | None) -> None:
     """
     Validates the shared secret sent by Brevo against the configured value.
@@ -38,16 +44,29 @@ def _verify_brevo_secret(provided: str | None) -> None:
     Uses ``hmac.compare_digest`` for a constant-time comparison to prevent
     timing-based secret enumeration attacks.
 
+    In production we REFUSE to accept webhooks when no secret is configured —
+    silently degrading to "open mode" in prod was a footgun that defeated
+    the integrity guarantee the secret is supposed to provide. Locally
+    (APP_ENV=development) we keep the open-mode convenience for testing.
+
     Args:
         provided: The value of the ``X-Brevo-Secret`` request header, or None
                   if the header was absent.
 
     Raises:
-        HTTPException 403: If BREVO_WEBHOOK_SECRET is configured and the
-                           provided header is absent or does not match.
+        HTTPException 503: If running in production with no secret configured.
+        HTTPException 403: If the configured secret doesn't match.
     """
     expected = get_settings().BREVO_WEBHOOK_SECRET
     if not expected:
+        if _is_production():
+            logger.error(
+                "Brevo webhook rejected: BREVO_WEBHOOK_SECRET is required in production."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Webhook endpoint not configured.",
+            )
         # No secret configured — webhook runs in open mode (dev/local use only).
         return
 
@@ -62,8 +81,10 @@ def _verify_brevo_secret(provided: str | None) -> None:
 
 
 @router.post("/webhooks/brevo")
+@limiter.limit("120/minute")
 async def brevo_webhook(
     request: Request,
+    response: Response,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     x_brevo_secret: str | None = Header(default=None),
@@ -96,7 +117,10 @@ async def brevo_webhook(
         email = payload.get("email")
         message_id = payload.get("message-id")
 
-        logger.info("Received Brevo webhook: event=%s for email=%s", event, email)
+        # Don't log the recipient email — it's lead PII. Logging the event
+        # type + truncated message_id is enough for ops correlation.
+        logger.info("Received Brevo webhook: event=%s msg=%s", event, (message_id or "")[:16])
+        _ = response  # slowapi header injection
 
         if event == "delivered" and message_id:
             try:
@@ -147,8 +171,10 @@ async def brevo_webhook(
 # ── Razorpay Webhook ───────────────────────────────────────────────────────────
 
 @router.post("/webhooks/razorpay")
+@limiter.limit("120/minute")
 async def razorpay_webhook(
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     x_razorpay_signature: str | None = Header(default=None),
 ) -> dict:
@@ -175,6 +201,7 @@ async def razorpay_webhook(
     Returns:
         {"status": "ok"} on success or {"status": "ignored"} for unhandled events.
     """
+    _ = response  # slowapi header injection
     raw_body = await request.body()
     settings = get_settings()
 
@@ -201,8 +228,18 @@ async def razorpay_webhook(
                 detail="Invalid webhook signature.",
             )
     else:
-        # Open mode: no secret configured — log a warning on every call so the
-        # operator is reminded that this endpoint has no authentication.
+        # In production we refuse to accept Razorpay webhooks when no
+        # secret is configured — silently degrading to open mode for a
+        # billing endpoint is unacceptable.
+        if _is_production():
+            logger.error(
+                "Razorpay webhook rejected: RAZORPAY_WEBHOOK_SECRET is required in production."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Webhook endpoint not configured.",
+            )
+        # Local/dev mode: keep open-mode for convenience but warn loudly.
         logger.warning(
             "Razorpay webhook received in open mode (RAZORPAY_WEBHOOK_SECRET not set). "
             "Configure the secret in production to prevent spoofed events."

@@ -1,8 +1,16 @@
 # robots.txt — Cold Scout (https://coldscout.colddsam.com)
 # https://www.robotstxt.org/robotstxt.html
-# Last updated: 2026-05-08
+# Last updated: 2026-05-13
+#
+# Strategy:
+#   - The default ``User-agent: *`` block explicitly Allows every public
+#     marketing surface and Disallows the authenticated dashboard.
+#   - Per-bot blocks mirror that policy verbatim so search-engine and AI
+#     crawlers see a consistent set of indexable paths regardless of which
+#     UA they identify as.
+#   - "Bad bot" UAs that scrape backlink data are disallowed wholesale.
 
-# ── Default: Allow all public pages, disallow app routes ──────────────────────
+# ── Default ───────────────────────────────────────────────────────────────────
 User-agent: *
 Allow: /$
 Allow: /pricing
@@ -16,12 +24,18 @@ Allow: /blog
 Allow: /blog/
 Allow: /guides
 Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
+Allow: /download
 Allow: /privacy
 Allow: /terms
 Allow: /support
 Allow: /refund-policy
 Allow: /delete-data
 Allow: /u/
+Allow: /book/
+Allow: /demo/
 Allow: /sitemap.xml
 Allow: /sitemap-index.xml
 Allow: /sitemap-images.xml
@@ -32,6 +46,7 @@ Allow: /.well-known/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /scheduler
+Disallow: /discovery-targets
 Disallow: /leads
 Disallow: /campaigns
 Disallow: /inbox
@@ -39,26 +54,44 @@ Disallow: /analytics
 Disallow: /settings
 Disallow: /threads
 Disallow: /billing
+Disallow: /bookings
+Disallow: /profile
 Disallow: /login
 Disallow: /signup
 Disallow: /welcome
 Disallow: /auth/
 Disallow: /api/
 
-# ── Googlebot — explicit full crawl of public pages ───────────────────────────
+# ── Search Engines (Googlebot, Bingbot, Yandex, DuckDuckBot) ──────────────────
 User-agent: Googlebot
 Allow: /$
 Allow: /pricing
 Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
+Allow: /download
 Allow: /privacy
 Allow: /terms
 Allow: /support
 Allow: /refund-policy
 Allow: /delete-data
 Allow: /u/
+Allow: /book/
+Allow: /demo/
 Disallow: /overview
 Disallow: /pipeline
 Disallow: /scheduler
+Disallow: /discovery-targets
 Disallow: /leads
 Disallow: /campaigns
 Disallow: /inbox
@@ -66,17 +99,31 @@ Disallow: /analytics
 Disallow: /settings
 Disallow: /threads
 Disallow: /billing
+Disallow: /bookings
+Disallow: /profile
 Disallow: /login
 Disallow: /signup
 Disallow: /welcome
 Disallow: /auth/
 Disallow: /api/
 
-# ── Bingbot ────────────────────────────────────────────────────────────────────
 User-agent: Bingbot
 Allow: /$
 Allow: /pricing
 Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
+Allow: /download
 Allow: /privacy
 Allow: /terms
 Allow: /support
@@ -85,7 +132,6 @@ Allow: /delete-data
 Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
-Disallow: /scheduler
 Disallow: /leads
 Disallow: /campaigns
 Disallow: /inbox
@@ -93,17 +139,61 @@ Disallow: /analytics
 Disallow: /settings
 Disallow: /threads
 Disallow: /billing
+Disallow: /bookings
+Disallow: /profile
 Disallow: /login
 Disallow: /signup
 Disallow: /welcome
 Disallow: /auth/
 Disallow: /api/
 
-# ── AI & LLM Crawlers — allow public/docs + profiles for discovery ────────────
+User-agent: YandexBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: DuckDuckBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+# ── AI & LLM Crawlers ─────────────────────────────────────────────────────────
 User-agent: GPTBot
 Allow: /$
 Allow: /pricing
 Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
 Allow: /privacy
 Allow: /terms
 Allow: /support
@@ -116,6 +206,40 @@ Disallow: /campaigns
 Disallow: /analytics
 Disallow: /settings
 Disallow: /inbox
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
@@ -123,6 +247,18 @@ User-agent: Claude-Web
 Allow: /$
 Allow: /pricing
 Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
 Allow: /privacy
 Allow: /terms
 Allow: /support
@@ -138,12 +274,47 @@ Disallow: /inbox
 Disallow: /auth/
 Disallow: /api/
 
+User-agent: ClaudeBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Claude-SearchBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
 User-agent: anthropic-ai
 Allow: /$
 Allow: /pricing
 Allow: /docs
-Allow: /support
-Allow: /refund-policy
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
 Allow: /u/
 Disallow: /auth/
 Disallow: /api/
@@ -152,8 +323,13 @@ User-agent: CCBot
 Allow: /$
 Allow: /pricing
 Allow: /docs
-Allow: /support
-Allow: /refund-policy
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
 Allow: /u/
 Disallow: /overview
 Disallow: /pipeline
@@ -166,8 +342,18 @@ User-agent: PerplexityBot
 Allow: /$
 Allow: /pricing
 Allow: /docs
-Allow: /support
-Allow: /refund-policy
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
 Allow: /u/
 Disallow: /auth/
 Disallow: /api/
@@ -176,12 +362,194 @@ User-agent: Applebot
 Allow: /$
 Allow: /pricing
 Allow: /docs
-Allow: /support
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
 Allow: /u/
 Disallow: /auth/
 Disallow: /api/
 
-# ── Social Media Crawlers ──────────────────────────────────────────────────────
+User-agent: Applebot-Extended
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Google-Extended
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /compare
+Allow: /use-cases
+Allow: /integrations
+Allow: /changelog
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /scanner
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: cohere-ai
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: FacebookBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Meta-ExternalAgent
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Meta-ExternalFetcher
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Bytespider
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: PetalBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: YouBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: PhindBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: Diffbot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+User-agent: MojeekBot
+Allow: /$
+Allow: /pricing
+Allow: /docs
+Allow: /faq
+Allow: /blog
+Allow: /blog/
+Allow: /guides
+Allow: /guides/
+Allow: /directory
+Allow: /directory/
+Allow: /u/
+Disallow: /auth/
+Disallow: /api/
+
+# ── Social Media Crawlers — full crawl for link previews ──────────────────────
 User-agent: Twitterbot
 Allow: /
 
@@ -191,37 +559,20 @@ Allow: /
 User-agent: LinkedInBot
 Allow: /
 
-# ── Google AI / Gemini ────────────────────────────────────────────────────────
-User-agent: Google-Extended
-Allow: /$
-Allow: /pricing
-Allow: /docs
-Allow: /support
-Allow: /refund-policy
-Allow: /u/
-Disallow: /auth/
-Disallow: /api/
+User-agent: Slackbot
+Allow: /
 
-# ── Cohere AI ─────────────────────────────────────────────────────────────────
-User-agent: cohere-ai
-Allow: /$
-Allow: /pricing
-Allow: /docs
-Allow: /support
-Allow: /refund-policy
-Allow: /u/
-Disallow: /auth/
-Disallow: /api/
+User-agent: Slackbot-LinkExpanding
+Allow: /
 
-# ── Meta AI ───────────────────────────────────────────────────────────────────
-User-agent: FacebookBot
-Allow: /$
-Allow: /pricing
-Allow: /docs
-Allow: /support
-Allow: /u/
-Disallow: /auth/
-Disallow: /api/
+User-agent: Discordbot
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
 
 # ── Bad bots — disallow everything ────────────────────────────────────────────
 User-agent: AhrefsBot
@@ -242,11 +593,18 @@ Disallow: /
 User-agent: DataForSeoBot
 Disallow: /
 
+User-agent: SerpstatBot
+Disallow: /
+
+User-agent: ZoominfoBot
+Disallow: /
+
 # ── Sitemaps ───────────────────────────────────────────────────────────────────
 Sitemap: https://coldscout.colddsam.com/sitemap-index.xml
 Sitemap: https://coldscout.colddsam.com/sitemap.xml
 Sitemap: https://coldscout.colddsam.com/sitemap-images.xml
 Sitemap: https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml
+Sitemap: https://coldscout.colddsam.com/api/v1/seo/sitemap-directory.xml
 
 # ── LLM / AI agent policy ─────────────────────────────────────────────────────
 # AI agent policy (summary): https://coldscout.colddsam.com/llms.txt

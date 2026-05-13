@@ -11,10 +11,10 @@
  * - Protected (Client): Welcome page
  * - Protected (Freelancer): Full dashboard access
  */
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 
 import Shell from './components/layout/Shell';
 import SplashScreen from './components/SplashScreen';
@@ -22,48 +22,100 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import AuthCallback from './pages/AuthCallback';
-import Welcome from './pages/Welcome';
-import Documentation from './pages/Documentation';
-import Pricing from './pages/Pricing';
-import Overview from './pages/Overview';
-import Pipeline from './pages/Pipeline';
-import Scheduler from './pages/Scheduler';
-import Leads from './pages/Leads';
-import LeadDetail from './pages/LeadDetail';
-import Campaigns from './pages/Campaigns';
-import Inbox from './pages/Inbox';
-import Analytics from './pages/Analytics';
-import Settings from './pages/Settings';
-import Threads from './pages/Threads';
-import Billing from './pages/Billing';
-import Bookings from './pages/Bookings';
-import DiscoveryTargets from './pages/DiscoveryTargets';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute, { FreelancerRoute, ClientRoute } from './components/auth/ProtectedRoute';
 import SessionExpiredModal from './components/auth/SessionExpiredModal';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import DataDeletion from './pages/DataDeletion.tsx';
-import Support from './pages/Support';
-import RefundPolicy from './pages/RefundPolicy';
-import Profile from './pages/Profile';
-import PublicProfile from './pages/PublicProfile';
-import LeadDemoViewer from './pages/LeadDemoViewer';
-import BookingPage from './pages/BookingPage';
-import DownloadApp from './pages/Download';
-import LeadScanner from './pages/LeadScanner';
-import Faq from './pages/Faq';
-import Compare from './pages/Compare';
-import UseCases from './pages/UseCases';
-import Integrations from './pages/Integrations';
-import Changelog from './pages/Changelog';
-import Blog from './pages/Blog';
-import Guides from './pages/Guides';
-import Post from './pages/Post';
-import DirectoryIndex from './pages/directory/DirectoryIndex';
-import DirectoryList from './pages/directory/DirectoryList';
-import DirectoryDetail from './pages/directory/DirectoryDetail';
+
+// ── Lazy-loaded routes ──────────────────────────────────────────────
+// Splitting heavy pages out of the critical path keeps the marketing-page
+// JS budget tiny — Landing/Login/SignUp ship as the only eager bundle.
+// Each lazy route resolves in its own chunk, so users only pay for what
+// they actually navigate to.
+const Welcome = lazy(() => import('./pages/Welcome'));
+const Documentation = lazy(() => import('./pages/Documentation'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Overview = lazy(() => import('./pages/Overview'));
+const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Scheduler = lazy(() => import('./pages/Scheduler'));
+const Leads = lazy(() => import('./pages/Leads'));
+const LeadDetail = lazy(() => import('./pages/LeadDetail'));
+const Campaigns = lazy(() => import('./pages/Campaigns'));
+const Inbox = lazy(() => import('./pages/Inbox'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Settings = lazy(() => import('./pages/Settings'));
+const APIKeys = lazy(() => import('./pages/APIKeys'));
+const Threads = lazy(() => import('./pages/Threads'));
+const Billing = lazy(() => import('./pages/Billing'));
+const Bookings = lazy(() => import('./pages/Bookings'));
+const DiscoveryTargets = lazy(() => import('./pages/DiscoveryTargets'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const DataDeletion = lazy(() => import('./pages/DataDeletion.tsx'));
+const Support = lazy(() => import('./pages/Support'));
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
+const Profile = lazy(() => import('./pages/Profile'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
+const LeadDemoViewer = lazy(() => import('./pages/LeadDemoViewer'));
+const BookingPage = lazy(() => import('./pages/BookingPage'));
+const DownloadApp = lazy(() => import('./pages/Download'));
+const LeadScanner = lazy(() => import('./pages/LeadScanner'));
+const Faq = lazy(() => import('./pages/Faq'));
+const Compare = lazy(() => import('./pages/Compare'));
+const UseCases = lazy(() => import('./pages/UseCases'));
+const Integrations = lazy(() => import('./pages/Integrations'));
+const Changelog = lazy(() => import('./pages/Changelog'));
+const Blog = lazy(() => import('./pages/Blog'));
+const Guides = lazy(() => import('./pages/Guides'));
+const Post = lazy(() => import('./pages/Post'));
+const DirectoryIndex = lazy(() => import('./pages/directory/DirectoryIndex'));
+const DirectoryList = lazy(() => import('./pages/directory/DirectoryList'));
+const DirectoryDetail = lazy(() => import('./pages/directory/DirectoryDetail'));
+
+// Routes where SplashScreen must NOT play — these are public marketing /
+// SEO surfaces where the 2.8 s splash would cap LCP above the
+// Core-Web-Vitals "good" threshold (<2.5 s) and tank ranking. The splash
+// stays for the authenticated app entry, which is where it actually adds
+// brand polish.
+const PUBLIC_NO_SPLASH_PATTERNS: RegExp[] = [
+  /^\/$/,
+  /^\/pricing$/,
+  /^\/docs/,
+  /^\/blog/,
+  /^\/guides/,
+  /^\/faq$/,
+  /^\/compare$/,
+  /^\/use-cases$/,
+  /^\/integrations$/,
+  /^\/changelog$/,
+  /^\/directory/,
+  /^\/u\//,
+  /^\/demo\//,
+  /^\/book\//,
+  /^\/scanner$/,
+  /^\/download$/,
+  /^\/privacy$/,
+  /^\/terms$/,
+  /^\/delete-data$/,
+  /^\/support$/,
+  /^\/refund-policy$/,
+];
+
+function shouldSkipSplash(pathname: string): boolean {
+  return PUBLIC_NO_SPLASH_PATTERNS.some((p) => p.test(pathname));
+}
+
+function PageFallback() {
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="w-7 h-7 rounded-full border-2 border-white/15 border-t-white/60 animate-spin" />
+    </div>
+  );
+}
 
 /**
  * Shared QueryClient instance with optimized development defaults.
@@ -118,16 +170,23 @@ function DeepLinkHandler() {
   return null;
 }
 
-export default function App() {
-  const [splashDone, setSplashDone] = useState(false);
+function AppShell() {
+  // The splash-suppression check needs router context (useLocation), so it
+  // lives inside <BrowserRouter>. Calling it here keeps the wrapper tree
+  // tidy without a second router instance.
+  const location = useLocation();
+  const [splashSuppressed] = useState(() => shouldSkipSplash(location.pathname));
+  const [splashDone, setSplashDone] = useState(splashSuppressed);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {!splashDone && <SplashScreen onFinished={() => setSplashDone(true)} />}
-      <BrowserRouter>
-        <DeepLinkHandler />
-        <AuthProvider>
-          <SessionExpiredModal />
+    <>
+      {!splashDone && (
+        <SplashScreen onFinished={() => setSplashDone(true)} />
+      )}
+      <DeepLinkHandler />
+      <AuthProvider>
+        <SessionExpiredModal />
+        <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
@@ -181,6 +240,7 @@ export default function App() {
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/billing" element={<Billing />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/api-keys" element={<APIKeys />} />
               </Route>
             </Route>
 
@@ -194,7 +254,17 @@ export default function App() {
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+        </Suspense>
+      </AuthProvider>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppShell />
       </BrowserRouter>
 
       <Toaster

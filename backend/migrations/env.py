@@ -24,6 +24,7 @@ from app.models.prompt_config import PromptConfig
 from app.models.verification import ProfileVerification
 from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
 from app.models.subscription import Subscription, PaymentOrder
+from app.models.infrastructure import APIProvider
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

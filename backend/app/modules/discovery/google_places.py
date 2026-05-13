@@ -21,6 +21,12 @@ from typing import List, Dict, Any, Optional
 from loguru import logger
 from app.config import get_settings
 from app.core.exceptions import QuotaExceededException
+from app.modules.infrastructure import (
+    Provider,
+    UseCase,
+    KeyExhaustedError,
+    key_manager,
+)
 
 
 # Adaptive radius mapping by location depth
@@ -97,38 +103,45 @@ class GooglePlacesClient:
     # We use the New Places API (v1) for better field masking and performance.
     BASE_URL = "https://places.googleapis.com/v1/places:searchText"
 
+    # Field mask ensures we get structured data for scoring (rating, reviews,
+    # website) plus location coordinates and address components for
+    # international support.
+    _FIELD_MASK = (
+        "places.id,"
+        "places.displayName,"
+        "places.formattedAddress,"
+        "places.nationalPhoneNumber,"
+        "places.websiteUri,"
+        "places.rating,"
+        "places.userRatingCount,"
+        "places.googleMapsUri,"
+        "places.location,"
+        "places.addressComponents,"
+        "nextPageToken"
+    )
+
     def __init__(self):
-        """
-        Initializes the client with API credentials and strict field masks.
+        """Initialise the client. Credentials are pulled per-request from the
+        central key manager so multi-project rotation works transparently."""
+        # No persistent credential is cached here — every outbound call asks
+        # the manager for the freshest, healthiest key. ``_active_key`` is
+        # used by ``mark_cooldown`` so a 429 on the current key cools down
+        # exactly the credential that produced it.
+        self._active_selected: Optional[object] = None
 
-        Field Masking Strategy:
-        We explicitly request only the fields we need to reduce latency and
-        potentially lower API costs (though basic fields are generally included).
-        Includes location and addressComponents for international geo extraction.
-        """
-        settings = get_settings()
-        self.api_key = settings.GOOGLE_PLACES_API_KEY
+    async def _build_headers(self, use_case: UseCase = UseCase.DISCOVERY) -> tuple[dict, object]:
+        """Return ``(headers, selected_key)`` for the next outbound request.
 
-        # Security: The API key is injected from environment variables via config.py
-        self.headers = {
+        Returning the selection object lets the caller hand it to
+        ``key_manager.mark_cooldown`` if the request fails with 401/403/429.
+        """
+        selected = await key_manager.get_best_key(Provider.GOOGLE_PLACES, use_case)
+        headers = {
             "Content-Type": "application/json",
-            "X-Goog-Api-Key": self.api_key,
-            # Field mask ensures we get structured data for scoring (rating, reviews, website)
-            # plus location coordinates and address components for international support
-            "X-Goog-FieldMask": (
-                "places.id,"
-                "places.displayName,"
-                "places.formattedAddress,"
-                "places.nationalPhoneNumber,"
-                "places.websiteUri,"
-                "places.rating,"
-                "places.userRatingCount,"
-                "places.googleMapsUri,"
-                "places.location,"
-                "places.addressComponents,"
-                "nextPageToken"
-            )
+            "X-Goog-Api-Key": selected.api_key,
+            "X-Goog-FieldMask": self._FIELD_MASK,
         }
+        return headers, selected
 
     def _build_payload(
         self,
@@ -188,39 +201,62 @@ class GooglePlacesClient:
         query = f"{category} in {location}"
         payload = self._build_payload(query, country_code, lat, lng, radius)
 
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    self.BASE_URL,
-                    json=payload,
-                    headers=self.headers,
-                    timeout=10.0,
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data.get("places", [])
-
-            except httpx.HTTPStatusError as e:
-                body_excerpt = ""
-                try:
-                    body_excerpt = e.response.text[:400]
-                except Exception:
-                    pass
-                logger.error(
-                    f"Google API error: {e.response.status_code} for query={query!r} "
-                    f"regionCode={country_code!r} | body: {body_excerpt}"
-                )
-                # Quota/auth errors must surface to the caller so the pipeline
-                # can pause rather than silently burning through remaining targets.
-                if e.response.status_code in (401, 403, 429):
-                    raise QuotaExceededException(
-                        status_code=e.response.status_code,
-                        message=f"query={query!r} regionCode={country_code!r} | {body_excerpt}",
-                    )
-                return []
-            except Exception as e:
-                logger.exception(f"Unexpected error during Google Places discovery for: {query}")
-                return []
+        # Try every available key in the pool before giving up. A 401/403/429
+        # on any one key cools it down and moves on — the request only fails
+        # when the entire pool is exhausted.
+        attempts = 0
+        max_attempts = 4
+        tried_ids: set = set()
+        try:
+            async with httpx.AsyncClient() as client:
+                while attempts < max_attempts:
+                    attempts += 1
+                    headers, selected = await self._build_headers(UseCase.DISCOVERY)
+                    if selected.provider_id is not None and selected.provider_id in tried_ids:
+                        break
+                    if selected.provider_id is not None:
+                        tried_ids.add(selected.provider_id)
+                    try:
+                        response = await client.post(
+                            self.BASE_URL,
+                            json=payload,
+                            headers=headers,
+                            timeout=10.0,
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        return data.get("places", [])
+                    except httpx.HTTPStatusError as e:
+                        body_excerpt = ""
+                        try:
+                            body_excerpt = e.response.text[:400]
+                        except Exception:
+                            pass
+                        logger.error(
+                            f"Google API error: {e.response.status_code} for query={query!r} "
+                            f"regionCode={country_code!r} | body: {body_excerpt}"
+                        )
+                        if e.response.status_code in (401, 403, 429):
+                            quota_exc = QuotaExceededException(
+                                status_code=e.response.status_code,
+                                message=f"query={query!r} regionCode={country_code!r} | {body_excerpt}",
+                            )
+                            await key_manager.mark_cooldown(
+                                selected.provider_id, quota_exc
+                            )
+                            # Try the next key in the pool.
+                            continue
+                        return []
+                    except Exception:
+                        logger.exception(
+                            f"Unexpected error during Google Places discovery for: {query}"
+                        )
+                        return []
+        except KeyExhaustedError:
+            logger.error("Google Places key pool exhausted — no usable credentials.")
+            return []
+        # Pool exhausted without a successful response.
+        return []
 
     async def search_places_paginated(
         self,
@@ -256,56 +292,77 @@ class GooglePlacesClient:
                 payload = self._build_payload(
                     query, country_code, lat, lng, radius, page_token
                 )
-                try:
-                    response = await client.post(
-                        self.BASE_URL,
-                        json=payload,
-                        headers=self.headers,
-                        timeout=10.0,
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-
-                    all_places.extend(data.get("places", []))
-                    page_token = data.get("nextPageToken")
-
-                    if not page_token:
-                        break
-
-                    # Brief delay between pages to respect rate limits
-                    await asyncio.sleep(0.5)
-
-                except httpx.HTTPStatusError as e:
-                    # Surface Google's actual error reason (e.g. "Invalid
-                    # value at 'region_code'", "Quota exceeded") instead
-                    # of just the status code, which is essential for
-                    # diagnosing per-target failures in manual mode.
-                    body_excerpt = ""
+                # Allow a few key rotations per page so a single 429 doesn't
+                # truncate the discovery target prematurely.
+                page_success = False
+                tried_ids: set = set()
+                for attempt in range(4):
                     try:
-                        body_excerpt = e.response.text[:400]
-                    except Exception:
-                        pass
-                    logger.error(
-                        f"Google API page {page + 1} error: "
-                        f"{e.response.status_code} for query={query!r} "
-                        f"regionCode={country_code!r} | body: {body_excerpt}"
-                    )
-                    # Quota/auth errors must bubble up to the caller;
-                    # other HTTP errors (e.g. 400 bad region) just end
-                    # pagination for this target without killing the run.
-                    if e.response.status_code in (401, 403, 429):
-                        raise QuotaExceededException(
-                            status_code=e.response.status_code,
-                            message=(
-                                f"page={page + 1} query={query!r} "
-                                f"regionCode={country_code!r} | {body_excerpt}"
-                            ),
+                        headers, selected = await self._build_headers(UseCase.DISCOVERY)
+                    except KeyExhaustedError:
+                        logger.error(
+                            "Google Places key pool exhausted while paginating "
+                            f"page {page + 1} for {query!r}"
                         )
+                        return all_places
+                    if selected.provider_id is not None and selected.provider_id in tried_ids:
+                        break
+                    if selected.provider_id is not None:
+                        tried_ids.add(selected.provider_id)
+                    try:
+                        response = await client.post(
+                            self.BASE_URL,
+                            json=payload,
+                            headers=headers,
+                            timeout=10.0,
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        all_places.extend(data.get("places", []))
+                        page_token = data.get("nextPageToken")
+                        page_success = True
+                        break
+                    except httpx.HTTPStatusError as e:
+                        # Surface Google's actual error reason (e.g. "Invalid
+                        # value at 'region_code'", "Quota exceeded") instead
+                        # of just the status code, which is essential for
+                        # diagnosing per-target failures in manual mode.
+                        body_excerpt = ""
+                        try:
+                            body_excerpt = e.response.text[:400]
+                        except Exception:
+                            pass
+                        logger.error(
+                            f"Google API page {page + 1} error: "
+                            f"{e.response.status_code} for query={query!r} "
+                            f"regionCode={country_code!r} | body: {body_excerpt}"
+                        )
+                        if e.response.status_code in (401, 403, 429):
+                            quota_exc = QuotaExceededException(
+                                status_code=e.response.status_code,
+                                message=(
+                                    f"page={page + 1} query={query!r} "
+                                    f"regionCode={country_code!r} | {body_excerpt}"
+                                ),
+                            )
+                            await key_manager.mark_cooldown(
+                                selected.provider_id, quota_exc
+                            )
+                            # Rotate to the next key and retry.
+                            continue
+                        # Non-quota errors (e.g. 400 bad region) end pagination
+                        # for this target without killing the run.
+                        return all_places
+                    except Exception:
+                        logger.exception(
+                            f"Unexpected error on page {page + 1} for: {query}"
+                        )
+                        return all_places
+
+                if not page_success or not page_token:
                     break
-                except Exception:
-                    logger.exception(
-                        f"Unexpected error on page {page + 1} for: {query}"
-                    )
-                    break
+
+                # Brief delay between pages to respect rate limits
+                await asyncio.sleep(0.5)
 
         return all_places

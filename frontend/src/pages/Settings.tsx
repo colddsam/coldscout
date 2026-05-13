@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useConfigJobs, useUpdateConfig, useHealth, useSystemToggle } from '../hooks/useConfig';
+import { useAuth } from '../hooks/useAuth';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Toggle from '../components/ui/Toggle';
@@ -8,7 +10,7 @@ import { PageLoader } from '../components/ui/Spinner';
 import PageHeader from '../components/layout/PageHeader';
 import Badge from '../components/ui/Badge';
 import toast from 'react-hot-toast';
-import { Shield, Save, RotateCcw } from 'lucide-react';
+import { Shield, Save, RotateCcw, KeyRound, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem } from '../lib/motion';
 import NotificationsSettings from '../components/notifications/NotificationsSettings';
@@ -18,6 +20,7 @@ export default function Settings() {
   const { data: health, isLoading: healthLoading } = useHealth();
   const updateConfig = useUpdateConfig();
   const systemToggle = useSystemToggle();
+  const { user } = useAuth();
 
   const [jsonStr, setJsonStr] = useState('');
   const [dirty, setDirty] = useState(false);
@@ -142,6 +145,27 @@ export default function Settings() {
               </div>
             </Card>
           </motion.div>
+
+          {/* API Key Orchestrator (superuser only) */}
+          {user?.is_superuser && (
+            <motion.div variants={staggerItem}>
+              <Card title={<><KeyRound className="w-3.5 h-3.5" />API Key Orchestrator</>}>
+                <p className="text-[12px] text-tertiary leading-relaxed">
+                  Manage the rotating pool of Groq / Gemini / Google Places /
+                  Threads credentials used by every outbound provider call.
+                </p>
+                <Link to="/settings/api-keys" className="block mt-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<ArrowRight className="w-3.5 h-3.5" />}
+                  >
+                    Open orchestrator
+                  </Button>
+                </Link>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Security */}
           <motion.div variants={staggerItem}>

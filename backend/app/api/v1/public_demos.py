@@ -14,12 +14,13 @@ Security:
 """
 
 from uuid import UUID
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from loguru import logger
 from sqlalchemy import select, update
 
 from app.core.database import get_session_maker
+from app.core.rate_limit import limiter
 from app.models.lead import Lead
 
 router = APIRouter()
@@ -51,13 +52,15 @@ _CSP_HEADER = (
     summary="Serve generated demo website for a lead",
     tags=["public-demos"],
 )
-async def serve_demo(lead_id: str, request: Request):
+@limiter.limit("30/minute")
+async def serve_demo(request: Request, response: Response, lead_id: str):
     """
     Serves the AI-generated landing page demo for a given lead.
 
     Returns the raw HTML with strict CSP headers. The frontend wraps this
     in a sandboxed iframe for additional isolation.
     """
+    _ = response  # required by slowapi for header injection
     # Validate UUID format
     try:
         lead_uuid = UUID(lead_id)

@@ -58,3 +58,6 @@ from app.models.event_type import EventType
 # ── Notifications & push subscriptions (depend on User) ───────────────────────
 from app.models.notification import Notification
 from app.models.push_subscription import PushSubscription
+
+# ── Infrastructure (API key orchestrator) ─────────────────────────────────────
+from app.models.infrastructure import APIProvider

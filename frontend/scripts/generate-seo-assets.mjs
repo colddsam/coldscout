@@ -126,6 +126,7 @@ async function main() {
     `  <sitemap><loc>${SITE_URL}/sitemap.xml</loc><lastmod>${NOW}</lastmod></sitemap>`,
     `  <sitemap><loc>${SITE_URL}/sitemap-images.xml</loc><lastmod>${NOW}</lastmod></sitemap>`,
     `  <sitemap><loc>${SITE_URL}/api/v1/seo/sitemap-profiles.xml</loc><lastmod>${NOW}</lastmod></sitemap>`,
+    `  <sitemap><loc>${SITE_URL}/api/v1/seo/sitemap-directory.xml</loc><lastmod>${NOW}</lastmod></sitemap>`,
     '</sitemapindex>',
     '',
   ].join('\n');

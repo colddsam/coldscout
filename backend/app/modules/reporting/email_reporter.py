@@ -9,21 +9,32 @@ from app.config import get_settings
 settings = get_settings()
 from app.modules.outreach.email_sender import send_email
 
-async def send_daily_report_email(report_data: dict, excel_filepath: str, output_date: date) -> bool:
+async def send_daily_report_email(
+    report_data: dict,
+    excel_filepath: str | None,
+    output_date: date,
+    to_email: str | None = None,
+) -> bool:
     """
-    Dispatches the aggregated daily statistical report to the configured administrative recipient.
-    
+    Dispatches the aggregated daily statistical report to the configured recipient.
+
     Args:
         report_data (dict): Dictionary comprising the daily quantitative metrics.
-        excel_filepath (str): Absolute or relative path to the generated Excel artifact.
+        excel_filepath (str | None): Absolute or relative path to the generated
+            Excel artifact. ``None`` when Excel generation failed — the email
+            body adapts so it doesn't promise an attachment that isn't there.
         output_date (date): The contextual date associated with the report.
-        
+        to_email (str | None): Recipient address. Falls back to ``ADMIN_EMAIL``
+            so the function stays backward compatible for callers that don't
+            pass a per-tenant address (e.g. global admin summaries).
+
     Returns:
         bool: True if the dispatch was successfully processed, False otherwise.
     """
-    if not settings.ADMIN_EMAIL:
+    recipient = to_email or settings.ADMIN_EMAIL
+    if not recipient:
         return False
-        
+
     subject = f"[Cold Scout] Daily Report — {output_date} | {report_data.get('emails_sent', 0)} sent | {report_data.get('links_clicked', 0)} clicks"
     
     html_body = f"""
@@ -81,7 +92,7 @@ async def send_daily_report_email(report_data: dict, excel_filepath: str, output
               <td style="padding:10px 14px; text-align:center; font-weight:700; color:#000000;">{report_data.get('replies_received', 0)}</td>
             </tr>
           </table>
-          <p style="margin:20px 0 0; font-size:13px; color:#666666; line-height:1.6;">The detailed Excel report is attached to this email.</p>
+          {"<p style='margin:20px 0 0; font-size:13px; color:#666666; line-height:1.6;'>The detailed Excel report is attached to this email.</p>" if excel_filepath else "<p style='margin:20px 0 0; font-size:13px; color:#a66; line-height:1.6;'>(Excel attachment could not be generated this run — see logs for details.)</p>"}
         </div>
 
         <!-- Footer -->
@@ -95,7 +106,7 @@ async def send_daily_report_email(report_data: dict, excel_filepath: str, output
     """
     
     return await send_email(
-        to_email=settings.ADMIN_EMAIL,
+        to_email=recipient,
         subject=subject,
         html_content=html_body,
         attachment_paths=[excel_filepath] if excel_filepath else []

@@ -130,6 +130,40 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+
+# ── Security headers ─────────────────────────────────────────────────
+# Adds HSTS, Referrer-Policy, X-Content-Type-Options, and X-Frame-Options
+# to every response. Demo HTML endpoints set their own Content-Security-
+# Policy + X-Frame-Options=ALLOWALL inline (so iframing demos still works
+# from operator dashboards); we don't override those.
+@app.middleware("http")
+async def security_headers_middleware(request, call_next):
+    """Inject defensive HTTP headers on every response.
+
+    These are cheap, browser-only mitigations:
+      - HSTS forces HTTPS for a year on the same host (HTTPS deploys only).
+      - Referrer-Policy hides full referrers from cross-origin destinations.
+      - X-Content-Type-Options prevents MIME sniffing.
+      - X-Frame-Options blocks framing of JSON / SEO HTML responses to
+        defeat clickjacking. The demo endpoint sets ``ALLOWALL`` itself,
+        which we don't overwrite (``setdefault`` semantics).
+    """
+    response = await call_next(request)
+    response.headers.setdefault(
+        "Strict-Transport-Security",
+        "max-age=63072000; includeSubDomains",
+    )
+    response.headers.setdefault(
+        "Referrer-Policy", "strict-origin-when-cross-origin"
+    )
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(), camera=(), payment=()",
+    )
+    return response
+
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")

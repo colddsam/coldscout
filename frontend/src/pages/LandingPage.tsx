@@ -16,6 +16,7 @@ import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
 import { SITE } from '../lib/seo/site';
 import { BASE_PRICING } from '../lib/seo/pricing';
+import { HOMEPAGE_FAQS } from '../lib/seo/faq';
 import {
   softwareApplicationSchema,
   howToSchema,
@@ -405,14 +406,10 @@ function PricingSection() {
 /* ── FAQ Section ── */
 
 function FaqSection() {
-  const faqs = [
-    { q: 'What is Cold Scout?', a: 'Cold Scout is an AI-powered lead generation platform that automatically discovers local businesses via Google Maps, qualifies them using Llama AI, and sends personalized cold email campaigns — automating your entire outreach pipeline.' },
-    { q: 'How does Cold Scout find leads?', a: 'It uses the Google Maps Places API and intelligent web scraping to discover businesses matching your Ideal Customer Profile (ICP), then enriches each lead with contact info, social profiles, and tech stack details.' },
-    { q: 'Is Cold Scout free?', a: 'Yes — fully open source under MIT license. Self-host for free with your own API keys. Managed Pro plan (₹100/mo) and Enterprise (₹2,000/mo) available for teams that prefer hosted infrastructure.' },
-    { q: 'What AI models power Cold Scout?', a: 'Groq-powered Llama 3.3 70B for qualification and email generation, Llama 3.1 8B for faster tasks. This provides high-quality AI inference at extremely low cost.' },
-    { q: 'Can AI agents use Cold Scout?', a: 'Yes. Cold Scout provides a Model Context Protocol (MCP) server so AI agents like Claude or GPT-4 can directly call lead generation endpoints. Included in Pro and Enterprise plans.' },
-    { q: 'Is Cold Scout GDPR compliant?', a: 'Yes. Built for compliance — GDPR, CCPA, and CAN-SPAM. All emails include unsubscribe links, and the platform uses ethical scraping with rate limiting.' },
-  ];
+  // Use the canonical homepage FAQ slice so Q/A copy matches /faq exactly.
+  // Diverging the answer text creates Featured-Snippet conflicts (Google
+  // picks the shorter version) and weakens AEO citations.
+  const faqs = HOMEPAGE_FAQS;
 
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -508,35 +505,11 @@ const LD_HOW_TO = howToSchema({
   ],
 });
 
-const LD_FAQ_HOME = faqSchema(
-  [
-    {
-      q: 'What is Cold Scout?',
-      a: 'Cold Scout is an AI-powered lead generation platform that automatically discovers local businesses via Google Maps, qualifies them using Llama AI models, and sends personalized cold email campaigns. It automates the entire outreach pipeline from search to inbox.',
-    },
-    {
-      q: 'How does Cold Scout find leads?',
-      a: 'Cold Scout uses the Google Maps Places API and intelligent web scraping to discover local businesses matching your Ideal Customer Profile (ICP). It then enriches each lead with website data, contact information, social profiles, and tech stack details.',
-    },
-    {
-      q: 'Is Cold Scout free to use?',
-      a: `Yes. Cold Scout is fully open source. You can self-host the entire platform for free using your own API keys. We also offer a managed Pro plan at ₹${BASE_PRICING.pro.inrPerMonth}/month and Enterprise at ₹${BASE_PRICING.enterprise.inrPerMonth}/month for teams that prefer hosted infrastructure.`,
-    },
-    {
-      q: 'What AI does Cold Scout use for lead qualification?',
-      a: 'Cold Scout uses Groq-powered Llama 3 models (Llama 3.3 70B and Llama 3.1 8B) for lead qualification, intent scoring, and personalized email generation. This provides fast, high-quality AI inference at low cost.',
-    },
-    {
-      q: 'Can AI agents like Claude or GPT-4 use Cold Scout?',
-      a: 'Yes. Cold Scout provides a Model Context Protocol (MCP) server that enables AI agents to directly call lead generation endpoints. Pro and Enterprise plans include MCP server access.',
-    },
-    {
-      q: 'Is Cold Scout GDPR compliant?',
-      a: 'Yes. Cold Scout is built with compliance in mind. It adheres to GDPR, CCPA, and CAN-SPAM regulations. All outreach emails include unsubscribe mechanisms, and the platform implements ethical scraping practices with rate limiting.',
-    },
-  ],
-  `${SITE.url}/`,
-);
+// JSON-LD answers must match the visible FAQ on this page AND the /faq page
+// verbatim — diverging copy creates duplicate-FAQPage conflicts that Google
+// silently de-dupes (often surfacing the *shorter* answer in Featured
+// Snippets). Source from the shared canonical list.
+const LD_FAQ_HOME = faqSchema(HOMEPAGE_FAQS, `${SITE.url}/`);
 
 const LD_BREADCRUMB_HOME = breadcrumbSchema(
   [{ name: 'Home', url: `${SITE.url}/` }],

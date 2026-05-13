@@ -5,16 +5,19 @@ Provides public-facing native booking endpoints and slot calculations.
 Handles both legacy redirects (if configured) and native booking flow.
 """
 
+import html
 from datetime import datetime, timedelta, timezone
 import zoneinfo
-from fastapi import APIRouter, Depends, HTTPException, Query
+from urllib.parse import urlparse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.models.profile import UserProfile, FreelancerProfile
 from app.models.booking import Booking
 from app.models.event_type import EventType
@@ -23,6 +26,37 @@ from app.modules.scheduling.slot_calculator import calculate_available_slots, WE
 from app.modules.scheduling.google_calendar import create_google_meet_event
 
 router = APIRouter(prefix="/book", tags=["booking"])
+
+
+# Domains a meeting_link is allowed to point at. The booking endpoint is
+# public (no auth), so a malicious payload could otherwise embed a phishing
+# URL inside an outbound email coming from the freelancer's verified domain.
+_MEETING_LINK_ALLOWED_HOSTS = {
+    "meet.google.com",
+    "zoom.us",
+    "us02web.zoom.us", "us04web.zoom.us", "us05web.zoom.us", "us06web.zoom.us",
+    "teams.microsoft.com",
+    "teams.live.com",
+    "whereby.com",
+    "calendly.com",
+    "cal.com",
+}
+
+
+def _safe_meeting_link(url: Optional[str]) -> Optional[str]:
+    """Return ``url`` only if it parses to https + an allowlisted host."""
+    if not url:
+        return None
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+    if parsed.scheme not in ("https",):
+        return None
+    host = (parsed.netloc or "").lower().split(":")[0]
+    if host not in _MEETING_LINK_ALLOWED_HOSTS:
+        return None
+    return url
 settings = get_settings()
 
 class SlotResponse(BaseModel):
@@ -174,23 +208,30 @@ async def get_booking_slots(
     }
 
 class CreateBookingRequest(BaseModel):
-    guest_name: str
+    guest_name: str = Field(..., min_length=1, max_length=120)
     guest_email: EmailStr
-    guest_notes: Optional[str] = None
+    guest_notes: Optional[str] = Field(None, max_length=2000)
     start_time: datetime
-    duration_minutes: int = 30
-    event_slug: Optional[str] = None
+    duration_minutes: int = Field(30, ge=5, le=480)
+    event_slug: Optional[str] = Field(None, max_length=120)
 
 @router.post("/{username}")
+@limiter.limit("5/minute")
 async def create_booking(
+    request: Request,
+    response: Response,
     username: str,
     req: CreateBookingRequest,
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new booking."""
     from loguru import logger
+    _ = response  # injected for slowapi headers
     username = username.strip().lower()
-    logger.info(f"Booking attempt for {username} by {req.guest_email} at {req.start_time}")
+    # Don't log the guest_email — it's PII from an unauthenticated caller and
+    # gets persisted via the Booking row anyway. Logging the username + time
+    # is enough for ops correlation.
+    logger.info(f"Booking attempt for {username} at {req.start_time}")
 
     # Find user profile
     from app.models.user import User
@@ -324,23 +365,44 @@ async def create_booking(
     from app.modules.notifications.events import system_message
     from app.modules.outreach.email_sender import send_email
 
-    # Notify Freelancer
-    alert_body = f"{req.guest_name} booked a session for {time_str}."
-    if status == 'approved' and not meeting_link:
+    # ── Escape every guest-controlled field before HTML email assembly ──
+    # The endpoint is unauthenticated, so anything a guest typed must be
+    # treated as untrusted. html.escape neutralises angle brackets and
+    # quotes; meeting_link is additionally constrained to a known host
+    # allowlist so the freelancer can't be tricked into forwarding a
+    # phishing URL signed by their domain.
+    safe_guest_name = html.escape(req.guest_name)
+    safe_guest_email = html.escape(req.guest_email)
+    safe_guest_notes = html.escape(req.guest_notes or "")
+    safe_username = html.escape(username)
+    safe_time = html.escape(time_str)
+    safe_status = html.escape(status)
+    safe_meeting_link = _safe_meeting_link(meeting_link)
+    safe_meeting_link_attr = html.escape(safe_meeting_link or "", quote=True)
+    safe_full_name = html.escape(user.full_name or "Freelancer")
+
+    # Notify Freelancer (system_message body is rendered server-side and
+    # already escaped by the notification renderer, but we strip control
+    # characters defensively here).
+    alert_body = f"{req.guest_name.strip()} booked a session for {time_str}."
+    if status == 'approved' and not safe_meeting_link:
         alert_body += "\n\nIMPORTANT: No meeting link was provided for this session. Please update your profile or contact the lead."
-    
+
     await system_message(
         db,
         user_id=freelancer.user_id,
         title="New Booking Request",
         body=alert_body
     )
-    
+
     # Optional: Send email to guest (using existing send_email utility, assuming default outbound config)
-    guest_html = f"<p>Hi {req.guest_name},</p><p>Your booking with <strong>{username}</strong> for <strong>{time_str}</strong> is <strong>{status}</strong>.</p>"
-    if meeting_link:
-        guest_html += f"<p><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></p>"
-    
+    guest_html = f"<p>Hi {safe_guest_name},</p><p>Your booking with <strong>{safe_username}</strong> for <strong>{safe_time}</strong> is <strong>{safe_status}</strong>.</p>"
+    if safe_meeting_link:
+        guest_html += (
+            f"<p><strong>Meeting Link:</strong> "
+            f"<a href=\"{safe_meeting_link_attr}\">{html.escape(safe_meeting_link)}</a></p>"
+        )
+
     try:
         from_name = user.full_name or profile.username or "Admin"
         # Email to Lead
@@ -350,19 +412,26 @@ async def create_booking(
             html_content=guest_html,
             from_name=from_name,
         )
-        
+
         # Email to Freelancer
-        fl_html = f"<p>Hi {user.full_name or 'Freelancer'},</p><p>You have a new booking from <strong>{req.guest_name}</strong> ({req.guest_email}) for <strong>{time_str}</strong>.</p>"
-        fl_html += f"<ul><li><strong>Status:</strong> {status}</li>"
-        if meeting_link:
-            fl_html += f"<li><strong>Meeting Link:</strong> <a href='{meeting_link}'>{meeting_link}</a></li>"
-        if req.guest_notes:
-            fl_html += f"<li><strong>Notes:</strong> {req.guest_notes}</li>"
+        fl_html = (
+            f"<p>Hi {safe_full_name},</p>"
+            f"<p>You have a new booking from <strong>{safe_guest_name}</strong> "
+            f"({safe_guest_email}) for <strong>{safe_time}</strong>.</p>"
+            f"<ul><li><strong>Status:</strong> {safe_status}</li>"
+        )
+        if safe_meeting_link:
+            fl_html += (
+                f"<li><strong>Meeting Link:</strong> "
+                f"<a href=\"{safe_meeting_link_attr}\">{html.escape(safe_meeting_link)}</a></li>"
+            )
+        if safe_guest_notes:
+            fl_html += f"<li><strong>Notes:</strong> {safe_guest_notes}</li>"
         fl_html += "</ul>"
-            
+
         await send_email(
             to_email=user.email,
-            subject=f"New Booking: {req.guest_name}",
+            subject=f"New Booking: {req.guest_name.strip()}",
             html_content=fl_html
         )
     except Exception as e:

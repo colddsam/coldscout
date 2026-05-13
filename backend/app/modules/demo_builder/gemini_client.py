@@ -22,6 +22,12 @@ from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.config import get_settings
+from app.modules.infrastructure import (
+    Provider,
+    UseCase,
+    KeyExhaustedError,
+    key_manager,
+)
 
 settings = get_settings()
 
@@ -99,8 +105,16 @@ async def generate_landing_page_html(brand_blueprint: dict) -> str | None:
     Returns:
         str: Complete HTML string (<!DOCTYPE html>...</html>), or None on failure.
     """
-    if not settings.GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY not set — skipping demo generation")
+    # Probe the key pool up-front so we can short-circuit cleanly. The
+    # actual call below grabs a fresh key for each attempt — this just
+    # confirms at least one credential exists somewhere.
+    try:
+        await key_manager.get_best_key(Provider.GEMINI, UseCase.WEBSITE_DEMO)
+    except KeyExhaustedError:
+        logger.warning(
+            "No Gemini API keys configured (pool empty and GEMINI_API_KEY unset) "
+            "— skipping demo generation"
+        )
         return None
 
     system_prompt = f"""You are an elite web designer at a premium digital agency.
@@ -176,29 +190,35 @@ Make this page look PREMIUM and UNIQUE to this specific business."""
             return None
 
 
-@retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=2, min=5, max=30))
 async def _call_gemini(system_prompt: str, user_prompt: str) -> str | None:
     """
     Makes the actual Gemini API call with retry logic.
+
+    Each invocation pulls a fresh credential from the key manager. On a
+    quota / rate-limit error the manager cools the offending key down and
+    the failover wrapper transparently retries with the next-best one.
     Runs the synchronous SDK call in a thread executor to avoid blocking.
     """
     import google.generativeai as genai
 
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    # Local import to avoid a top-level cycle with the manager.
+    from app.modules.infrastructure import with_key_failover
 
-    model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        generation_config=genai.GenerationConfig(
-            temperature=0.7,
-            max_output_tokens=16384,
-            response_mime_type="application/json",
-        ),
-        system_instruction=system_prompt,
-    )
-
-    loop = asyncio.get_running_loop()
-    try:
-        response = await asyncio.wait_for(
+    # Inner tenacity removed — with_key_failover rotates+retries to next key.
+    @with_key_failover(Provider.GEMINI, UseCase.WEBSITE_DEMO)
+    async def _do_call(*, api_key: str):
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-2.5-flash",
+            generation_config=genai.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=16384,
+                response_mime_type="application/json",
+            ),
+            system_instruction=system_prompt,
+        )
+        loop = asyncio.get_running_loop()
+        return await asyncio.wait_for(
             loop.run_in_executor(
                 None,
                 lambda: model.generate_content(
@@ -208,17 +228,20 @@ async def _call_gemini(system_prompt: str, user_prompt: str) -> str | None:
             ),
             timeout=120,
         )
+
+    try:
+        response = await _do_call()
+    except KeyExhaustedError as e:
+        # Every key in the pool hit its quota for today. Stop retrying.
+        logger.warning(f"Gemini key pool exhausted: {e}")
+        _daily_counter["count"] = settings.DEMO_MAX_PER_DAY
+        return None
     except asyncio.TimeoutError:
         logger.error("Gemini API call timed out after 120s")
         return None
     except Exception as e:
-        error_str = str(e).lower()
-        if "resourceexhausted" in error_str or "quota" in error_str or "429" in error_str:
-            logger.warning(f"Gemini free tier quota exhausted: {e}. Stopping retries.")
-            # Max out the daily counter to prevent further attempts today
-            _daily_counter["count"] = settings.DEMO_MAX_PER_DAY
-            return None
-        raise  # Let tenacity handle other errors
+        logger.error(f"Gemini API call failed: {e}")
+        return None
 
     if not response or not response.text:
         logger.warning("Gemini returned empty response")

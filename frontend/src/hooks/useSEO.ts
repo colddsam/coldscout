@@ -103,8 +103,12 @@ export function useSEO({
     // Description
     setMeta('description', description);
 
-    // Keywords
-    setMeta('keywords', keywords ?? DEFAULT_KEYWORDS);
+    // ``<meta name="keywords">`` is intentionally NOT emitted: Google
+    // ignored it since 2009 and overstuffed tags can lower trust signals.
+    // The `keywords` prop is preserved for JSON-LD payloads and internal
+    // analytics so callers don't need to be updated.
+    void keywords;
+    void DEFAULT_KEYWORDS;
 
     // Robots — fine-grained directives for maximum crawl budget efficiency.
     // `follow` falls back to mirroring `index`; pass it explicitly to enable

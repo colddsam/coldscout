@@ -20,11 +20,11 @@ from groq import AsyncGroq
 
 from app.config import get_settings
 from app.modules.personalization.groq_client import _sanitize_prompt_value
+from app.modules.infrastructure import Provider, UseCase, with_key_failover
 
 settings = get_settings()
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def extract_brand_blueprint(lead_data: dict) -> dict | None:
     """
     Extracts a structured brand blueprint from lead context using Groq.
@@ -117,14 +117,19 @@ Return ONLY a valid JSON object:
   "opening_hours": "{opening_hours or 'Contact for hours'}"
 }}"""
 
-    try:
-        client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-        chat_completion = await client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
+    # No inner tenacity: with_key_failover already rotates+retries on failure.
+    @with_key_failover(Provider.GROQ, UseCase.WEBSITE_DEMO)
+    async def _call_groq(prompt_text: str, *, api_key: str):
+        client = AsyncGroq(api_key=api_key)
+        return await client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_text}],
             model=settings.GROQ_MODEL,
             response_format={"type": "json_object"},
             temperature=0.6,
         )
+
+    try:
+        chat_completion = await _call_groq(prompt)
 
         result = json.loads(chat_completion.choices[0].message.content)
 

@@ -146,11 +146,11 @@ async def generate_demo_for_lead(lead) -> bool:
             logger.debug("Demo generation disabled via DEMO_GENERATION_ENABLED")
             return False
 
-        # Guard: check API key
-        if not settings.GEMINI_API_KEY:
-            logger.warning("GEMINI_API_KEY not configured — skipping demo generation")
-            lead.demo_site_status = "failed"
-            return False
+        # No env-key guard here: the key_manager pool is the source of truth.
+        # ``gemini_client.generate_landing_page_html`` probes the pool up-front
+        # and returns None (without raising) when no Gemini credential exists
+        # anywhere — env *or* DB — so deployments that have migrated to the
+        # DB-only pool keep generating demos as expected.
 
         lead.demo_site_status = "generating"
         logger.info(

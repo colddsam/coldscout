@@ -21,6 +21,12 @@ from loguru import logger
 from groq import AsyncGroq
 from tenacity import retry, stop_after_attempt, wait_exponential
 from app.config import get_settings
+from app.modules.infrastructure import (
+    Provider,
+    UseCase,
+    key_manager,
+    with_key_failover,
+)
 
 settings = get_settings()
 
@@ -60,10 +66,21 @@ def _sanitize_prompt_value(value: str) -> str:
 class GroqClient:
     """
     Client for interfacing with the Groq LLM API.
+
+    Credentials are sourced from the central key manager so requests rotate
+    across the configured Groq key pool and survive rate-limit / quota
+    failures on any single key. ``self.client`` is created fresh per call
+    inside ``_call_with_key`` rather than once in ``__init__`` so each
+    request can use a different rotated credential.
     """
+
     def __init__(self):
-        self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
+        # Model selection is still env-driven (it's not a credential).
         self.model = settings.GROQ_MODEL
+
+    def _client_for_key(self, api_key: str) -> AsyncGroq:
+        """Build a transient Groq SDK client bound to the given credential."""
+        return AsyncGroq(api_key=api_key)
 
     async def generate_email_content(self, lead_data: dict) -> dict:
         """
@@ -169,9 +186,13 @@ Return ONLY a valid JSON object in the following format:
             # Fallback to a very simple version if even Template fails
             prompt = f"Write an outreach email for {mapping['business_name']}."
         
-        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-        async def _call_groq(prompt_text):
-            return await self.client.chat.completions.create(
+        # No inner @retry: ``with_key_failover`` already rotates+retries up
+        # to 4 times. An inner tenacity loop would re-issue the same
+        # rate-limited key before rotation, burning attempts.
+        @with_key_failover(Provider.GROQ, UseCase.PERSONALIZATION)
+        async def _call_groq(prompt_text, *, api_key: str):
+            client = self._client_for_key(api_key)
+            return await client.chat.completions.create(
                 messages=[
                     {
                         "role": "user",
@@ -187,13 +208,14 @@ Return ONLY a valid JSON object in the following format:
             chat_completion = await _call_groq(prompt)
             result = chat_completion.choices[0].message.content
             return json.loads(result)
-        except Exception as e:
-            logger.exception("Error calling Groq API for personalization")
-            return {
-                "subject": f"Enhance {lead_data.get('business_name')} Digital Presence",
-                "body_html": "<p>Hi,</p><p>We help businesses like yours build a strong digital presence.</p><p>Let's chat?</p>",
-                "benefits": ["Increased visibility", "Better customer engagement", "More sales"]
-            }
+        except Exception:
+            # Re-raise so the personalization stage leaves the lead at
+            # ``qualified`` for the next run to retry. Returning a hard-coded
+            # boilerplate email here used to silently consume the lead and
+            # send "Enhance your digital presence" — destroying brand trust
+            # and forfeiting the lead's first-impression budget.
+            logger.exception("Groq personalization failed; lead will be re-tried next run")
+            raise
 
     async def generate_whatsapp_message(
         self,
@@ -288,9 +310,10 @@ Return ONLY a valid JSON object:
             logger.error(f"Error formatting whatsapp prompt template: {e}")
             prompt = f"Write a short whatsapp message for {mapping['business_name']}."
 
-        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=8))
-        async def _call_groq(prompt_text: str):
-            return await self.client.chat.completions.create(
+        @with_key_failover(Provider.GROQ, UseCase.PERSONALIZATION)
+        async def _call_groq(prompt_text: str, *, api_key: str):
+            client = self._client_for_key(api_key)
+            return await client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt_text}],
                 model=self.model,
                 response_format={"type": "json_object"},
@@ -330,7 +353,6 @@ Return ONLY a valid JSON object:
             )
             return {"message": fallback}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def generate_daily_targets(
         self,
         exclude_locations: list,
@@ -400,21 +422,25 @@ Return ONLY a JSON object:
   ]
 }}
 """
-        try:
-            logger.info("Calling Groq to generate international daily targets")
-            chat_completion = await self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
+        @with_key_failover(Provider.GROQ, UseCase.DISCOVERY)
+        async def _call_groq(prompt_text: str, *, api_key: str):
+            client = self._client_for_key(api_key)
+            return await client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt_text}],
                 model=self.model,
                 response_format={"type": "json_object"},
                 temperature=0.8,
             )
+
+        try:
+            logger.info("Calling Groq to generate international daily targets")
+            chat_completion = await _call_groq(prompt)
             data = json.loads(chat_completion.choices[0].message.content)
             return data.get("targets", [])
         except Exception as e:
             logger.exception("Error generating daily targets with Groq")
             raise e  # Trigger retry
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def generate_followup_email(self, lead_data: dict, followup_number: int) -> dict:
         """
         followup_number: 1, 2, or 3
@@ -487,13 +513,18 @@ Return ONLY a valid JSON object in the following format:
             logger.error(f"Error formatting follow-up prompt: {e}")
             prompt = f"Write a follow-up email #{followup_number} for {mapping['business_name']}."
 
-        try:
-            chat_completion = await self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
+        @with_key_failover(Provider.GROQ, UseCase.PERSONALIZATION)
+        async def _call_groq(prompt_text: str, *, api_key: str):
+            client = self._client_for_key(api_key)
+            return await client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt_text}],
                 model=self.model,
                 response_format={"type": "json_object"},
                 temperature=0.7,
             )
+
+        try:
+            chat_completion = await _call_groq(prompt)
             return json.loads(chat_completion.choices[0].message.content)
         except Exception as e:
             logger.exception("Error calling Groq API for followup")

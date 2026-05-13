@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from loguru import logger
 from app.core.job_manager import job_manager
-from app.core.locks import advisory_lock
+from app.core.locks import advisory_lock, LockNotAcquiredError
 
 
 from sqlalchemy import select, func, update
@@ -190,6 +190,19 @@ async def dispatch_stage_for_all_freelancers(stage_func, stage_name: str):
                 except Exception:
                     pass
                 raise
+            except LockNotAcquiredError as e:
+                # Another worker (or a manual trigger) already holds the lock
+                # for this stage. Record this as a skip rather than a failure
+                # so the freelancer's log shows the right reason.
+                await mark_skipped(
+                    user_id,
+                    stage_name,
+                    f"Skipped: another {stage_name} run holds the lock '{e.lock_name}'",
+                )
+                logger.info(
+                    f"⏭️ {stage_name} skipped for freelancer {user_id} (lock contention)."
+                )
+                continue
             except Exception as e:
                 await mark_failed(
                     user_id, stage_name, f"{type(e).__name__}: {str(e)[:200]}"
@@ -1159,7 +1172,12 @@ async def poll_replies(manual: bool = False, user_id: Optional[int] = None):
                 res  = await db.execute(stmt)
                 lead = res.scalars().first()
 
-                if not lead or lead.status == "replied":
+                # Broadened guard: an "unsubscribed" lead is also terminal
+                # for the reply-poller. Without this, re-fetching the same
+                # email within the 30-min poll window can double-process
+                # the unsubscribe sentiment (duplicate EmailEvent rows +
+                # repeated Telegram alerts).
+                if not lead or lead.status in ("replied", "unsubscribed"):
                     continue
 
                 try:
@@ -1279,9 +1297,26 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
 
     async with advisory_lock(f"pipeline_daily_report_{user_id}"):
         today = date.today()
+        # Range predicates instead of func.date(col) — keeps indexes on
+        # discovered_at / qualified_at / email_sent_at usable. ``date.today()``
+        # is naive; combine with min/max time so the predicates match the
+        # full UTC day. (Lead timestamps are stored UTC.)
+        from datetime import datetime as _dt, time as _time
+        day_start = _dt.combine(today, _time.min)
+        day_end = _dt.combine(today, _time.max)
 
         try:
             async with get_session_maker()() as db:
+                # Resolve the freelancer's email up-front so the report goes
+                # to them (not the platform admin). Falls back to ADMIN_EMAIL
+                # via send_daily_report_email when user_id is None.
+                from app.models.user import User
+                freelancer_email: str | None = None
+                if user_id is not None:
+                    freelancer_email = await db.scalar(
+                        select(User.email).where(User.id == user_id)
+                    )
+
                 # Build user filter for all queries
                 def _user_filter(query):
                     if user_id is not None:
@@ -1291,14 +1326,18 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
                 # Aggregated metrics for report_data
                 leads_discovered = await db.scalar(
                     _user_filter(
-                        select(func.count(Lead.id)).where(func.date(Lead.discovered_at) == today)
+                        select(func.count(Lead.id)).where(
+                            Lead.discovered_at >= day_start,
+                            Lead.discovered_at <= day_end,
+                        )
                     )
                 )
                 leads_qualified = await db.scalar(
                     _user_filter(
                         select(func.count(Lead.id)).where(
-                            (func.date(Lead.qualified_at) == today) &
-                            Lead.status.in_(["qualified", "phone_qualified"])
+                            Lead.qualified_at >= day_start,
+                            Lead.qualified_at <= day_end,
+                            Lead.status.in_(["qualified", "phone_qualified"]),
                         )
                     )
                 )
@@ -1306,8 +1345,9 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
                 # Email sent count — filter via campaign.user_id for multi-tenant
                 email_sent_query = (
                     select(func.count(EmailOutreach.id)).where(
-                        (func.date(EmailOutreach.sent_at) == today) &
-                        (EmailOutreach.status == "sent")
+                        EmailOutreach.sent_at >= day_start,
+                        EmailOutreach.sent_at <= day_end,
+                        EmailOutreach.status == "sent",
                     )
                 )
                 if user_id is not None:
@@ -1318,9 +1358,9 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
 
                 # Fetch leads involved in today's activities for detail list
                 leads_activity_query = select(Lead).where(
-                    (func.date(Lead.discovered_at) == today)
-                    | (func.date(Lead.email_sent_at) == today)
-                    | (func.date(Lead.first_replied_at) == today)
+                    ((Lead.discovered_at >= day_start) & (Lead.discovered_at <= day_end))
+                    | ((Lead.email_sent_at >= day_start) & (Lead.email_sent_at <= day_end))
+                    | ((Lead.first_replied_at >= day_start) & (Lead.first_replied_at <= day_end))
                 )
                 if user_id is not None:
                     leads_activity_query = leads_activity_query.where(Lead.user_id == user_id)
@@ -1364,7 +1404,10 @@ async def generate_daily_report(manual: bool = False, user_id: Optional[int] = N
 
                 # Email dispatch fallback — log failure, don't crash pipeline
                 try:
-                    await send_daily_report_email(report_data, excel_path, today)
+                    await send_daily_report_email(
+                        report_data, excel_path, today,
+                        to_email=freelancer_email,
+                    )
                 except Exception as email_err:
                     logger.error(f"Daily report email dispatch failed: {email_err}")
                     await send_telegram_alert(

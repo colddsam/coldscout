@@ -151,29 +151,27 @@ async def run_followup_dispatch(manual: bool = False, user_id: int | None = None
                     full_name, username = user_data
                     from_name = full_name or username or "Admin"
 
-                success = await send_email(
-                    to_email=lead.email,
-                    subject=subject,
-                    html_content=html_body,
-                    attachment_paths=[],
-                    from_name=from_name,
-                )
-                
-                # Retry up to 2 more times on transient failures
-                MAX_RETRIES = 3
-                for attempt in range(1, MAX_RETRIES + 1):
-                    if success:
-                        break
-                    if attempt > 1:
-                        logger.warning(f"Retry {attempt}/{MAX_RETRIES} for follow-up to {lead.email}")
-                        await asyncio.sleep(3 * attempt)  # Exponential backoff
-                        success = await send_email(
-                            to_email=lead.email,
-                            subject=subject,
-                            html_content=html_body,
-                            attachment_paths=[],
-                            from_name=from_name,
-                        )
+                # ``send_email`` is wrapped in tenacity (3 internal retries with
+                # exponential backoff). It either returns True or raises after
+                # exhaustion — there is no False return path, so any outer
+                # ``if not success: retry`` loop is dead code. We catch the
+                # final exception here instead and treat the follow-up as
+                # un-sent so the next scheduled run can try again.
+                success = False
+                try:
+                    success = await send_email(
+                        to_email=lead.email,
+                        subject=subject,
+                        html_content=html_body,
+                        attachment_paths=[],
+                        from_name=from_name,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Follow-up #{followup_number} send failed for {lead.email}: {e}. "
+                        f"Will retry on next scheduled run."
+                    )
+                    success = False
 
                 if success:
                     outreach = EmailOutreach(

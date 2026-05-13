@@ -4,7 +4,7 @@ Processes one-click opt-out requests embedded in outreach emails, ensuring
 CAN-SPAM / GDPR compliance by permanently disabling further communications
 for the associated lead.
 """
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ import hashlib
 import base64
 from app.config import get_settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from loguru import logger
 from app.models.lead import Lead
 
@@ -20,12 +21,19 @@ settings = get_settings()
 router = APIRouter()
 
 @router.get("/{tracking_token}", response_class=HTMLResponse)
-async def unsubscribe_lead(tracking_token: str, request: Request, db: AsyncSession = Depends(get_db)):
+@limiter.limit("60/minute")
+async def unsubscribe_lead(
+    request: Request,
+    response: Response,
+    tracking_token: str,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Handles unsubscribe requests via the unique tracking token.
     Updates the lead status to 'unsubscribed' and disables follow-ups.
     Verifies HMAC signature to prevent IDOR attacks.
     """
+    _ = response  # slowapi header injection
     try:
         if "." not in tracking_token:
             raise ValueError("Invalid token format")

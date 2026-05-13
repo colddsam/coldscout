@@ -166,9 +166,12 @@ async def oauth_callback(code: str, state: str | None = None):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        # Never leak raw SDK error strings to anonymous callers — they may
+        # contain internal IDs, partial URLs, or library tracebacks. Log
+        # the detail server-side, return a generic message to the browser.
         logger.exception("Threads OAuth callback failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="OAuth exchange failed.")
 
 
 # ── OAuth Initiation (PRIVATE — provides a signed state) ──────────

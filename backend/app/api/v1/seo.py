@@ -27,6 +27,7 @@ from sqlalchemy import select
 
 from app.core.database import get_db
 from app.models.profile import UserProfile
+from app.models.lead import Lead
 
 router = APIRouter(prefix="/seo", tags=["seo"])
 
@@ -82,6 +83,97 @@ async def sitemap_profiles(db: AsyncSession = Depends(get_db)) -> Response:
         media_type="application/xml; charset=utf-8",
         headers={
             "Cache-Control": "public, max-age=3600, s-maxage=3600",
+            "X-Robots-Tag": "noindex",
+        },
+    )
+
+
+@router.get("/sitemap-directory.xml", response_class=Response)
+async def sitemap_directory(db: AsyncSession = Depends(get_db)) -> Response:
+    """
+    XML sitemap for the public business directory.
+
+    Two surfaces are listed:
+      1. ``/directory/lead/{slug}`` — every individually-public lead.
+      2. ``/directory/{industry}/{city}`` — every (industry, city) pair
+         that has at least one public lead, so search engines crawl the
+         long-tail city+category pages.
+
+    Lead-level visibility is currently driven by ``is_public_override``
+    (when set) falling back to a public-by-default rule. The exact column
+    name varies by deploy; we look it up dynamically below.
+    """
+    # A lead is publicly indexable when ``is_public`` is True AND the
+    # operator hasn't flipped the per-lead privacy override.
+    base_filters = [
+        Lead.is_public.is_(True),
+        Lead.is_private_override.is_(False),
+    ]
+
+    # Lead-level URLs (capped to avoid sitemap blowing past Google's 50k limit).
+    lead_q = (
+        select(Lead.slug, Lead.updated_at)
+        .where(*base_filters, Lead.slug.is_not(None))
+        .order_by(Lead.updated_at.desc().nulls_last())
+        .limit(45000)
+    )
+    lead_rows = (await db.execute(lead_q)).all()
+
+    # (industry, city) pairs that have at least one public lead.
+    pair_q = (
+        select(Lead.category, Lead.city)
+        .where(*base_filters, Lead.category.is_not(None), Lead.city.is_not(None))
+        .group_by(Lead.category, Lead.city)
+        .limit(5000)
+    )
+    pair_rows = (await db.execute(pair_q)).all()
+
+    def _slugify(value: str) -> str:
+        """Lowercase, replace whitespace+special chars with hyphens — matches
+        the frontend's slug rules so URLs stay canonical."""
+        v = (value or "").strip().lower()
+        v = re.sub(r"[^a-z0-9]+", "-", v).strip("-")
+        return v
+
+    urls: list[str] = []
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    for slug, updated_at in lead_rows:
+        if not slug:
+            continue
+        lastmod = updated_at.strftime("%Y-%m-%d") if updated_at else today
+        urls.append(
+            f"  <url>\n"
+            f"    <loc>{BASE_URL}/directory/lead/{xml_escape(str(slug))}</loc>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
+            f"    <changefreq>weekly</changefreq>\n"
+            f"    <priority>0.6</priority>\n"
+            f"  </url>"
+        )
+    for category, city in pair_rows:
+        ind = _slugify(category)
+        cty = _slugify(city)
+        if not ind or not cty:
+            continue
+        urls.append(
+            f"  <url>\n"
+            f"    <loc>{BASE_URL}/directory/{xml_escape(ind)}/{xml_escape(cty)}</loc>\n"
+            f"    <lastmod>{today}</lastmod>\n"
+            f"    <changefreq>daily</changefreq>\n"
+            f"    <priority>0.7</priority>\n"
+            f"  </url>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls) + "\n"
+        '</urlset>\n'
+    )
+    return Response(
+        content=xml,
+        media_type="application/xml; charset=utf-8",
+        headers={
+            "Cache-Control": "public, max-age=1800, s-maxage=3600",
             "X-Robots-Tag": "noindex",
         },
     )
@@ -152,6 +244,18 @@ STATIC_ROUTE_META: dict[str, dict[str, str]] = {
     "/delete-data": {
         "title": "Data Deletion Request — Cold Scout",
         "description": "Submit a GDPR/CCPA data deletion request for your Cold Scout account.",
+    },
+    "/scanner": {
+        "title": "Free Lead Scanner — Audit Any Business in 30 Seconds | Cold Scout",
+        "description": "Free public scanner that audits a local business in 30 seconds. Score a Google Maps listing on website quality, reviews, social signal, and digital presence — no signup, no card.",
+    },
+    "/download": {
+        "title": "Download App — Cold Scout",
+        "description": "Download the Cold Scout mobile companion app or grab the open-source self-host package from GitHub.",
+    },
+    "/directory": {
+        "title": "Business Lead Directory — Find Local Service Leads | Cold Scout",
+        "description": "Browse thousands of local business leads by city and industry. Find plumbers, roofers, contractors, and other businesses that need digital services.",
     },
 }
 
