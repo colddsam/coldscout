@@ -24,6 +24,7 @@ from functools import partial
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core import manual_outreach_tracker
+from app.core.plan_gate import is_paid_plan_active
 from app.core.job_queue import (
     enqueue as enqueue_queue,
     queue_size,
@@ -369,6 +370,20 @@ async def trigger_outreach(
     """
     lead = await _load_owned_lead(db, lead_id, current_user)
 
+    # Plan gate — single-lead "Send Now" generates a proposal, runs Groq
+    # for email content, optionally builds a demo site, then sends via
+    # SMTP. All of that is paid-only. Surface 402 at the API edge so the
+    # SPA shows the upgrade dialog instead of a confusing
+    # "queued… failed" cycle in the per-lead button state.
+    if not is_paid_plan_active(current_user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Sending outreach for a lead requires a Pro or Enterprise plan. "
+                "Upgrade to start sending personalized outreach."
+            ),
+        )
+
     if lead.status != "qualified":
         raise HTTPException(
             status_code=409,
@@ -477,6 +492,20 @@ async def post_whatsapp_link(
     """
     lead = await _load_owned_lead(db, lead_id, current_user)
 
+    # Plan gate — WhatsApp builder runs Groq (paid AI call) and may
+    # trigger a demo-site generation. Block free users here for the same
+    # reason as the email Send Now: it bills the platform for work that
+    # the tier doesn't entitle the user to.
+    if not is_paid_plan_active(current_user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Personalized WhatsApp outreach requires a Pro or Enterprise "
+                "plan. Upgrade to unlock AI-generated messages and the wa.me "
+                "deep link."
+            ),
+        )
+
     if not lead.phone:
         raise HTTPException(status_code=409, detail="Lead has no phone number on file.")
 
@@ -563,6 +592,19 @@ async def preview_demo(lead_id: str, current_user: User = Depends(get_current_us
 @router.post("/{lead_id}/demo-regenerate")
 async def regenerate_demo(lead_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Triggers re-generation of the demo for a lead (resets status to pending)."""
+    # Plan gate — demo regeneration calls Groq and writes a new HTML
+    # artifact. Same paid-only contract as Send Now / WhatsApp; 402 at
+    # the API edge keeps free users from kicking unbounded AI work via
+    # a fire-and-forget background task.
+    if not is_paid_plan_active(current_user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Regenerating a demo site requires a Pro or Enterprise plan. "
+                "Upgrade to rebuild AI-generated demo previews."
+            ),
+        )
+
     stmt = select(Lead).where(Lead.id == lead_id)
     if not current_user.is_superuser:
         stmt = stmt.where(Lead.user_id == current_user.id)

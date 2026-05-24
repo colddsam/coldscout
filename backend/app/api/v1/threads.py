@@ -26,6 +26,7 @@ from sqlalchemy import select, func
 from app.api.deps import get_current_user
 from app.config import get_settings
 from app.core.database import get_session_maker
+from app.core.plan_gate import is_paid_plan_active
 from app.models.threads import (
     ThreadsProfile, ThreadsPost, ThreadsEngagement, ThreadsSearchConfig,
 )
@@ -309,10 +310,29 @@ async def delete_search_config(
 
 
 # ── Manual Pipeline Triggers (PRIVATE) ──────────────────────────
+#
+# These call the Threads stage functions DIRECTLY (not through the
+# ``dispatch_stage_for_all_freelancers`` flow that filters by paid plan),
+# so each endpoint enforces the plan gate explicitly. Without these
+# checks, a free user could spam ``/threads/run/*`` and bill the
+# platform for Threads API calls + Groq qualification.
+
+
+def _require_paid_for_threads(user: User) -> None:
+    if not is_paid_plan_active(user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Threads pipeline runs are a Pro / Enterprise feature. "
+                "Upgrade to discover, qualify, and engage with Threads leads."
+            ),
+        )
+
 
 @router.post("/run/discovery")
 async def trigger_discovery(current_user: User = Depends(get_current_user)):
     """Manually trigger the Threads discovery stage for the current freelancer."""
+    _require_paid_for_threads(current_user)
     result = await run_threads_discovery(user_id=current_user.id)
     return result
 
@@ -320,6 +340,7 @@ async def trigger_discovery(current_user: User = Depends(get_current_user)):
 @router.post("/run/qualification")
 async def trigger_qualification(current_user: User = Depends(get_current_user)):
     """Manually trigger the Threads qualification stage for the current freelancer."""
+    _require_paid_for_threads(current_user)
     result = await run_threads_qualification(user_id=current_user.id)
     return result
 
@@ -327,6 +348,7 @@ async def trigger_qualification(current_user: User = Depends(get_current_user)):
 @router.post("/run/engagement")
 async def trigger_engagement(current_user: User = Depends(get_current_user)):
     """Manually trigger the Threads engagement stage for the current freelancer."""
+    _require_paid_for_threads(current_user)
     result = await run_threads_engagement(user_id=current_user.id)
     return result
 
@@ -334,6 +356,7 @@ async def trigger_engagement(current_user: User = Depends(get_current_user)):
 @router.post("/run/check-responses")
 async def trigger_check_responses(current_user: User = Depends(get_current_user)):
     """Manually trigger checking for engagement responses for the current freelancer."""
+    _require_paid_for_threads(current_user)
     result = await check_engagement_responses(user_id=current_user.id)
     return result
 

@@ -473,12 +473,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Clients are always treated as having "access" — they are never shown the upgrade
   // dialog or skeleton, regardless of what plan value is stored on their account.
   //
+  // Superusers bypass the gate entirely (mirrors the backend's
+  // ``is_paid_plan_active`` predicate, which also short-circuits on
+  // ``is_superuser``). Without this, an operator on a free account
+  // gets the upgrade modal and dashboard skeleton — useless when
+  // they're trying to actually administer the platform.
+  //
   // For freelancers we also check plan_expires_at so that an expired plan is
   // treated as free immediately on the frontend, even if stale localStorage data
   // still shows plan='pro'. The daily backend scheduler is the authoritative
   // source, but this client-side check closes the gap between expiry and the
   // next scheduler run (up to 24 h) or the next syncUserToBackend call.
   const hasPaidPlan =
+    !!user?.is_superuser ||
     user?.role === 'client' ||
     !!(
       user?.plan &&

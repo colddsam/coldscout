@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Zap, Mail, BarChart2, ArrowRight, ChevronRight,
-  Target, Shield,
+  Target, Shield, Users,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSEO } from '../hooks/useSEO';
@@ -31,8 +31,6 @@ import WordsPullUp from '../components/animations/WordsPullUp';
 import StaggeredCard from '../components/animations/StaggeredCard';
 import FadeUpBlock from '../components/animations/FadeUpBlock';
 import AnimatedLetter from '../components/animations/AnimatedLetter';
-import AnimatedBackground from '../components/ui/AnimatedBackground';
-import Orbital3D from '../components/ui/Orbital3D';
 import { staggerContainer, staggerItem } from '../lib/motion';
 
 /* ── Hero Section ── */
@@ -41,115 +39,146 @@ function HeroSection() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden bg-black">
-      {/* Layered animated background: grid drift + orbs + floating SVG shapes + constellation */}
-      <AnimatedBackground variant="hero" />
-
+    <section className="relative min-h-screen flex items-center justify-center pt-24 pb-12 overflow-hidden bg-black">
       {/* Subtle noise overlay (kept on top for grain texture) */}
       <div className="absolute inset-0 noise-overlay opacity-[0.2] pointer-events-none" aria-hidden="true" />
 
-      {/* Pseudo-3D orbital halo behind heading */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-60 pointer-events-none" aria-hidden>
-        <Orbital3D size={520} />
-      </div>
-
-      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-10 bg-white/[0.03]"
-        >
-          <span className="relative flex items-center justify-center">
-            <span className="inline-block w-2 h-2 rounded-full bg-white" />
-            <span className="absolute inline-block w-2 h-2 rounded-full bg-white animate-ping" />
-          </span>
-          <span className="text-xs font-medium text-[#B0B0B0]">AI-Powered Lead Generation</span>
-        </motion.div>
-
-        {/* Giant heading */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-2 text-balance">
-          <WordsPullUp text="Discover leads." className="text-white" />
-        </h1>
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-2 text-balance">
-          <motion.span
-            className="text-gradient"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-          >
-            Qualify instantly.
-          </motion.span>
-        </h1>
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.92] mb-8 text-balance">
-          <WordsPullUp text="Close faster." className="text-white" delay={0.7} />
-        </h1>
-
-        <motion.p
-          className="text-base md:text-lg text-[#B0B0B0] max-w-2xl mx-auto mb-10"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 0.5 }}
-        >
-          Cold Scout uses AI to discover, enrich, and engage local business leads —
-          automating your entire outreach pipeline from search to inbox.
-        </motion.p>
-
-        <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 0.5 }}
-        >
-          <Link to={isAuthenticated ? '/overview' : '/login'}>
-            <motion.span
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-6 py-3.5 rounded-full text-sm font-semibold group shadow-[0_4px_20px_rgba(255,255,255,0.1)]"
-              whileHover={{ scale: 1.03, boxShadow: '0 0 30px rgba(255,255,255,0.1)' }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-24">
+          <div className="text-left">
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 mb-8 bg-white/[0.03]"
             >
-              {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
-              <span className="w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                <ArrowRight className="w-3.5 h-3.5 text-white group-hover:translate-x-0.5 transition-transform" />
+              <span className="relative flex items-center justify-center">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-white" />
+                <span className="absolute inline-block w-1.5 h-1.5 rounded-full bg-white animate-ping" />
               </span>
-            </motion.span>
-          </Link>
-          <Link to="/scanner">
-            <motion.span
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/15 text-white/70 px-6 py-3.5 rounded-full text-sm font-medium hover:text-white hover:border-white/30 transition-all duration-300"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              <span className="text-xs font-medium text-[#B0B0B0]">AI-Powered Lead Generation</span>
+            </motion.div>
+
+            {/* Giant heading */}
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5rem] font-bold tracking-tighter leading-[1.05] mb-2">
+              <WordsPullUp text="Discover leads." className="text-white" />
+            </h1>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5rem] font-bold tracking-tighter leading-[1.05] mb-2">
+              <WordsPullUp text="Qualify instantly." className="text-white" delay={0.2} />
+            </h1>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5rem] font-bold tracking-tighter leading-[1.05] mb-8">
+              <motion.span
+                className="text-gradient block"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                Close faster.
+              </motion.span>
+            </h1>
+
+            <motion.p
+              className="text-base md:text-lg text-[#B0B0B0] max-w-lg mb-10 leading-relaxed"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.5 }}
             >
-              <Search className="w-4 h-4" />
-              Free Website Audit
-            </motion.span>
-          </Link>
-        </motion.div>
+              Cold Scout uses AI to discover, enrich, and engage local business leads —
+              automating your entire outreach pipeline from search to inbox.
+            </motion.p>
+
+            <motion.div
+              className="flex flex-col sm:flex-row items-center gap-4"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1, duration: 0.5 }}
+            >
+              <Link to={isAuthenticated ? '/overview' : '/login'} className="w-full sm:w-auto">
+                <motion.span
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-black px-6 py-3.5 rounded-full text-sm font-semibold group shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                  whileHover={{ scale: 1.03, boxShadow: '0 0 50px rgba(255,255,255,0.2)' }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                >
+                  Go to Dashboard
+                  <span className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
+                    <ArrowRight className="w-3 h-3 text-white group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </motion.span>
+              </Link>
+              <Link to="/scanner" className="w-full sm:w-auto">
+                <motion.span
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/15 text-white/70 px-6 py-3.5 rounded-full text-sm font-medium hover:text-white hover:border-white/30 hover:bg-white/5 transition-all duration-300"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                >
+                  <Search className="w-4 h-4" />
+                  Free Website Audit
+                </motion.span>
+              </Link>
+            </motion.div>
+          </div>
+          
+          <div className="relative flex justify-center lg:justify-end mt-12 lg:mt-0">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5, type: "spring", stiffness: 100 }}
+              className="relative w-full max-w-[600px] aspect-square bg-black border border-white/10 border-dashed rounded-3xl flex items-center justify-center"
+            >
+              <span className="text-[#555] text-sm font-mono uppercase tracking-[0.2em]">Image Placeholder</span>
+              {/* Optional glowing effect behind image */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-white/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+            </motion.div>
+          </div>
+        </div>
 
         {/* Stats row */}
         <motion.div
-          className="grid grid-cols-1 sm:flex items-center justify-center gap-8 md:gap-16 mt-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          className="flex justify-center border-t border-white/10 pt-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.3, duration: 0.5 }}
         >
-          {[
-            { value: 10000, suffix: '+', label: 'Leads Generated' },
-            { value: 95, suffix: '%', label: 'Email Accuracy' },
-            { value: 3, suffix: 'x', label: 'Faster Outreach' },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <AnimatedCounter
-                value={stat.value}
-                suffix={stat.suffix}
-                className="text-2xl md:text-3xl font-bold tracking-tighter text-white font-mono"
-                duration={1.5}
-              />
-              <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8A8A] mt-1 font-semibold">{stat.label}</p>
+          <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-4xl divide-y md:divide-y-0 md:divide-x divide-white/10">
+            <div className="flex items-center justify-center gap-5 py-6 md:py-0 px-8 w-full md:w-1/3">
+              <div className="w-12 h-12 bg-white/[0.03] border border-white/[0.08] rounded-2xl flex items-center justify-center shadow-inner">
+                <Users className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl lg:text-3xl font-bold tracking-tighter text-white font-mono flex items-center">
+                  <AnimatedCounter value={10000} duration={1.5} />+
+                </div>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8A8A] mt-0.5 font-semibold">Leads Generated</p>
+              </div>
             </div>
-          ))}
+
+            <div className="flex items-center justify-center gap-5 py-6 md:py-0 px-8 w-full md:w-1/3">
+              <div className="w-12 h-12 bg-white/[0.03] border border-white/[0.08] rounded-2xl flex items-center justify-center shadow-inner">
+                <Mail className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl lg:text-3xl font-bold tracking-tighter text-white font-mono flex items-center">
+                  <AnimatedCounter value={95} duration={1.5} />%
+                </div>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8A8A] mt-0.5 font-semibold">Email Accuracy</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-5 py-6 md:py-0 px-8 w-full md:w-1/3">
+              <div className="w-12 h-12 bg-white/[0.03] border border-white/[0.08] rounded-2xl flex items-center justify-center shadow-inner">
+                <Zap className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="text-2xl lg:text-3xl font-bold tracking-tighter text-white font-mono flex items-center">
+                  <AnimatedCounter value={3} duration={1.5} />x
+                </div>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[#8A8A8A] mt-0.5 font-semibold">Faster Outreach</p>
+              </div>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
@@ -170,7 +199,6 @@ function FeaturesSection() {
 
   return (
     <section id="features" className="py-24 md:py-32 bg-black relative overflow-hidden">
-      <AnimatedBackground variant="subtle" showShapes={true} showConstellation={false} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">Features</p>
@@ -221,7 +249,6 @@ function WorkflowSection() {
 
   return (
     <section id="workflow" className="py-24 md:py-32 bg-surface-1 relative overflow-hidden">
-      <AnimatedBackground variant="subtle" showShapes={false} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">How it works</p>
@@ -320,7 +347,6 @@ function PricingSection() {
 
   return (
     <section id="pricing" className="py-24 md:py-32 bg-surface-1 relative overflow-hidden">
-      <AnimatedBackground variant="subtle" showShapes={true} />
       <div className="relative max-w-6xl mx-auto px-6">
         <ScrollReveal className="text-center mb-16">
           <p className="text-[10px] uppercase tracking-[0.2em] text-[#8A8A8A] font-semibold mb-3">Pricing</p>

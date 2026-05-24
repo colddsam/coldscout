@@ -5,6 +5,7 @@
  * Enhanced with spring-physics animations and staggered content reveal.
  */
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -35,7 +36,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
     };
   }, [open, onClose]);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -77,6 +78,7 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

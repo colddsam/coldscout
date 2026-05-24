@@ -82,3 +82,30 @@ export function FreelancerRoute() {
 export function ClientRoute() {
   return <ProtectedRoute allowedRoles={['client']} />;
 }
+
+/**
+ * Wrapper for superuser-only admin routes.
+ *
+ * Defence in depth: the backend gates ``/api/v1/admin/*`` behind
+ * ``get_current_active_superuser``, but rendering an admin UI to a
+ * non-superuser still leaks the existence of operator tooling. This
+ * guard ensures non-superusers never even see the page mount —
+ * unauthenticated callers go to /login, authenticated non-superusers
+ * land on their normal dashboard.
+ */
+export function SuperuserRoute() {
+  const { isAuthenticated, isLoading, user, session } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) return <LoadingScreen />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  if (session && !user) return <LoadingScreen />;
+
+  if (!user?.is_superuser) {
+    const defaultPath = user?.role === 'client' ? '/welcome' : '/overview';
+    return <Navigate to={defaultPath} replace />;
+  }
+  return <Outlet />;
+}

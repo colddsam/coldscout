@@ -61,3 +61,6 @@ from app.models.push_subscription import PushSubscription
 
 # ── Infrastructure (API key orchestrator) ─────────────────────────────────────
 from app.models.infrastructure import APIProvider
+
+# ── Admin audit log (superuser actions on user accounts) ──────────────────────
+from app.models.admin_audit_log import AdminAuditLog

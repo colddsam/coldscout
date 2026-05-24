@@ -34,10 +34,15 @@ const variants: Record<string, string> = {
     'bg-transparent text-white border border-white/12 hover:border-white/30 hover:bg-white/[0.04] font-medium',
 };
 
+// Sizing scale. Heights are deliberate: ``md`` (36px) hits the 36-44px sweet
+// spot that reads as compact on desktop without violating the mobile touch-
+// target floor; ``lg`` (44px) is exactly the Apple/Google guideline. ``sm``
+// stays at 32px for dense table-row actions where space is the constraint —
+// pair it with extra padding wrappers when used on mobile-only surfaces.
 const sizes: Record<string, string> = {
-  sm: 'px-3 py-1.5 text-xs h-8 rounded-md',
-  md: 'px-3.5 py-2 text-[13px] h-9 rounded-lg',
-  lg: 'px-5 py-2.5 text-sm h-11 rounded-lg',
+  sm: 'px-3 py-1.5 text-xs h-8 min-w-[2rem] rounded-md',
+  md: 'px-4 py-2 text-[13px] h-9 min-w-[2.25rem] rounded-lg',
+  lg: 'px-5 py-2.5 text-sm h-11 min-w-[2.75rem] rounded-lg',
 };
 
 export default function Button({

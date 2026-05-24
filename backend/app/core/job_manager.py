@@ -299,14 +299,34 @@ class JobManager:
 
     @classmethod
     async def get_active_freelancers(cls) -> list[int]:
+        """List freelancer user_ids eligible for the scheduled pipeline.
+
+        Filters applied (all must hold):
+          1. ``users.role = 'freelancer'`` AND ``users.is_active = TRUE``.
+          2. Per-freelancer ``production_status`` != HOLD (the kill-switch
+             on the Scheduler page).
+          3. **Paid plan active** — ``plan ∈ {'pro','enterprise'}`` with
+             ``plan_expires_at > now()`` (or NULL = no expiry), OR the
+             user is a superuser. Free-tier users are excluded so the
+             scheduler can never bill discovery / qualification / Groq /
+             SMTP work against a non-paying tenant.
+
+        The plan filter lives in SQL (``paid_plan_sql_predicate``) so the
+        check is one extra WHERE clause, not N round-trips per tick.
+        """
         from sqlalchemy import select
         from app.core.database import get_session_maker
+        from app.core.plan_gate import paid_plan_sql_predicate
         from app.models.user import User
         from app.models.freelancer_pipeline_config import FreelancerPipelineConfig
 
         async with get_session_maker()() as db:
             res = await db.execute(
-                select(User.id).where(User.role == "freelancer", User.is_active == True)  # noqa: E712
+                select(User.id).where(
+                    User.role == "freelancer",
+                    User.is_active == True,  # noqa: E712
+                    paid_plan_sql_predicate(),
+                )
             )
             all_ids = [r[0] for r in res.all()]
             if not all_ids:
@@ -462,10 +482,19 @@ class JobManager:
         Precedence (first HOLD wins):
           1. Global SYSTEM_GLOBAL_STATUS = HOLD → block (daily + manual).
           2. Global job status = HOLD → block (daily + manual).
-          3. Freelancer pipeline production_status = HOLD + daily run → block.
+          3. **Plan gate** — for any per-user pipeline call, the user must
+             have an active paid plan (or be a superuser). Free-tier
+             freelancers are blocked here whether the trigger is scheduled
+             or manual, covering: daily dispatcher, ``POST /pipeline/trigger``,
+             ``POST /leads/{id}/trigger-outreach``, ``followup_dispatch``,
+             ``threads_*``, single-lead WhatsApp build. This is the
+             defense-in-depth layer behind ``require_paid_plan_for_pipeline``
+             at the API edge — if a code path slips past the dependency,
+             this gate still refuses.
+          4. Freelancer pipeline production_status = HOLD + daily run → block.
              (Manual triggers bypass freelancer pipeline HOLD so the user
              can still run ad-hoc work while paused.)
-          4. Per-freelancer job override = HOLD → block (daily + manual).
+          5. Per-freelancer job override = HOLD → block (daily + manual).
              The freelancer has explicitly silenced that job for themselves.
         """
         if not cls.is_global_active():
@@ -477,6 +506,16 @@ class JobManager:
 
         if user_id is None:
             return True
+
+        # Plan check — covers BOTH scheduled and manual triggers. Free
+        # users cannot run any per-user pipeline stage. We deliberately
+        # apply this BEFORE the HOLD checks so the failure reason
+        # surfaced upstream (mark_skipped log) reflects the real cause
+        # ("plan inactive") and not a stale HOLD.
+        from app.core.plan_gate import is_user_id_paid_plan_active
+
+        if not await is_user_id_paid_plan_active(user_id):
+            return False
 
         if job_id in DAILY_PIPELINE_JOBS and not is_manual:
             pipeline_status = await cls.get_freelancer_production_status(user_id)

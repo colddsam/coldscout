@@ -211,6 +211,7 @@ export default function Leads() {
         <Card padding={false}>
           <DataTable
             className="border-0 rounded-none"
+            minWidth="850px"
             columns={columns}
             data={(data?.leads ?? []) as unknown as (Lead & Record<string, unknown>)[]}
             onRowClick={(row) => navigate(`/leads/${row.id}`)}

@@ -32,6 +32,8 @@ interface DataTableProps<T> {
   stickyHeader?: boolean;
   /** Compact row height for dense list views. */
   dense?: boolean;
+  /** Minimum width to prevent column squishing on mobile. Defaults to 640px. */
+  minWidth?: string;
 }
 
 function SkeletonRow({ cols, dense }: { cols: number; dense?: boolean }) {
@@ -60,6 +62,7 @@ export default function DataTable<T extends object>({
   className,
   stickyHeader = false,
   dense = false,
+  minWidth = '640px',
 }: DataTableProps<T>) {
   const headerRow = (
     <tr className={cn('border-b border-white/[0.08] bg-black/40 backdrop-blur', stickyHeader && 'sticky top-0 z-[2]')}>
@@ -81,7 +84,7 @@ export default function DataTable<T extends object>({
   if (loading) {
     return (
       <div className={cn('overflow-x-auto rounded-xl border border-white/[0.08] bg-surface-2', className)}>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" style={{ minWidth }}>
           <thead>{headerRow}</thead>
           <tbody>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -111,7 +114,7 @@ export default function DataTable<T extends object>({
 
   return (
     <div className={cn('overflow-x-auto rounded-xl border border-white/[0.08] bg-surface-2', className)}>
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" style={{ minWidth }}>
         <thead>{headerRow}</thead>
         <tbody>
           {data.map((row, i) => (

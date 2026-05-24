@@ -12,6 +12,13 @@ import { Zap, Lock, BarChart3, Users, Activity, X } from 'lucide-react';
 
 interface UpgradeModalProps {
   onDismiss: () => void;
+  /**
+   * Optional override for the description body. Used when the modal is
+   * triggered by a backend 402 so the user sees the exact reason the
+   * action was refused (e.g. "Triggering pipeline jobs requires a Pro
+   * or Enterprise plan"). Falls back to the generic dashboard pitch.
+   */
+  reason?: string | null;
 }
 
 const FEATURES = [
@@ -21,7 +28,7 @@ const FEATURES = [
   { icon: Zap,      label: 'AI outreach & email campaigns' },
 ];
 
-export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
+export default function UpgradeModal({ onDismiss, reason }: UpgradeModalProps) {
   const navigate = useNavigate();
 
   // Prevent background scroll while modal is open
@@ -95,9 +102,16 @@ export default function UpgradeModal({ onDismiss }: UpgradeModalProps) {
             Unlock Your Full Dashboard
           </h2>
           <p className="text-sm text-[#B0B0B0] mb-6 leading-relaxed">
-            You're on the <strong className="text-white">Free plan</strong>. Upgrade to <strong className="text-white">Pro</strong> or{' '}
-            <strong className="text-white">Enterprise</strong> to access live data, pipeline controls, and AI-powered
-            lead generation.
+            {reason ? (
+              reason
+            ) : (
+              <>
+                You're on the <strong className="text-white">Free plan</strong>. Upgrade to{' '}
+                <strong className="text-white">Pro</strong> or{' '}
+                <strong className="text-white">Enterprise</strong> to access live data, pipeline
+                controls, and AI-powered lead generation.
+              </>
+            )}
           </p>
 
           {/* Features list */}

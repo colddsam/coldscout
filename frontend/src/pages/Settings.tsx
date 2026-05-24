@@ -14,6 +14,8 @@ import { Shield, Save, RotateCcw, KeyRound, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem } from '../lib/motion';
 import NotificationsSettings from '../components/notifications/NotificationsSettings';
+import AuditLogList from '../components/dashboard/AuditLogList';
+import { Activity } from 'lucide-react';
 
 export default function Settings() {
   const { data: jobsConfig, isLoading: jobsLoading } = useConfigJobs();
@@ -187,6 +189,24 @@ export default function Settings() {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Account Activity — every freelancer sees admin actions taken
+          against their own account; the backend hard-locks the scope
+          so they never see anyone else's events. Actor identity is
+          masked server-side as "Administrator". */}
+      <motion.section variants={staggerItem} className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="icon-bubble"><Activity className="w-4 h-4" /></div>
+          <div>
+            <h3 className="heading-section">Account Activity</h3>
+            <p className="text-meta">
+              Admin actions taken against your account (plan changes, role
+              updates, suspensions). Operator identity is hidden.
+            </p>
+          </div>
+        </div>
+        <AuditLogList />
+      </motion.section>
     </motion.div>
   );
 }

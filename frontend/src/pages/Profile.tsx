@@ -408,7 +408,10 @@ export default function Profile() {
       animate="animate"
       exit="exit"
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-4 pb-12">
+      {/* Width constraint only — horizontal padding is owned by the Shell
+          (``px-safe``). Re-adding ``px-*`` here used to stack on top of
+          Shell's gutter, squeezing the column on tablet/desktop. */}
+      <div className="max-w-4xl mx-auto space-y-4 pb-12">
 
         {/* ── Hero Card: Banner + Avatar + Info (LinkedIn style) ── */}
         <SectionCard>

@@ -47,6 +47,13 @@ export default function Card({
 
   const hasHeader = title !== undefined || actions !== undefined;
 
+  // Responsive padding: tighter on small screens so cards don't waste
+  // real-estate on phones, comfortable on tablet+ where space allows.
+  // Single source of truth — every page that uses ``<Card>`` benefits
+  // automatically. ``padding={false}`` opts out for full-bleed layouts
+  // (e.g. tables, embedded charts).
+  const padClasses = 'p-4 sm:p-5';
+
   return (
     <Wrapper
       className={cn(
@@ -54,7 +61,7 @@ export default function Card({
         'shadow-[0_1px_0_rgba(255,255,255,0.03)_inset]',
         glow && !interactive && 'hover:border-white/[0.16] transition-all duration-300',
         // Padding applies only when no header is used (header has its own).
-        padding && !hasHeader && 'p-5',
+        padding && !hasHeader && padClasses,
         className,
       )}
       {...motionProps}
@@ -69,7 +76,7 @@ export default function Card({
             {title && <div className="panel-header-title">{title}</div>}
             {actions && <div className="flex items-center gap-2">{actions}</div>}
           </div>
-          <div className={cn(padding && 'p-5', 'relative z-[1]')}>{children}</div>
+          <div className={cn(padding && padClasses, 'relative z-[1]')}>{children}</div>
         </>
       )}
 
@@ -106,7 +113,7 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-      className={cn('stat-tile group', className)}
+      className={cn('stat-tile group h-full w-full', className)}
     >
       {decoration && (
         <div className="deco-corner text-white">{decoration}</div>
@@ -118,10 +125,10 @@ export function StatCard({
           {isNumber ? (
             <AnimatedCounter
               value={value}
-              className="text-display-num text-[1.75rem] md:text-[2rem] leading-none block"
+              className="text-display-num text-[1.375rem] sm:text-[1.625rem] md:text-[1.875rem] leading-none block"
             />
           ) : (
-            <p className="text-[1.5rem] md:text-[1.75rem] leading-none font-semibold text-white tracking-tight truncate">
+            <p className="text-[1.25rem] sm:text-[1.5rem] md:text-[1.75rem] leading-none font-semibold text-white tracking-tight truncate">
               {value}
             </p>
           )}

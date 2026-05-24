@@ -1,4 +1,4 @@
-import { useHealth } from '../hooks/useConfig';
+import { useHealth, useSystemToggle } from '../hooks/useConfig';
 import { usePipelineStatus, useTriggerPipeline } from '../hooks/usePipeline';
 import { useLeads } from '../hooks/useLeads';
 import { useJobsConfig } from '../hooks/useJobs';
@@ -11,7 +11,7 @@ import PageHeader from '../components/layout/PageHeader';
 import { formatDate } from '../lib/utils';
 import { PIPELINE_STAGES } from '../lib/constants';
 import { useNavigate } from 'react-router-dom';
-import { Users, Target, Send, Activity, Database, Clock, ArrowRight } from 'lucide-react';
+import { Users, Target, Send, Activity, Database, Clock, ArrowRight, Play, Pause, Inbox, Sliders } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { Lead } from '../lib/api';
 import { motion } from 'framer-motion';
@@ -33,9 +33,11 @@ export default function Overview() {
   const { data: leads, isError: leadsError, refetch: refetchLeads } = useLeads({ page: 1, limit: 5 });
   const { data: jobsConfig, isError: jobsError, refetch: refetchJobs } = useJobsConfig();
   const triggerPipeline = useTriggerPipeline();
+  const toggleSystem = useSystemToggle();
   const navigate = useNavigate();
 
   const totalLeads = leads?.total ?? 0;
+  const isPaused = !health?.production_status;
 
   const hasError = healthError || pipelineError || leadsError || jobsError;
   if (hasError) {
@@ -78,7 +80,7 @@ export default function Overview() {
         initial="hidden"
         animate="visible"
       >
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="flex flex-col">
           <StatCard
             label="Total Leads"
             value={totalLeads}
@@ -86,7 +88,7 @@ export default function Overview() {
             decoration={<ConstellationOrnament />}
           />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="flex flex-col">
           <StatCard
             label="Scheduler"
             value={pipeline?.scheduler_running ? 'Active' : 'Stopped'}
@@ -96,7 +98,7 @@ export default function Overview() {
             trendDirection={pipeline?.scheduler_running ? 'up' : 'neutral'}
           />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="flex flex-col">
           <StatCard
             label="Active Jobs"
             value={pipeline?.jobs?.length ?? 0}
@@ -104,7 +106,7 @@ export default function Overview() {
             decoration={<WaveOrnament />}
           />
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="flex flex-col">
           <StatCard
             label="Last Pipeline"
             value={pipeline?.last_run?.status ?? '—'}
@@ -270,32 +272,126 @@ export default function Overview() {
         </Card>
 
         {/* Quick Actions */}
-        <Card title="Quick Actions">
-          <div className="space-y-2">
-            <Button
-              className="w-full justify-start"
-              icon={<Send className="w-4 h-4" />}
-              onClick={() => triggerPipeline.mutate('all')}
-              loading={triggerPipeline.isPending}
-            >
-              Run Full Pipeline
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              icon={<Activity className="w-4 h-4" />}
-              onClick={() => navigate('/pipeline')}
-            >
-              Pipeline Control
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              icon={<Database className="w-4 h-4" />}
-              onClick={() => navigate('/analytics')}
-            >
-              View Analytics
-            </Button>
+        <Card title="Quick Actions & Control">
+          <div className="space-y-4">
+            
+            {/* System Status Banner & Switch */}
+            <div className="rounded-lg p-3 border border-white/[0.06] bg-white/[0.015] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-white/90 uppercase tracking-wider">System Outreach Switch</p>
+                <p className="text-[11px] text-tertiary mt-0.5">
+                  {!isPaused ? 'Scheduler is actively running jobs.' : 'Outreach is paused (APScheduler on hold).'}
+                </p>
+              </div>
+              <Button
+                variant={isPaused ? 'primary' : 'outline'}
+                size="sm"
+                className="w-full sm:w-auto font-mono text-[10px] uppercase tracking-wider"
+                icon={isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                onClick={() => toggleSystem.mutate(isPaused ? 'resume' : 'hold')}
+                loading={toggleSystem.isPending}
+              >
+                {isPaused ? 'Resume' : 'Pause'}
+              </Button>
+            </div>
+
+            {/* Core Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="w-full justify-center text-xs"
+                icon={<Send className="w-3.5 h-3.5" />}
+                onClick={() => triggerPipeline.mutate('all')}
+                loading={triggerPipeline.isPending}
+              >
+                Run Pipeline
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-center text-xs"
+                icon={<Sliders className="w-3.5 h-3.5" />}
+                onClick={() => navigate('/pipeline')}
+              >
+                Control
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-center text-xs"
+                icon={<Database className="w-3.5 h-3.5" />}
+                onClick={() => navigate('/analytics')}
+              >
+                Analytics
+              </Button>
+            </div>
+
+            {/* Quick Navigation Shortcuts Grid */}
+            <div className="border-t border-white/[0.06] pt-4">
+              <p className="eyebrow mb-2.5">Dashboard Shortcuts</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={() => navigate('/discovery-targets')}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:border-white/[0.12] hover:bg-white/[0.025] transition-all text-left group"
+                >
+                  <div className="icon-bubble icon-bubble-sm flex-shrink-0 group-hover:bg-white/[0.06]">
+                    <Target className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/90 leading-tight">Lead Discovery</p>
+                    <p className="text-[10px] text-tertiary mt-0.5 line-clamp-1">Manage target locations and keywords</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/inbox')}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:border-white/[0.12] hover:bg-white/[0.025] transition-all text-left group"
+                >
+                  <div className="icon-bubble icon-bubble-sm flex-shrink-0 group-hover:bg-white/[0.06]">
+                    <Inbox className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/90 leading-tight">Smart Inbox</p>
+                    <p className="text-[10px] text-tertiary mt-0.5 line-clamp-1">Review drafts and reply to leads</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/campaigns')}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:border-white/[0.12] hover:bg-white/[0.025] transition-all text-left group"
+                >
+                  <div className="icon-bubble icon-bubble-sm flex-shrink-0 group-hover:bg-white/[0.06]">
+                    <Send className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/90 leading-tight">Campaigns</p>
+                    <p className="text-[10px] text-tertiary mt-0.5 line-clamp-1">Track outreach metrics & statistics</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/leads')}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:border-white/[0.12] hover:bg-white/[0.025] transition-all text-left group"
+                >
+                  <div className="icon-bubble icon-bubble-sm flex-shrink-0 group-hover:bg-white/[0.06]">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/90 leading-tight">Leads CRM</p>
+                    <p className="text-[10px] text-tertiary mt-0.5 line-clamp-1">Search and manage all discovered leads</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Diagnostics Footer */}
+            <div className="border-t border-white/[0.06] pt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-tertiary">
+              <span className="flex items-center gap-1.5">
+                <span className={cn('w-1.5 h-1.5 rounded-full', isPaused ? 'bg-warning animate-pulse' : 'bg-success animate-pulse')} />
+                Env: <span className="text-white">{health?.environment ?? 'Production'}</span>
+              </span>
+              <span>API: <span className="text-white">Active</span></span>
+              <span>v{health?.version ?? '1.0.0'}</span>
+            </div>
+
           </div>
         </Card>
       </motion.div>

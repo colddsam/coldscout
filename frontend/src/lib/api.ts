@@ -101,6 +101,23 @@ client.interceptors.response.use(
       }
     }
 
+    // 402 Payment Required — backend's plan-gate refused this action. Surface
+    // the upgrade modal globally so every gated route (pipeline trigger,
+    // single-lead send, WhatsApp, demo regen, threads runs, weekly advice,
+    // maps audit) gets the same UX without each call site having to wire it.
+    // The handler still rejects so callers can drop their loading state.
+    if (err.response?.status === 402) {
+      window.dispatchEvent(
+        new CustomEvent('upgrade-required', {
+          detail: {
+            reason: typeof err.response?.data?.detail === 'string'
+              ? err.response.data.detail
+              : 'This feature requires a Pro or Enterprise plan.',
+          },
+        }),
+      );
+    }
+
     // Normalize the error message so toast() / .message reads cleanly.
     // FastAPI/Pydantic returns either a string ("Lead not found"), a list
     // of validation issues ([{loc, msg, type}, ...]), or rarely a nested
@@ -146,6 +163,7 @@ export type JobStatus = 'RUN' | 'HOLD';
 export type LeadStatus =
   | 'discovered'
   | 'qualified'
+  | 'phone_qualified'
   | 'contacted'
   | 'replied'
   | 'closed'

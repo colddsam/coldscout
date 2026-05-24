@@ -34,6 +34,7 @@ from app.core.pipeline_tracker import (
 from app.core.job_queue import enqueue as enqueue_queue, register_stage
 
 from app.api.deps import get_current_active_superuser, get_current_user
+from app.core.plan_gate import is_paid_plan_active
 from app.models.user import User
 
 router = APIRouter()
@@ -99,8 +100,22 @@ async def trigger_pipeline(
     """
     if not current_user.is_superuser and current_user.role != "freelancer":
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="The user doesn't have enough privileges to trigger pipeline jobs"
+        )
+
+    # Plan gate — free-tier users can never enqueue pipeline work, whether
+    # for a single stage or the full ``all`` run. Superusers bypass via
+    # ``is_paid_plan_active``. Failing here (402) instead of inside the
+    # per-stage gate gives the SPA a clean paywall surface to render.
+    if not is_paid_plan_active(current_user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "Triggering pipeline jobs requires a Pro or Enterprise plan. "
+                "Upgrade your plan to run discovery, qualification, "
+                "personalization, outreach, and follow-ups."
+            ),
         )
     """
     Triggers pipeline stage(s) for manual execution via a serial job queue.

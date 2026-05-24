@@ -102,3 +102,4 @@ BUG_REPORT*.md
 **/firebase-service-account*.json
 **/*-firebase-adminsdk-*.json
 frontend/android/app/google-services.json
+skills/

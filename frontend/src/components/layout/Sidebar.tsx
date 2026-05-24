@@ -15,12 +15,24 @@ import Logo from '../ui/Logo';
 import {
   LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, User, Target,
   BarChart2, Settings, ChevronLeft, LogOut, Home, Heart, AtSign, CreditCard, Smartphone, Calendar,
+  Shield, UserCog,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User, Target, Smartphone, Calendar,
+  LayoutDashboard, GitBranch, Clock, Users, Send, Inbox, BarChart2, Settings, AtSign, CreditCard, User, Target, Smartphone, Calendar, Shield, UserCog,
 };
+
+/**
+ * Admin-only nav items, rendered after the main NAV_ITEMS map and
+ * only when the current user has ``is_superuser=true``. Kept local
+ * because the role-based filter in NAV_ITEMS doesn't model a
+ * superuser flag — they're orthogonal (a superuser can also be a
+ * client or freelancer).
+ */
+const ADMIN_NAV_ITEMS: { path: string; label: string; icon: string }[] = [
+  { path: '/admin/users', label: 'User Admin', icon: 'UserCog' },
+];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -189,6 +201,81 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               </NavLink>
             );
           })}
+
+          {/* Superuser-only admin section. Backend gates the routes
+              themselves — this is the UI affordance so operators can
+              find the page. Hidden entirely for non-superusers so the
+              existence of the panel isn't leaked. */}
+          {user?.is_superuser && (
+            <>
+              {(!collapsed || mobileOpen) && (
+                <p className="eyebrow px-3 pt-4 pb-1.5 text-[10px]">Admin</p>
+              )}
+              {(collapsed && !mobileOpen) && <div className="hairline-fade my-3 mx-2" />}
+
+              {ADMIN_NAV_ITEMS.map((item) => {
+                const Icon = ICON_MAP[item.icon];
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={onMobileClose}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-2.5 py-2 rounded-md text-[13px] transition-all duration-200 group relative',
+                        isActive
+                          ? 'text-white bg-white/[0.06]'
+                          : 'text-secondary hover:text-white hover:bg-white/[0.04]',
+                        collapsed && !mobileOpen && 'justify-center px-0',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <motion.span
+                            layoutId="sidebar-active-rail"
+                            className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-full bg-white"
+                            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                          />
+                        )}
+                        {Icon && (
+                          <span
+                            className={cn(
+                              'flex-shrink-0 transition-colors',
+                              isActive ? 'text-white' : 'text-secondary group-hover:text-white',
+                            )}
+                          >
+                            <Icon className="w-[17px] h-[17px]" strokeWidth={isActive ? 2 : 1.75} />
+                          </span>
+                        )}
+                        <AnimatePresence>
+                          {(!collapsed || mobileOpen) && (
+                            <motion.span
+                              initial={{ opacity: 0, width: 0 }}
+                              animate={{ opacity: 1, width: 'auto' }}
+                              exit={{ opacity: 0, width: 0 }}
+                              className={cn(
+                                'whitespace-nowrap overflow-hidden',
+                                isActive ? 'font-semibold tracking-tight' : 'font-medium',
+                              )}
+                            >
+                              {item.label}
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                        {collapsed && !mobileOpen && (
+                          <div className="absolute left-full ml-2 px-2 py-1 bg-surface-3 text-white text-[11px] font-medium rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-white/[0.12] shadow-lg">
+                            {item.label}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* Bottom Area */}

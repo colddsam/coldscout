@@ -312,6 +312,13 @@ async def razorpay_webhook(
             )
 
             await db.commit()
+
+            # Drop the cached plan-gate entitlement so the upgraded user
+            # can run pipeline jobs immediately, without waiting for the
+            # 30 s cache TTL in ``app.core.plan_gate``.
+            from app.core.plan_gate import invalidate_plan_cache
+            invalidate_plan_cache(order.user_id)
+
             logger.info("Razorpay payment.captured: activated plan=%s for user_id=%s", order.plan, order.user_id)
             return {"status": "ok"}
 

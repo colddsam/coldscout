@@ -97,15 +97,25 @@ export const signInWithOAuth = async (provider: OAuthProvider, role: UserRole) =
   // The AuthCallback page will use this to sync the user to the correct table.
   setAuthItem('llp_pending_role', role);
 
+  const isNative = Capacitor.isNativePlatform();
+
+  // On Android/iOS we MUST send the redirect to the app's custom URL scheme
+  // (com.coldscout.app://auth/callback) — registered in AndroidManifest.xml.
+  // Pointing redirectTo at the web origin on native sends Supabase's final
+  // redirect to Chrome, not the app, so the WebView never sees the PKCE
+  // ``code`` and sign-in silently breaks. The DeepLinkHandler in App.tsx
+  // catches the custom-scheme URL, extracts ``code``, and exchanges it.
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${APP_URL}/auth/callback`,
-      skipBrowserRedirect: Capacitor.isNativePlatform(),
+      redirectTo: isNative
+        ? 'com.coldscout.app://auth/callback'
+        : `${APP_URL}/auth/callback`,
+      skipBrowserRedirect: isNative,
     },
   });
 
-  if (Capacitor.isNativePlatform() && data?.url) {
+  if (isNative && data?.url) {
     // Use '_system' to open in the device's default browser (Chrome/Safari)
     // instead of an in-app Custom Tab / SFSafariViewController.
     // Google blocks OAuth from embedded/Custom Tab user agents with

@@ -101,29 +101,12 @@ class MapsAuditResponse(BaseModel):
 
 
 # ── Plan gating ───────────────────────────────────────────────────────────
+#
+# Delegates to the shared predicate in ``app.core.plan_gate`` so the audit
+# endpoint, pipeline-trigger endpoint, single-lead outreach endpoint, and
+# the scheduler dispatcher all agree on what "paid" means.
 
-
-_PAID_PLANS = {"pro", "enterprise"}
-
-
-def _has_active_paid_plan(user: User) -> bool:
-    """Returns True iff the user is a superuser or has an unexpired paid plan."""
-    if user.is_superuser:
-        return True
-    plan = (user.plan or "").lower()
-    if plan not in _PAID_PLANS:
-        return False
-    expires_at = user.plan_expires_at
-    if expires_at is None:
-        # No expiry recorded — historical accounts that were upgraded
-        # manually fall through here. We allow access; the billing
-        # webhook is responsible for setting an expiry on real subs.
-        return True
-    # ``plan_expires_at`` is timezone-aware in our model; compare in UTC.
-    now = datetime.now(timezone.utc)
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    return expires_at > now
+from app.core.plan_gate import is_paid_plan_active as _has_active_paid_plan
 
 
 def require_paid_plan(current_user: User = Depends(get_current_user)) -> User:

@@ -7,6 +7,8 @@
 /* ═══════════════ Design Tokens ═══════════════ */
 
 :root {
+  color-scheme: dark;
+
   /* Surfaces — refined depth scale for stacked panels */
   --bg-primary:   #000000;
   --bg-secondary: #0A0A0A;
@@ -454,6 +456,12 @@ select:focus-visible {
   cursor: not-allowed;
 }
 
+/* Dropdown native options styles to ensure text visibility */
+select option {
+  background-color: var(--surface-3);
+  color: var(--text-primary);
+}
+
 /* Section divider with optional label — used between page sections */
 .section-divider {
   display: flex;
@@ -602,8 +610,14 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.875rem 1.25rem;
+  /* Match Card body padding (p-4 sm:p-5) so header and content align
+   * to the same gutter on every breakpoint. Without this the header
+   * was visibly inset from the content on mobile. */
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
+}
+@media (min-width: 640px) {
+  .panel-header { padding: 0.875rem 1.25rem; }
 }
 
 .panel-header-title {
@@ -690,8 +704,13 @@ select:focus-visible {
   background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005) 60%);
   border: 1px solid var(--border);
   border-radius: 0.875rem;
-  padding: 1.125rem 1.25rem;
+  /* Responsive padding: tighter on phones so the 2-up grid breathes,
+   * relaxed on tablet+ where horizontal space is comfortable. */
+  padding: 0.875rem 1rem;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+@media (min-width: 640px) {
+  .stat-tile { padding: 1.125rem 1.25rem; }
 }
 .stat-tile:hover {
   border-color: var(--border-hover);

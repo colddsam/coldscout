@@ -235,6 +235,13 @@ async def verify_payment(
 
     await db.commit()
 
+    # Drop cached plan-gate entitlement so the next pipeline call (which
+    # might happen within milliseconds — the SPA usually fires a stage
+    # trigger right after upgrade) reads the fresh ``pro``/``enterprise``
+    # value instead of a stale ``free``.
+    from app.core.plan_gate import invalidate_plan_cache
+    invalidate_plan_cache(current_user.id)
+
     logger.info(
         f"Subscription activated: user={current_user.email} plan={activated_plan} expires={period_end}"
     )

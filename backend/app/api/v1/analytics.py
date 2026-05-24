@@ -15,11 +15,12 @@ Routes:
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.plan_gate import is_paid_plan_active
 from app.models.user import User
 from app.modules.analytics.engine import (
     generate_weekly_advice,
@@ -91,4 +92,18 @@ async def weekly_advice(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    """AI-generated three-bullet weekly advice (Groq-backed).
+
+    Gated to paid plans because every call burns a Groq completion. The
+    other ``/analytics/*`` endpoints are pure DB aggregations and stay
+    open for everyone.
+    """
+    if not is_paid_plan_active(current_user):
+        raise HTTPException(
+            status_code=402,
+            detail=(
+                "AI-generated weekly advice is a Pro / Enterprise feature. "
+                "Upgrade to receive personalized outreach recommendations."
+            ),
+        )
     return await generate_weekly_advice(db, current_user.id)

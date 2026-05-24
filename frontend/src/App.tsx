@@ -25,7 +25,7 @@ import SignUp from './pages/SignUp';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
-import ProtectedRoute, { FreelancerRoute, ClientRoute } from './components/auth/ProtectedRoute';
+import ProtectedRoute, { FreelancerRoute, ClientRoute, SuperuserRoute } from './components/auth/ProtectedRoute';
 import SessionExpiredModal from './components/auth/SessionExpiredModal';
 
 // ── Lazy-loaded routes ──────────────────────────────────────────────
@@ -72,6 +72,7 @@ const Post = lazy(() => import('./pages/Post'));
 const DirectoryIndex = lazy(() => import('./pages/directory/DirectoryIndex'));
 const DirectoryList = lazy(() => import('./pages/directory/DirectoryList'));
 const DirectoryDetail = lazy(() => import('./pages/directory/DirectoryDetail'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 
 // Routes where SplashScreen must NOT play — these are public marketing /
 // SEO surfaces where the 2.8 s splash would cap LCP above the
@@ -132,6 +133,7 @@ const queryClient = new QueryClient({
 });
 
 import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { supabase } from './lib/supabase';
 
 function DeepLinkHandler() {
@@ -152,11 +154,25 @@ function DeepLinkHandler() {
         try {
           const callbackUrl = new URL(url.replace('com.coldscout.app://', 'https://placeholder/'));
           const code = callbackUrl.searchParams.get('code');
-          if (code) {
+          // Surface Supabase/Google OAuth errors instead of silently
+          // navigating to /auth/callback and spinning forever.
+          const oauthError = callbackUrl.searchParams.get('error_description')
+            || callbackUrl.searchParams.get('error');
+          if (oauthError) {
+            console.error('OAuth provider returned error:', oauthError);
+          } else if (code) {
             await supabase.auth.exchangeCodeForSession(code);
           }
         } catch (err) {
           console.error('Deep link code exchange failed:', err);
+        }
+
+        // The system browser is still in the foreground showing Supabase's
+        // redirect page. Close it so the user lands back in the app cleanly.
+        try {
+          await Browser.close();
+        } catch {
+          // No-op: Browser.close throws on platforms where no browser is open.
         }
 
         navigate(pathWithParams);
@@ -252,6 +268,17 @@ function AppShell() {
             <Route element={<ProtectedRoute />}>
               <Route element={<Shell />}>
                 <Route path="/profile" element={<Profile />} />
+              </Route>
+            </Route>
+
+            {/* Protected: Superuser-only admin tooling. The route guard
+                redirects non-superusers to their normal dashboard so the
+                page never even mounts for unauthorized users. The
+                backend gate on /api/v1/admin/* is the authoritative
+                check; this is defence-in-depth at the render layer. */}
+            <Route element={<SuperuserRoute />}>
+              <Route element={<Shell />}>
+                <Route path="/admin/users" element={<AdminUsers />} />
               </Route>
             </Route>
 
