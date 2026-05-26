@@ -92,7 +92,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               loading={systemToggle.isPending}
               icon={isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
               aria-label={isRunning ? 'Hold system' : 'Resume system'}
-              className="!gap-1.5"
+              className="!gap-1.5 w-8 px-0 sm:w-auto sm:px-3"
             >
               <span className="hidden sm:inline">{isRunning ? 'Hold' : 'Resume'}</span>
             </Button>

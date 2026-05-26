@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole, OAuthProvider } from '../hooks/useAuth';
@@ -54,6 +54,7 @@ export default function Login() {
   const { signInWithPassword, signInWithOAuth, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   useSEO({
     title: 'Sign In — Cold Scout',
@@ -62,8 +63,20 @@ export default function Login() {
     index: false,
   });
 
-  // The 'from' pathname retains the URL the user tried to visit before being intercepted
-  const from = location.state?.from?.pathname;
+  // Determine the post-login destination. Priority:
+  //   1. ?next=<path> query param (preferred — survives email round-trips).
+  //   2. location.state.from.pathname (set by ProtectedRoute on bounce).
+  //   3. role-default (/welcome for clients, /overview for freelancers).
+  //
+  // The ?next value is constrained to same-origin paths so an attacker
+  // can't craft /login?next=https://evil.com to redirect victims off-site
+  // after a successful login.
+  const nextRaw = searchParams.get('next');
+  const nextSafe =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
+      ? nextRaw
+      : null;
+  const from = nextSafe || location.state?.from?.pathname;
 
   // Redirect only after backend user is synced — user.role is the authoritative source
   useEffect(() => {

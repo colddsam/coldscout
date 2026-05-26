@@ -53,6 +53,10 @@ from app.modules.qualification.place_analytics import (
     compute_scorecard,
 )
 from app.modules.qualification.social_checker import check_social_media
+from app.modules.qualification.security_audit import (
+    SecurityAudit,
+    run_security_audit,
+)
 
 
 router = APIRouter()
@@ -550,4 +554,164 @@ async def audit_access(
         reason = "Upgrade to Pro or Enterprise to unlock the Google Maps audit."
     else:
         reason = "Your subscription is no longer active. Renew to keep using the Maps audit."
+    return {"allowed": allowed, "plan": plan, "reason": reason}
+
+
+# ── Security audit ────────────────────────────────────────────────────────
+#
+# A separate paid feature for Pro/Enterprise: scans a website for security
+# vulnerabilities (headers, TLS, info disclosure, fingerprinting, DNS/email
+# auth, dependencies, privacy). Two entry points:
+#   * /audit/security        — caller supplies a website URL directly.
+#   * /audit/security/place  — caller supplies a Google Maps URL; we resolve
+#                              the listing's website and scan that.
+#
+# Rate limits are stricter than the SEO audit because the security audit
+# fans out into DNS lookups + a small probe sweep and so has a heavier
+# per-call footprint.
+
+
+class SecurityAuditRequest(BaseModel):
+    url: str = Field(
+        ...,
+        min_length=4,
+        max_length=2048,
+        description="Website URL to audit. Scheme optional — we prepend https:// when missing.",
+    )
+
+
+class SecurityAuditPlaceRequest(BaseModel):
+    maps_url: str = Field(
+        ...,
+        min_length=2,
+        max_length=2048,
+        description=(
+            "A Google Maps share URL, long URL, raw Place ID, or business "
+            "name + city. We resolve the listing and run the security audit "
+            "against its website."
+        ),
+    )
+
+
+class SecurityAuditPlaceResponse(BaseModel):
+    place_id: str
+    business: BusinessProfile
+    fetched_at_iso: str
+    website_security: Optional[SecurityAudit]
+
+
+@router.post(
+    "/audit/security",
+    response_model=SecurityAudit,
+    summary="Run a security audit against a website (Pro/Enterprise)",
+    tags=["audit"],
+)
+@limiter.limit("10/minute")
+async def audit_security(
+    payload: SecurityAuditRequest,
+    request: Request,
+    response: Response,
+    current_user: User = Depends(require_paid_plan),
+) -> SecurityAudit:
+    """Run the security audit pipeline against ``payload.url`` and return
+    the full report. Plan-gated.
+    """
+    _ = response  # slowapi header injection
+    _ = current_user  # gate enforced by dependency
+    audit = await run_security_audit(payload.url)
+    if audit is None:
+        raise HTTPException(
+            status_code=422,
+            detail="That URL doesn't look right — try something like example.com",
+        )
+    return audit
+
+
+@router.post(
+    "/audit/security/place",
+    response_model=SecurityAuditPlaceResponse,
+    summary="Resolve a Google Maps URL → run security audit on the listed website",
+    tags=["audit"],
+)
+@limiter.limit("10/minute")
+async def audit_security_place(
+    payload: SecurityAuditPlaceRequest,
+    request: Request,
+    response: Response,
+    current_user: User = Depends(require_paid_plan),
+) -> SecurityAuditPlaceResponse:
+    """Maps-mode security audit.
+
+    1. Resolve the Google Maps URL → place ID → business profile.
+    2. If the listing has a website, run the security audit on it.
+    3. Return both the business profile and the website audit so the UI
+       can render a single combined view.
+    """
+    _ = response
+    _ = current_user
+
+    place_id = await resolve_maps_url(payload.maps_url)
+    if not place_id:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Couldn't resolve a Google Place from that input. Open the "
+                "place in Google Maps, click Share → Copy link, and paste — "
+                "or paste the business name and city instead."
+            ),
+        )
+
+    business = await fetch_business_profile(place_id)
+    if business is None:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Found the place but the Places API didn't return details. "
+                "Try again in a moment."
+            ),
+        )
+
+    website_audit: Optional[SecurityAudit] = None
+    if business.website_uri:
+        try:
+            website_audit = await run_security_audit(business.website_uri)
+        except Exception as e:
+            # Surface a partial response so the UI can still render the
+            # business profile; never crash the request because the audit
+            # crashed.
+            logger.warning(
+                f"audit-security-place: scan failed for {business.website_uri}: {e!r}"
+            )
+            website_audit = None
+
+    fetched_at_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    return SecurityAuditPlaceResponse(
+        place_id=place_id,
+        business=business,
+        fetched_at_iso=fetched_at_iso,
+        website_security=website_audit,
+    )
+
+
+@router.get(
+    "/audit/security/access",
+    summary="Whether the caller can run a security audit (Pro/Enterprise check)",
+    tags=["audit"],
+)
+async def audit_security_access(
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """SPA hits this before showing the security audit input so we can
+    render the locked-preview state without burning a backend round trip
+    on every keystroke. Same shape as ``audit_access``.
+    """
+    allowed = _has_active_paid_plan(current_user)
+    plan = (current_user.plan or "free")
+    if allowed:
+        reason = "ok"
+    elif plan == "free":
+        reason = "Upgrade to Pro or Enterprise to unlock the website security audit."
+    else:
+        reason = "Your subscription is no longer active. Renew to keep using the security audit."
     return {"allowed": allowed, "plan": plan, "reason": reason}

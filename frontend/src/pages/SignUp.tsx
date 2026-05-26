@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import type { UserRole, OAuthProvider } from '../hooks/useAuth';
@@ -55,6 +55,7 @@ export default function SignUp() {
 
   const { signUp, signInWithOAuth, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useSEO({
     title: 'Sign Up — Cold Scout',
@@ -63,12 +64,20 @@ export default function SignUp() {
     index: false,
   });
 
+  // Same ?next=<path> support as Login. Constrained to same-origin paths
+  // so the redirect can't be repointed at an attacker-controlled domain.
+  const nextRaw = searchParams.get('next');
+  const nextSafe =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
+      ? nextRaw
+      : null;
+
   useEffect(() => {
     if (isAuthenticated && user) {
-      const redirectTo = user.role === 'client' ? '/welcome' : '/overview';
-      navigate(redirectTo, { replace: true });
+      const defaultPath = user.role === 'client' ? '/welcome' : '/overview';
+      navigate(nextSafe || defaultPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, nextSafe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

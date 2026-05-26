@@ -418,6 +418,16 @@ async def prerender(
             "index": False,
         }
 
+    if meta is None and normalized.startswith("/shared/audit/"):
+        # Shared audit reports are private snapshots — never expose any
+        # detail to a crawler, and noindex the canonical so a leaked
+        # token can't be scooped up by search engines.
+        meta = {
+            "title": "Shared audit report — Cold Scout",
+            "description": "A Cold Scout audit report shared privately with you. Sign in to view.",
+            "index": False,
+        }
+
     if meta is None:
         meta = STATIC_ROUTE_META["/"]
 

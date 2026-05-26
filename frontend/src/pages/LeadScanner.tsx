@@ -10,64 +10,36 @@
  * gated: anonymous and free-plan users see the feature preview with a
  * "Sign in" / "Upgrade to Pro" CTA, but cannot run the audit.
  *
- * The audit covers:
- *   - Indexability + crawlability (HTTPS, robots, sitemap, canonical, noindex)
- *   - Meta (title length, description, Open Graph, Twitter Card)
- *   - Heading structure (H1 count, H2/H3 progression)
- *   - Content quality (word count, image alts, internal/external links)
- *   - Structured data (JSON-LD types, OG, Twitter)
- *   - Performance signals (HTML size, inline CSS/JS, lazy-load coverage)
- *   - Mobile readiness (viewport meta)
- *   - Accessibility (lang attribute, form labels, image alts)
- *   - Trust signals (privacy/terms links, contact info, copyright)
- *   - AEO (FAQPage / HowTo / speakable schema, llms.txt)
- *
- * The Maps mode additionally surfaces business intel (rating, reviews,
- * hours, photos, status, editorial/generative summary, amenities,
- * accessibility, parking, payments) and derives marketing analytics:
- * profile completeness, NAP score, review velocity, sentiment proxy,
- * local-pack eligibility, rating percentile, plus a five-category
- * scorecard with letter grade.
+ * Once an audit is run, the user can hit "Share report" to send the
+ * snapshot to recipients. The share modal handles anonymous → signin
+ * → resume flow via sessionStorage; the recipient lands on
+ * /shared/audit/:token where they must sign in to view.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  AlertTriangle,
-  CheckCircle2,
   Globe2,
   Loader2,
   Search,
-  XCircle,
-  Info,
   Sparkles,
-  Star,
-  Phone,
   MapPin,
-  Clock,
-  Image as ImageIcon,
-  TrendingUp,
-  ShieldCheck,
-  ShieldAlert,
-  Lightbulb,
-  ExternalLink,
-  ChevronDown,
   Award,
-  Type as TypeIcon,
-  Heading1,
-  Code2,
-  Zap,
-  Smartphone,
-  Accessibility,
   Bot,
   ArrowRight,
   Lock,
   Crown,
   LogIn,
-  ParkingCircle,
-  Wallet,
-  Utensils,
-  MessageSquare,
+  Share2,
+  TrendingUp,
+  Lightbulb,
+  ShieldCheck,
+  Cookie,
+  Server,
+  Network,
+  Package,
+  FileWarning,
+  Code2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -76,978 +48,53 @@ import { useAuth } from '../hooks/useAuth';
 import {
   auditWebsite,
   auditPlace,
+  auditSecurity,
+  auditSecurityPlace,
   getAuditAccess,
+  getSecurityAuditAccess,
   type DeepAudit,
   type MapsAuditResponse,
   type AuditFinding,
-  type AuditCategory,
-  type AuditSeverity,
-  type AuditCategoryScore,
-  type PlaceCategoryScore,
+  type SecurityAuditResponse,
+  type SecurityAuditPlaceResponse,
 } from '../lib/api';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
+import {
+  MapsAuditView,
+  WebsiteAuditView,
+  SecurityAuditView,
+} from '../components/scanner/AuditResultPanels';
+import ShareReportModal, {
+  PENDING_SHARE_KEY,
+  type SharePayload,
+} from '../components/scanner/ShareReportModal';
 
 /* ════════════════════ Display tables ════════════════════ */
 
-type Mode = 'website' | 'maps';
+type Mode = 'website' | 'maps' | 'security';
+type SecuritySubMode = 'website' | 'maps';
 
 const MODE_TABS: { id: Mode; label: string; help: string; placeholder: string }[] = [
   {
     id: 'website',
-    label: 'Website URL',
+    label: 'Website SEO',
     help: 'Paste any business website. We audit SEO, AEO, performance, trust, and accessibility — and tell you what to fix first.',
     placeholder: 'example.com',
   },
   {
     id: 'maps',
-    label: 'Google Maps URL',
+    label: 'Google Maps',
     help: 'Paste a Google Maps share link, place ID, or business name. We pull the full Google Business Profile + analytics, audit the linked website, and surface a prioritized growth plan.',
     placeholder: 'https://maps.app.goo.gl/... or "Acme Cafe, Bengaluru"',
   },
+  {
+    id: 'security',
+    label: 'Security audit',
+    help: 'Run a comprehensive security scan — TLS, security headers, cookies, mixed content, info disclosure, SPF/DMARC, dependency versions. Pro & Enterprise feature.',
+    placeholder: 'example.com or a Google Maps URL',
+  },
 ];
-
-const CATEGORY_LABEL: Record<AuditCategory, string> = {
-  indexability: 'Indexability',
-  meta: 'Meta tags',
-  headings: 'Headings',
-  content: 'Content',
-  schema: 'Structured data',
-  performance: 'Performance',
-  mobile: 'Mobile',
-  accessibility: 'Accessibility',
-  trust: 'Trust signals',
-  aeo: 'Answer engines (AEO)',
-};
-
-const CATEGORY_ICON: Record<AuditCategory, React.ReactNode> = {
-  indexability: <Search className="w-3.5 h-3.5" />,
-  meta: <TypeIcon className="w-3.5 h-3.5" />,
-  headings: <Heading1 className="w-3.5 h-3.5" />,
-  content: <TypeIcon className="w-3.5 h-3.5" />,
-  schema: <Code2 className="w-3.5 h-3.5" />,
-  performance: <Zap className="w-3.5 h-3.5" />,
-  mobile: <Smartphone className="w-3.5 h-3.5" />,
-  accessibility: <Accessibility className="w-3.5 h-3.5" />,
-  trust: <ShieldCheck className="w-3.5 h-3.5" />,
-  aeo: <Bot className="w-3.5 h-3.5" />,
-};
-
-const SEVERITY_STYLE: Record<
-  AuditSeverity,
-  { ring: string; pill: string; icon: React.ReactNode; sortKey: number }
-> = {
-  critical: {
-    ring: 'border-red-400/30',
-    pill: 'bg-red-500/15 text-red-200 border-red-400/30',
-    icon: <ShieldAlert className="w-3.5 h-3.5" />,
-    sortKey: 0,
-  },
-  warning: {
-    ring: 'border-yellow-400/25',
-    pill: 'bg-yellow-500/10 text-yellow-200 border-yellow-400/25',
-    icon: <AlertTriangle className="w-3.5 h-3.5" />,
-    sortKey: 1,
-  },
-  info: {
-    ring: 'border-white/15',
-    pill: 'bg-white/[0.06] text-white/85 border-white/15',
-    icon: <Info className="w-3.5 h-3.5" />,
-    sortKey: 2,
-  },
-  good: {
-    ring: 'border-emerald-400/25',
-    pill: 'bg-emerald-500/10 text-emerald-200 border-emerald-400/25',
-    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-    sortKey: 3,
-  },
-};
-
-/* ════════════════════ Score visuals ════════════════════ */
-
-function gradeTone(grade: string): string {
-  if (grade === 'A+' || grade === 'A') return 'text-emerald-300';
-  if (grade === 'B') return 'text-yellow-200';
-  if (grade === 'C') return 'text-orange-300';
-  return 'text-red-300';
-}
-
-function ScoreRing({ score, grade, size = 160 }: { score: number; grade: string; size?: number }) {
-  const radius = size * 0.4;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (Math.max(0, Math.min(100, score)) / 100) * circumference;
-  const tone = gradeTone(grade);
-
-  return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth={size * 0.07}
-          fill="none"
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          className={tone}
-          strokeWidth={size * 0.07}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference}
-          animate={{ strokeDashoffset: circumference - dash }}
-          transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
-          style={{ transform: 'rotate(-90deg)', transformOrigin: `${size / 2}px ${size / 2}px` }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className={`text-4xl font-bold tracking-tighter ${tone}`}>{grade}</div>
-        <div className="text-2xl font-bold tracking-tight text-white">{score}</div>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mt-0.5">/ 100</div>
-      </div>
-    </div>
-  );
-}
-
-function CategoryBar({ cat }: { cat: AuditCategoryScore }) {
-  const tone =
-    cat.score >= 80
-      ? 'bg-emerald-400'
-      : cat.score >= 60
-        ? 'bg-yellow-300'
-        : cat.score >= 40
-          ? 'bg-orange-400'
-          : 'bg-red-400';
-  return (
-    <div className="rounded-xl border border-white/[0.08] bg-surface-2/60 p-4">
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/[0.06] border border-white/10">
-            {CATEGORY_ICON[cat.category]}
-          </span>
-          {CATEGORY_LABEL[cat.category]}
-        </div>
-        <div className="text-sm font-bold tracking-tight text-white">{cat.score}</div>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <motion.div
-          className={`h-full ${tone}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${cat.score}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        />
-      </div>
-      <div className="mt-2 text-xs text-secondary line-clamp-1">
-        {cat.findings_count === 0 ? 'No issues — looking great.' : cat.headline}
-      </div>
-    </div>
-  );
-}
-
-function FindingRow({ finding }: { finding: AuditFinding }) {
-  const [open, setOpen] = useState(false);
-  const style = SEVERITY_STYLE[finding.severity];
-  return (
-    <div className={`rounded-xl border ${style.ring} bg-surface-2/60`}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-start gap-3 p-4 text-left hover:bg-white/[0.02] transition-colors"
-      >
-        <span
-          className={`mt-0.5 inline-flex items-center justify-center rounded-md border px-1.5 py-1 ${style.pill} flex-shrink-0`}
-        >
-          {style.icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tertiary">
-              {CATEGORY_LABEL[finding.category]}
-            </span>
-            <span
-              className={`text-[10px] uppercase tracking-[0.12em] rounded-full border px-2 py-0.5 ${style.pill}`}
-            >
-              {finding.severity}
-            </span>
-            <span className="text-[10px] uppercase tracking-[0.12em] text-tertiary">
-              {finding.impact} impact
-            </span>
-          </div>
-          <h3 className="mt-1.5 text-sm font-semibold text-white">{finding.title}</h3>
-          <p className="mt-1 text-xs text-secondary leading-relaxed line-clamp-2">{finding.detail}</p>
-        </div>
-        <ChevronDown
-          className={`w-4 h-4 text-tertiary mt-1.5 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-white/[0.06]"
-          >
-            <div className="p-4 space-y-3">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-1">Detail</div>
-                <p className="text-sm text-white/85 leading-relaxed">{finding.detail}</p>
-              </div>
-              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-3">
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-emerald-200/80 mb-1">
-                  <Lightbulb className="w-3 h-3" />
-                  How to fix
-                </div>
-                <p className="text-sm text-emerald-50 leading-relaxed">{finding.suggestion}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ════════════════════ Result panels ════════════════════ */
-
-function CategoryGrid({ scores }: { scores: AuditCategoryScore[] }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {scores.map((cat) => (
-        <CategoryBar key={cat.category} cat={cat} />
-      ))}
-    </div>
-  );
-}
-
-function FindingsByCategory({ findings }: { findings: AuditFinding[] }) {
-  const grouped = useMemo(() => {
-    const out: Record<string, AuditFinding[]> = {};
-    for (const f of findings) {
-      (out[f.category] ||= []).push(f);
-    }
-    for (const k of Object.keys(out)) {
-      out[k].sort(
-        (a, b) =>
-          SEVERITY_STYLE[a.severity].sortKey - SEVERITY_STYLE[b.severity].sortKey,
-      );
-    }
-    return out;
-  }, [findings]);
-
-  const orderedCategories: AuditCategory[] = [
-    'indexability',
-    'meta',
-    'headings',
-    'content',
-    'schema',
-    'performance',
-    'mobile',
-    'accessibility',
-    'trust',
-    'aeo',
-  ];
-
-  return (
-    <div className="space-y-6">
-      {orderedCategories.map((cat) => {
-        const items = grouped[cat];
-        if (!items || items.length === 0) return null;
-        return (
-          <section key={cat}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-white/[0.06] border border-white/10 text-white">
-                {CATEGORY_ICON[cat]}
-              </span>
-              <h2 className="text-sm font-semibold text-white">{CATEGORY_LABEL[cat]}</h2>
-              <span className="text-[10px] uppercase tracking-[0.15em] text-tertiary">
-                {items.length} {items.length === 1 ? 'finding' : 'findings'}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {items.map((f) => (
-                <FindingRow key={f.code + f.title} finding={f} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function HeaderCard({ audit }: { audit: DeepAudit }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5 sm:p-6">
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-7">
-        <ScoreRing score={audit.overall_score} grade={audit.grade} />
-        <div className="flex-1 min-w-0 text-center sm:text-left">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-tertiary">Audited</div>
-          <div className="mt-1 text-base sm:text-lg font-semibold truncate">
-            {audit.final_url || audit.normalized_url}
-          </div>
-          <p className="mt-3 text-sm text-white/85 leading-relaxed">{audit.summary}</p>
-          <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
-            <Pill ok={audit.is_dns_valid} label={audit.is_dns_valid ? 'DNS resolves' : 'DNS unreachable'} />
-            <Pill
-              ok={audit.is_http_valid}
-              label={audit.is_http_valid ? `HTTP ${audit.http_status ?? 200}` : 'Site offline'}
-            />
-            <Pill ok={audit.has_ssl} label={audit.has_ssl ? 'HTTPS' : 'No HTTPS'} />
-            <Pill
-              ok={audit.has_robots_txt}
-              label={audit.has_robots_txt ? 'robots.txt' : 'No robots.txt'}
-            />
-            <Pill
-              ok={audit.has_sitemap_referenced}
-              label={audit.has_sitemap_referenced ? 'sitemap.xml' : 'No sitemap'}
-            />
-            <Pill ok={audit.has_llms_txt} label={audit.has_llms_txt ? 'llms.txt' : 'No llms.txt'} />
-          </div>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Stat icon={<TypeIcon className="w-3.5 h-3.5" />} label="Words" value={audit.word_count} />
-            <Stat icon={<ImageIcon className="w-3.5 h-3.5" />} label="Images" value={audit.image_count} />
-            <Stat
-              icon={<ExternalLink className="w-3.5 h-3.5" />}
-              label="External links"
-              value={audit.external_link_count}
-            />
-            <Stat
-              icon={<Code2 className="w-3.5 h-3.5" />}
-              label="Schemas"
-              value={audit.detected_schemas.length}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetaSnippet({ audit }: { audit: DeepAudit }) {
-  const titleLen = (audit.page_title || '').length;
-  const descLen = (audit.meta_description || '').length;
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-3">
-        Search-result preview
-      </div>
-      <div className="rounded-lg border border-white/[0.06] bg-surface-1/80 p-4">
-        <div className="text-xs text-tertiary truncate">{audit.canonical || audit.final_url}</div>
-        <div className="mt-1 text-base text-blue-300/90 truncate">
-          {audit.page_title || '(no title — Google will pick one)'}
-        </div>
-        <div className="mt-1 text-xs text-secondary line-clamp-3">
-          {audit.meta_description || '(no description — Google will generate one from the page body)'}
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-tertiary">
-        <span>title: {titleLen} chars</span>
-        <span>description: {descLen} chars</span>
-        {audit.detected_schemas.length > 0 && (
-          <span>schemas: {audit.detected_schemas.slice(0, 4).join(', ')}{audit.detected_schemas.length > 4 ? '…' : ''}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════ Maps panels ════════════════════ */
-
-function StarRow({ rating, count }: { rating: number; count: number }) {
-  const filled = Math.round(rating);
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Star
-            key={i}
-            className={`w-3.5 h-3.5 ${i <= filled ? 'text-yellow-300 fill-yellow-300' : 'text-white/20'}`}
-          />
-        ))}
-      </div>
-      <span className="text-sm font-semibold text-white">{rating.toFixed(1)}</span>
-      <span className="text-xs text-tertiary">({count.toLocaleString()})</span>
-    </div>
-  );
-}
-
-function BusinessCard({ business }: { business: MapsAuditResponse['business'] }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-5 h-5 text-white/80" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-bold tracking-tight text-white truncate">
-            {business.display_name || 'Unnamed listing'}
-          </h2>
-          {business.primary_type && (
-            <div className="text-[11px] uppercase tracking-[0.15em] text-tertiary mt-0.5">
-              {business.primary_type}
-            </div>
-          )}
-          {business.formatted_address && (
-            <p className="text-xs text-secondary mt-1 truncate">{business.formatted_address}</p>
-          )}
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            {business.rating != null && business.user_rating_count != null && (
-              <StarRow rating={business.rating} count={business.user_rating_count} />
-            )}
-            {business.business_status && business.business_status !== 'OPERATIONAL' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-red-400/30 bg-red-500/10 text-[11px] text-red-200">
-                <AlertTriangle className="w-3 h-3" /> {business.business_status.replace(/_/g, ' ')}
-              </span>
-            )}
-            {business.open_now != null && (
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] ${
-                  business.open_now
-                    ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
-                    : 'border-white/15 bg-white/[0.04] text-tertiary'
-                }`}
-              >
-                <Clock className="w-3 h-3" /> {business.open_now ? 'Open now' : 'Closed'}
-              </span>
-            )}
-            {business.price_level && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-white/15 bg-white/[0.04] text-[11px] text-tertiary">
-                {business.price_level.replace(/PRICE_LEVEL_/, '').toLowerCase()}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat icon={<ImageIcon className="w-3.5 h-3.5" />} label="Photos" value={business.photo_count} />
-        <Stat icon={<Star className="w-3.5 h-3.5" />} label="Reviews" value={business.user_rating_count ?? 0} />
-        {business.phone && (
-          <Stat icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={business.phone} valueClass="font-mono text-xs" />
-        )}
-        {business.website_uri ? (
-          <Stat
-            icon={<Globe2 className="w-3.5 h-3.5" />}
-            label="Website"
-            value={business.website_uri.replace(/^https?:\/\//, '')}
-            valueClass="truncate text-xs"
-          />
-        ) : (
-          <Stat
-            icon={<Globe2 className="w-3.5 h-3.5" />}
-            label="Website"
-            value="Not set"
-            valueClass="text-xs text-red-300"
-          />
-        )}
-      </div>
-
-      {(business.editorial_summary || business.generative_summary) && (
-        <div className="mt-4 rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-1">From Google</div>
-          <p className="text-sm text-white/85 leading-relaxed">
-            {business.editorial_summary || business.generative_summary}
-          </p>
-        </div>
-      )}
-
-      {business.review_summary && (
-        <div className="mt-3 rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-1">Google review summary</div>
-          <p className="text-sm text-white/85 leading-relaxed">{business.review_summary}</p>
-        </div>
-      )}
-
-      {business.weekday_descriptions.length > 0 && (
-        <div className="mt-4">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-2">Hours</div>
-          <ul className="space-y-1">
-            {business.weekday_descriptions.map((d) => (
-              <li key={d} className="text-xs text-secondary">{d}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {business.photo_thumbnails.length > 0 && (
-        <div className="mt-5">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-2">Photos from Google</div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {business.photo_thumbnails.slice(0, 12).map((src, i) => (
-              <div
-                key={src}
-                className="aspect-square rounded-lg overflow-hidden border border-white/[0.06] bg-surface-1"
-              >
-                <img
-                  src={src}
-                  alt={`Photo ${i + 1} of ${business.display_name ?? 'business'}`}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {business.reviews.length > 0 && (
-        <div className="mt-5">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-2">Recent reviews</div>
-          <div className="space-y-2">
-            {business.reviews.slice(0, 5).map((r, i) => (
-              <div key={i} className="rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-                <div className="flex items-center gap-2 text-xs text-tertiary">
-                  <span className="font-semibold text-white">{r.author_name || 'Anonymous'}</span>
-                  {r.rating != null && (
-                    <span className="inline-flex items-center gap-0.5 text-yellow-300">
-                      <Star className="w-3 h-3 fill-yellow-300" />
-                      {r.rating}
-                    </span>
-                  )}
-                  {r.relative_time && <span>· {r.relative_time}</span>}
-                </div>
-                {r.text && (
-                  <p className="mt-1.5 text-xs text-secondary leading-relaxed line-clamp-4">{r.text}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-5 flex flex-wrap gap-3 text-xs">
-        {business.google_maps_uri && (
-          <a
-            href={business.google_maps_uri}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-white/80 hover:text-white"
-          >
-            Open on Google Maps <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-        {business.write_a_review_uri && (
-          <a
-            href={business.write_a_review_uri}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-white/80 hover:text-white"
-          >
-            Write a review <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ───── Analytics + Scorecard ───── */
-
-const PLACE_CATEGORY_LABEL: Record<PlaceCategoryScore['category'], string> = {
-  reviews: 'Reviews',
-  profile: 'Profile completeness',
-  photos: 'Photos',
-  engagement: 'Engagement',
-  discoverability: 'Discoverability',
-};
-
-const PLACE_CATEGORY_ICON: Record<PlaceCategoryScore['category'], React.ReactNode> = {
-  reviews: <Star className="w-3.5 h-3.5" />,
-  profile: <ShieldCheck className="w-3.5 h-3.5" />,
-  photos: <ImageIcon className="w-3.5 h-3.5" />,
-  engagement: <MessageSquare className="w-3.5 h-3.5" />,
-  discoverability: <Search className="w-3.5 h-3.5" />,
-};
-
-function ScorecardCard({ scorecard }: { scorecard: MapsAuditResponse['scorecard'] }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5 sm:p-6">
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-7">
-        <ScoreRing score={scorecard.overall_score} grade={scorecard.grade} />
-        <div className="flex-1 min-w-0 text-center sm:text-left">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-tertiary">Local presence</div>
-          <h2 className="mt-1 text-base sm:text-lg font-semibold">Place audit scorecard</h2>
-          <p className="mt-3 text-sm text-white/85 leading-relaxed">{scorecard.summary}</p>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {scorecard.categories.map((c) => {
-              const tone =
-                c.score >= 80 ? 'bg-emerald-400'
-                : c.score >= 60 ? 'bg-yellow-300'
-                : c.score >= 40 ? 'bg-orange-400'
-                : 'bg-red-400';
-              return (
-                <div key={c.category} className="rounded-xl border border-white/[0.08] bg-surface-1/60 p-3">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/[0.06] border border-white/10">
-                        {PLACE_CATEGORY_ICON[c.category]}
-                      </span>
-                      {PLACE_CATEGORY_LABEL[c.category]}
-                    </div>
-                    <div className="text-sm font-bold text-white">{c.score}</div>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <motion.div
-                      className={`h-full ${tone}`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${c.score}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <div className="mt-2 text-[11px] text-secondary">{c.headline}</div>
-                  <div className="text-[11px] text-tertiary line-clamp-2">{c.detail}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetricsCard({
-  metrics,
-  benchmark,
-}: {
-  metrics: MapsAuditResponse['metrics'];
-  benchmark: MapsAuditResponse['benchmark'];
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-white/[0.06] border border-white/10 text-white">
-          <TrendingUp className="w-4 h-4" />
-        </span>
-        <h3 className="text-sm font-semibold text-white">Analytics &amp; metrics</h3>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <MetricBar label="Profile completeness" value={metrics.profile_completeness_pct} />
-        <MetricBar label="NAP completeness" value={metrics.nap_completeness_pct} />
-        <MetricBar label="Photo coverage" value={metrics.photo_coverage_pct} />
-        <MetricBar label="Amenity disclosure" value={metrics.amenity_disclosure_pct} />
-        <MetricBar label="Accessibility disclosure" value={metrics.accessibility_disclosure_pct} />
-        <MetricBar label="Sentiment proxy" value={metrics.sentiment_proxy_pct} />
-      </div>
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat
-          icon={<TrendingUp className="w-3.5 h-3.5" />}
-          label="Reviews / month"
-          value={metrics.estimated_review_velocity_per_month.toFixed(1)}
-        />
-        <Stat
-          icon={<Clock className="w-3.5 h-3.5" />}
-          label="Last review"
-          value={metrics.days_since_latest_review != null ? `${metrics.days_since_latest_review}d ago` : '—'}
-        />
-        <Stat
-          icon={<Award className="w-3.5 h-3.5" />}
-          label="Rating percentile"
-          value={metrics.rating_percentile_estimate != null ? `Top ${100 - metrics.rating_percentile_estimate}%` : '—'}
-        />
-        <Stat
-          icon={<TypeIcon className="w-3.5 h-3.5" />}
-          label="Avg review length"
-          value={`${metrics.avg_review_length_chars} chars`}
-        />
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Tag tone={metrics.local_pack_eligible ? 'good' : 'warn'}>
-          {metrics.local_pack_eligible ? 'Local-pack eligible' : 'Below local-pack threshold'}
-        </Tag>
-        {metrics.is_top_rated && <Tag tone="good">Top rated</Tag>}
-        {metrics.is_low_rated && <Tag tone="bad">Below 4.0★</Tag>}
-        {metrics.is_new_listing && <Tag tone="info">New listing</Tag>}
-      </div>
-      <div className="mt-5 rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary mb-1">
-          Benchmark — {benchmark.category_label}
-        </div>
-        <p className="text-xs text-secondary leading-relaxed">
-          Healthy listings in this category typically have <strong className="text-white">{benchmark.review_benchmark}+ reviews</strong>{' '}
-          and average <strong className="text-white">{benchmark.star_benchmark.toFixed(1)}★</strong>.
-          {benchmark.review_gap > 0 ? (
-            <> You need <strong className="text-white">{benchmark.review_gap}</strong> more reviews to reach the bar.</>
-          ) : (
-            <> Reviews already at or above the bar.</>
-          )}
-          {benchmark.star_gap > 0 ? (
-            <> Average rating is <strong className="text-white">{benchmark.star_gap.toFixed(1)}</strong> below benchmark.</>
-          ) : (
-            <> Star rating already at or above benchmark.</>
-          )}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function MetricBar({ label, value }: { label: string; value: number }) {
-  const tone =
-    value >= 80 ? 'bg-emerald-400'
-    : value >= 60 ? 'bg-yellow-300'
-    : value >= 40 ? 'bg-orange-400'
-    : 'bg-red-400';
-  return (
-    <div className="rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary">{label}</div>
-        <div className="text-xs font-bold text-white">{value}</div>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <motion.div
-          className={`h-full ${tone}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Tag({ tone, children }: { tone: 'good' | 'warn' | 'bad' | 'info'; children: React.ReactNode }) {
-  const styles = {
-    good: 'bg-emerald-500/10 border-emerald-400/25 text-emerald-200',
-    warn: 'bg-yellow-500/10 border-yellow-400/25 text-yellow-200',
-    bad: 'bg-red-500/10 border-red-400/30 text-red-200',
-    info: 'bg-white/[0.06] border-white/10 text-secondary',
-  }[tone];
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium ${styles}`}>
-      {children}
-    </span>
-  );
-}
-
-/* ───── Attributes + amenities ───── */
-
-type FlagDict = Record<string, boolean | null | undefined>;
-
-const FLAG_LABELS: Record<string, string> = {
-  delivery: 'Delivery',
-  takeout: 'Takeout',
-  dine_in: 'Dine in',
-  curbside_pickup: 'Curbside pickup',
-  reservable: 'Reservations',
-  serves_breakfast: 'Breakfast',
-  serves_lunch: 'Lunch',
-  serves_dinner: 'Dinner',
-  serves_brunch: 'Brunch',
-  serves_beer: 'Beer',
-  serves_wine: 'Wine',
-  serves_cocktails: 'Cocktails',
-  serves_coffee: 'Coffee',
-  serves_dessert: 'Dessert',
-  serves_vegetarian_food: 'Vegetarian',
-  good_for_children: 'Kid-friendly',
-  good_for_groups: 'Groups',
-  good_for_watching_sports: 'Sports viewing',
-  allows_dogs: 'Dogs allowed',
-  live_music: 'Live music',
-  menu_for_children: 'Kids menu',
-  outdoor_seating: 'Outdoor seating',
-  restroom: 'Restroom',
-  wheelchair_accessible_parking: 'WC parking',
-  wheelchair_accessible_entrance: 'WC entrance',
-  wheelchair_accessible_restroom: 'WC restroom',
-  wheelchair_accessible_seating: 'WC seating',
-  free_parking_lot: 'Free parking lot',
-  paid_parking_lot: 'Paid parking lot',
-  free_street_parking: 'Free street parking',
-  paid_street_parking: 'Paid street parking',
-  valet_parking: 'Valet',
-  free_garage_parking: 'Free garage',
-  paid_garage_parking: 'Paid garage',
-  accepts_credit_cards: 'Credit cards',
-  accepts_debit_cards: 'Debit cards',
-  accepts_cash_only: 'Cash only',
-  accepts_nfc: 'Tap-to-pay (NFC)',
-};
-
-function FlagList({
-  title,
-  icon,
-  flags,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  flags: FlagDict;
-}) {
-  const known = Object.entries(flags).filter(([, v]) => v === true || v === false);
-  if (known.length === 0) return null;
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-surface-1/60 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-white/[0.06] border border-white/10 text-white">
-          {icon}
-        </span>
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {known.map(([k, v]) => (
-          <span
-            key={k}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium ${
-              v
-                ? 'bg-emerald-500/10 border-emerald-400/25 text-emerald-200'
-                : 'bg-white/[0.04] border-white/10 text-tertiary line-through'
-            }`}
-          >
-            {v ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {FLAG_LABELS[k] || k.replace(/_/g, ' ')}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AttributesCard({ business }: { business: MapsAuditResponse['business'] }) {
-  const amenityCount = Object.values(business.amenities).filter((v) => v === true || v === false).length;
-  const accessibilityCount = Object.values(business.accessibility).filter((v) => v === true || v === false).length;
-  const parkingCount = Object.values(business.parking).filter((v) => v === true || v === false).length;
-  const paymentsCount = Object.values(business.payments).filter((v) => v === true || v === false).length;
-  if (amenityCount + accessibilityCount + parkingCount + paymentsCount === 0) return null;
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-white/[0.06] border border-white/10 text-white">
-          <Sparkles className="w-4 h-4" />
-        </span>
-        <h3 className="text-sm font-semibold text-white">Listing attributes &amp; services</h3>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <FlagList title="Services &amp; amenities" icon={<Utensils className="w-3.5 h-3.5" />} flags={business.amenities as unknown as FlagDict} />
-        <FlagList title="Accessibility" icon={<Accessibility className="w-3.5 h-3.5" />} flags={business.accessibility as unknown as FlagDict} />
-        <FlagList title="Parking" icon={<ParkingCircle className="w-3.5 h-3.5" />} flags={business.parking as unknown as FlagDict} />
-        <FlagList title="Payments" icon={<Wallet className="w-3.5 h-3.5" />} flags={business.payments as unknown as FlagDict} />
-      </div>
-    </div>
-  );
-}
-
-function LocationCard({ business }: { business: MapsAuditResponse['business'] }) {
-  const rows: { label: string; value: string | null | undefined }[] = [
-    { label: 'Country', value: business.country },
-    { label: 'Region', value: business.region },
-    { label: 'City', value: business.city },
-    { label: 'Sublocality', value: business.sublocality },
-    { label: 'Neighborhood', value: business.neighborhood },
-    { label: 'Postal code', value: business.postal_code },
-    { label: 'Plus code', value: business.plus_code_compound || business.plus_code_global },
-    { label: 'Coordinates', value: business.latitude && business.longitude ? `${business.latitude.toFixed(5)}, ${business.longitude.toFixed(5)}` : null },
-    { label: 'Place ID', value: business.place_id },
-  ];
-  const visible = rows.filter((r) => !!r.value);
-  if (visible.length === 0) return null;
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-white/[0.06] border border-white/10 text-white">
-          <MapPin className="w-4 h-4" />
-        </span>
-        <h3 className="text-sm font-semibold text-white">Location &amp; identifiers</h3>
-      </div>
-      <dl className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {visible.map((r) => (
-          <div key={r.label} className="rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-            <dt className="text-[10px] uppercase tracking-[0.18em] text-tertiary">{r.label}</dt>
-            <dd className="mt-1 text-xs text-white font-medium break-words">{r.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-function RecommendationsCard({ recs }: { recs: MapsAuditResponse['recommendations'] }) {
-  if (recs.length === 0) return null;
-  const priorityRank = { high: 0, medium: 1, low: 2 };
-  const sorted = [...recs].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-emerald-500/10 border border-emerald-400/25 text-emerald-200">
-          <TrendingUp className="w-4 h-4" />
-        </span>
-        <h3 className="text-sm font-semibold text-white">Top recommendations to grow this business</h3>
-      </div>
-      <ul className="space-y-3">
-        {sorted.map((r, i) => (
-          <li key={r.code} className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-[11px] font-bold text-white">
-              {i + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="text-sm font-semibold text-white">{r.title}</h4>
-                <span
-                  className={`text-[10px] uppercase tracking-[0.12em] rounded-full border px-2 py-0.5 ${
-                    r.priority === 'high'
-                      ? 'border-red-400/30 bg-red-500/10 text-red-200'
-                      : r.priority === 'medium'
-                        ? 'border-yellow-400/25 bg-yellow-500/10 text-yellow-200'
-                        : 'border-white/15 bg-white/[0.04] text-tertiary'
-                  }`}
-                >
-                  {r.priority} priority
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-secondary leading-relaxed">{r.detail}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* ════════════════════ Atoms ════════════════════ */
-
-function Pill({ ok, label, icon }: { ok: boolean; label: string; icon?: React.ReactNode }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-medium ${
-        ok
-          ? 'bg-emerald-500/10 border-emerald-400/25 text-emerald-200'
-          : 'bg-white/[0.04] border-white/10 text-secondary'
-      }`}
-    >
-      {icon ?? (ok ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />)}
-      {label}
-    </span>
-  );
-}
-
-function Stat({
-  icon,
-  label,
-  value,
-  valueClass,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-white/[0.06] bg-surface-1/60 p-3">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tertiary">
-        {icon} {label}
-      </div>
-      <div className={`mt-1 text-sm font-semibold text-white ${valueClass ?? ''}`}>{value}</div>
-    </div>
-  );
-}
 
 /* ════════════════════ Locked-mode preview ════════════════════ */
 
@@ -1089,7 +136,8 @@ function LockedMapsPreview({
     },
     {
       title: 'Computed analytics + benchmarks',
-      detail: 'Profile completeness, NAP score, review velocity, sentiment proxy, local-pack eligibility, rating percentile.',
+      detail:
+        'Profile completeness, NAP score, review velocity, sentiment proxy, local-pack eligibility, rating percentile.',
       icon: <TrendingUp className="w-4 h-4" />,
     },
     {
@@ -1139,10 +187,125 @@ function LockedMapsPreview({
 
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
         {features.map((f) => (
-          <div
-            key={f.title}
-            className="rounded-2xl border border-white/[0.08] bg-surface-1/60 p-4"
-          >
+          <div key={f.title} className="rounded-2xl border border-white/[0.08] bg-surface-1/60 p-4">
+            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.06] border border-white/10 text-white">
+              {f.icon}
+            </div>
+            <h3 className="mt-3 text-sm font-semibold text-white">{f.title}</h3>
+            <p className="mt-1 text-xs text-secondary leading-relaxed">{f.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════ Locked-security preview ════════════════════ */
+
+function LockedSecurityPreview({
+  isAuthenticated,
+  plan,
+  reason,
+}: {
+  isAuthenticated: boolean;
+  plan: string | null;
+  reason: string | null;
+}) {
+  const headline = !isAuthenticated
+    ? 'Sign in to unlock the website security audit'
+    : plan === 'free'
+      ? 'Upgrade to Pro to unlock the security audit'
+      : 'Renew your subscription to keep using the security audit';
+  const cta = !isAuthenticated ? (
+    <Link
+      to="/login"
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold shadow-lg hover:bg-[#E5E5E5] transition-colors"
+    >
+      <LogIn className="w-3.5 h-3.5" /> Sign in to continue
+    </Link>
+  ) : (
+    <Link
+      to="/billing"
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold shadow-lg hover:bg-[#E5E5E5] transition-colors"
+    >
+      <Crown className="w-3.5 h-3.5" /> Upgrade to Pro
+    </Link>
+  );
+
+  const features = [
+    {
+      title: 'TLS certificate inspection',
+      detail: 'Validity, chain, protocol version, cipher suite, expiry countdown, SAN coverage.',
+      icon: <Lock className="w-4 h-4" />,
+    },
+    {
+      title: 'OWASP-aligned security headers',
+      detail: 'HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP/COEP/CORP.',
+      icon: <ShieldCheck className="w-4 h-4" />,
+    },
+    {
+      title: 'Cookie flag audit',
+      detail: 'Secure, HttpOnly, SameSite per cookie — flags the ones a stolen session could ride.',
+      icon: <Cookie className="w-4 h-4" />,
+    },
+    {
+      title: 'Info-disclosure probes',
+      detail: '.env, .git/, phpinfo, server-status, .htpasswd, .DS_Store — paths attackers fingerprint within minutes.',
+      icon: <FileWarning className="w-4 h-4" />,
+    },
+    {
+      title: 'SPF / DMARC / CAA / DNSSEC',
+      detail: 'Email-auth + cert-issuance + DNS-integrity records — the spoofing & phishing surface most teams forget.',
+      icon: <Network className="w-4 h-4" />,
+    },
+    {
+      title: 'Server fingerprinting',
+      detail: 'Banner leakage, X-Powered-By, EOL software versions (PHP 5.x, Apache 2.2, OpenSSL 1.0.x).',
+      icon: <Server className="w-4 h-4" />,
+    },
+    {
+      title: 'Dependency version detection',
+      detail: 'Outdated jQuery / Bootstrap / Angular + CMS generator tags that expose known-vulnerable versions.',
+      icon: <Package className="w-4 h-4" />,
+    },
+    {
+      title: 'Mixed content + form audit',
+      detail: 'HTTP resources on HTTPS pages, forms posting to plain HTTP, missing Subresource Integrity on CDN scripts.',
+      icon: <Code2 className="w-4 h-4" />,
+    },
+    {
+      title: 'Maps URL mode',
+      detail: 'Paste a Google Maps URL — we resolve the listing and run the full audit on its website automatically.',
+      icon: <MapPin className="w-4 h-4" />,
+    },
+  ];
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-6 sm:p-8 text-center">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/[0.06] border border-white/10 mb-4">
+        <Lock className="w-5 h-5 text-white/80" />
+      </div>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-[0.18em] uppercase bg-rose-500/10 border border-rose-400/30 text-rose-200">
+        <ShieldCheck className="w-3.5 h-3.5" /> Pro &amp; Enterprise
+      </span>
+      <h2 className="mt-4 text-2xl sm:text-3xl font-bold tracking-tight">{headline}</h2>
+      <p className="mt-2 text-sm text-secondary max-w-xl mx-auto leading-relaxed">
+        {reason ||
+          'The security audit scans the entire public-facing security surface of a website — TLS, headers, cookies, DNS, dependencies, and exposed paths — in one click. Free on Pro and Enterprise.'}
+      </p>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        {cta}
+        <Link
+          to="/pricing"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/15 bg-white/[0.04] text-sm font-semibold text-white hover:bg-white/[0.08] transition-colors"
+        >
+          See pricing
+        </Link>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left">
+        {features.map((f) => (
+          <div key={f.title} className="rounded-2xl border border-white/[0.08] bg-surface-1/60 p-4">
             <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.06] border border-white/10 text-white">
               {f.icon}
             </div>
@@ -1169,17 +332,99 @@ export default function LeadScanner() {
   });
 
   const { isAuthenticated, hasPaidPlan, user, isLoading: authLoading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<Mode>('website');
+  // Security sub-mode: 'website' (plain URL) vs 'maps' (Google Maps URL).
+  // We keep this separate from the top-level Mode so switching between SEO
+  // and security doesn't lose the user's last sub-mode choice.
+  const [securitySub, setSecuritySub] = useState<SecuritySubMode>('website');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [audit, setAudit] = useState<DeepAudit | null>(null);
   const [maps, setMaps] = useState<MapsAuditResponse | null>(null);
+  const [security, setSecurity] = useState<SecurityAuditResponse | null>(null);
+  const [securityPlace, setSecurityPlace] = useState<SecurityAuditPlaceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [accessReason, setAccessReason] = useState<string | null>(null);
   const [accessChecked, setAccessChecked] = useState(false);
+  const [secAccessReason, setSecAccessReason] = useState<string | null>(null);
+  const [secAccessChecked, setSecAccessChecked] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
 
   const activeMode = MODE_TABS.find((t) => t.id === mode)!;
   const mapsLocked = !isAuthenticated || !hasPaidPlan;
+  const securityLocked = !isAuthenticated || !hasPaidPlan;
+
+  // On mount: if a pending share survived a login round-trip (we wrote it
+  // to sessionStorage before sending the user to /login), restore the
+  // audit state and reopen the share modal automatically. The query flag
+  // ?share=1 is also accepted so a deep link from a notification works.
+  useEffect(() => {
+    if (authLoading) return;
+    let pending: SharePayload | null = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_SHARE_KEY);
+      if (raw) pending = JSON.parse(raw) as SharePayload;
+    } catch {
+      pending = null;
+    }
+    if (!pending) return;
+
+    // Re-hydrate the result panels so the user sees what they're sharing
+    // (matches the experience before the login redirect).
+    try {
+      if (pending.kind === 'website') {
+        setAudit(pending.body as DeepAudit);
+        setMaps(null);
+        setSecurity(null);
+        setSecurityPlace(null);
+        setMode('website');
+      } else if (pending.kind === 'maps') {
+        setMaps(pending.body as MapsAuditResponse);
+        const inner = (pending.body as MapsAuditResponse).website_audit;
+        setAudit(inner ?? null);
+        setSecurity(null);
+        setSecurityPlace(null);
+        setMode('maps');
+      } else if (pending.kind === 'security') {
+        setSecurity(pending.body as SecurityAuditResponse);
+        setSecurityPlace(null);
+        setMaps(null);
+        setAudit(null);
+        setMode('security');
+        setSecuritySub('website');
+      } else if (pending.kind === 'security_place') {
+        const body = pending.body as SecurityAuditPlaceResponse;
+        setSecurityPlace(body);
+        setSecurity(body.website_security);
+        setMaps(null);
+        setAudit(null);
+        setMode('security');
+        setSecuritySub('maps');
+      }
+    } catch {
+      // Defensive: bad payload — clear and bail.
+      sessionStorage.removeItem(PENDING_SHARE_KEY);
+      return;
+    }
+
+    if (isAuthenticated) {
+      setSharePayload(pending);
+      setShareOpen(true);
+      sessionStorage.removeItem(PENDING_SHARE_KEY);
+      // Drop the ?share=1 marker so a refresh after dismissing the modal
+      // doesn't try to re-open it from stale URL state.
+      if (searchParams.has('share')) {
+        const next = new URLSearchParams(searchParams);
+        next.delete('share');
+        setSearchParams(next, { replace: true });
+      }
+    }
+    // We deliberately depend only on auth-loading completion + auth status;
+    // setSearchParams/searchParams are stable from the router.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated]);
 
   // Re-confirm access against the backend when the user lands on the Maps
   // tab. This catches the edge case where the cached ``user.plan`` is stale
@@ -1211,6 +456,34 @@ export default function LeadScanner() {
     };
   }, [mode, isAuthenticated, authLoading, user?.plan, user?.plan_expires_at]);
 
+  // Same dance for the Security tab. We keep two separate access flags so
+  // the user can't be "logged in on free, hits security tab, sees old maps
+  // upgrade copy" — each tab confirms its own gate.
+  useEffect(() => {
+    if (mode !== 'security' || authLoading) return;
+    if (!isAuthenticated) {
+      setSecAccessChecked(true);
+      setSecAccessReason(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getSecurityAuditAccess();
+        if (cancelled) return;
+        if (!data.allowed) setSecAccessReason(data.reason);
+        else setSecAccessReason(null);
+      } catch {
+        // Silent — server-side gate is authoritative on POST.
+      } finally {
+        if (!cancelled) setSecAccessChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, isAuthenticated, authLoading, user?.plan, user?.plan_expires_at]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -1218,26 +491,54 @@ export default function LeadScanner() {
       setError('Sign in with a Pro or Enterprise plan to run a Google Maps audit.');
       return;
     }
+    if (mode === 'security' && securityLocked) {
+      setError('Sign in with a Pro or Enterprise plan to run a security audit.');
+      return;
+    }
     const trimmed = input.trim();
     if (!trimmed) {
-      setError(`Enter a ${mode === 'website' ? 'website URL' : 'Google Maps URL or business name'} to audit.`);
+      const what =
+        mode === 'website'
+          ? 'website URL'
+          : mode === 'maps'
+            ? 'Google Maps URL or business name'
+            : securitySub === 'maps'
+              ? 'Google Maps URL or business name'
+              : 'website URL';
+      setError(`Enter a ${what} to audit.`);
       return;
     }
     setError(null);
     setAudit(null);
     setMaps(null);
+    setSecurity(null);
+    setSecurityPlace(null);
     setLoading(true);
     try {
       if (mode === 'website') {
         const data = await auditWebsite(trimmed);
         setAudit(data);
-      } else {
+      } else if (mode === 'maps') {
         const data = await auditPlace(trimmed);
         setMaps(data);
         setAudit(data.website_audit);
+      } else if (mode === 'security') {
+        if (securitySub === 'maps') {
+          const data = await auditSecurityPlace(trimmed);
+          setSecurityPlace(data);
+          setSecurity(data.website_security);
+        } else {
+          const data = await auditSecurity(trimmed);
+          setSecurity(data);
+        }
       }
     } catch (err) {
-      const message = (err as Error).message || 'Something went wrong. Try again.';
+      type ErrShape = { response?: { data?: { detail?: string } } };
+      const e2 = err as ErrShape;
+      const message =
+        e2?.response?.data?.detail ||
+        (err as Error).message ||
+        'Something went wrong. Try again.';
       toast.error(message);
       setError(message);
     } finally {
@@ -1247,10 +548,72 @@ export default function LeadScanner() {
 
   const allFindings = useMemo(() => {
     if (!audit && !maps) return [] as AuditFinding[];
-    const fromAudit = audit?.findings ?? [];
     const fromMaps = maps?.derived_findings ?? [];
-    return [...fromMaps, ...fromAudit];
+    return fromMaps;
   }, [audit, maps]);
+
+  const onShareClick = () => {
+    // Build a fresh SharePayload from whichever result is currently
+    // visible. Priority: security_place > maps > security > website.
+    // We want the recipient to see the *richer* of the two reports
+    // when both are present, and security findings outrank a vanilla
+    // SEO audit because that's the more sensitive document.
+    let payload: SharePayload | null = null;
+    if (securityPlace) {
+      const label =
+        securityPlace.business?.display_name ||
+        securityPlace.business?.website_uri ||
+        'Security audit';
+      payload = {
+        kind: 'security_place',
+        title: `Security audit — ${label}`,
+        subject_url:
+          securityPlace.business?.website_uri ||
+          securityPlace.business?.google_maps_uri ||
+          null,
+        body: securityPlace,
+      };
+    } else if (maps) {
+      const label =
+        maps.business?.display_name ||
+        maps.business?.website_uri ||
+        'Google Maps audit';
+      payload = {
+        kind: 'maps',
+        title: `Audit — ${label}`,
+        subject_url: maps.business?.website_uri || maps.business?.google_maps_uri || null,
+        body: maps,
+      };
+    } else if (security) {
+      const host = (security.final_url || security.normalized_url || '').replace(
+        /^https?:\/\//,
+        '',
+      );
+      payload = {
+        kind: 'security',
+        title: `Security audit — ${host || 'website'}`,
+        subject_url: security.final_url || security.normalized_url || null,
+        body: security,
+      };
+    } else if (audit) {
+      const host = (audit.final_url || audit.normalized_url || '').replace(/^https?:\/\//, '');
+      payload = {
+        kind: 'website',
+        title: `Audit — ${host || 'website'}`,
+        subject_url: audit.final_url || audit.normalized_url || null,
+        body: audit,
+      };
+    }
+    if (!payload) {
+      toast.error('Run an audit first, then share the result.');
+      return;
+    }
+    setSharePayload(payload);
+    setShareOpen(true);
+  };
+
+  // Has any result been computed in the current session?
+  const hasAnyResult = Boolean(audit || maps || security || securityPlace);
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
@@ -1280,7 +643,7 @@ export default function LeadScanner() {
         </motion.div>
 
         {/* Mode tabs */}
-        <div className="flex items-center justify-center gap-1 mb-3 p-1 rounded-xl border border-white/[0.08] bg-surface-2/60 max-w-md mx-auto">
+        <div className="flex items-center justify-center gap-1 mb-3 p-1 rounded-xl border border-white/[0.08] bg-surface-2/60 max-w-xl mx-auto">
           {MODE_TABS.map((t) => (
             <button
               key={t.id}
@@ -1296,18 +659,54 @@ export default function LeadScanner() {
               }`}
             >
               {t.label}
-              {t.id === 'maps' && mapsLocked && <Lock className="w-3 h-3" />}
+              {((t.id === 'maps' && mapsLocked) || (t.id === 'security' && securityLocked)) && (
+                <Lock className="w-3 h-3" />
+              )}
             </button>
           ))}
         </div>
         <p className="text-center text-xs text-tertiary max-w-xl mx-auto mb-6">{activeMode.help}</p>
 
-        {/* Maps locked preview — shown instead of the input when gated */}
+        {/* Security sub-mode toggle — only visible inside the Security tab */}
+        {mode === 'security' && !securityLocked && (
+          <div className="flex items-center justify-center gap-1 mb-4 p-1 rounded-xl border border-white/[0.08] bg-surface-2/60 max-w-sm mx-auto">
+            {(['website', 'maps'] as SecuritySubMode[]).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setSecuritySub(id);
+                  setError(null);
+                }}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-colors flex items-center justify-center gap-1.5 ${
+                  securitySub === id
+                    ? 'bg-white text-black'
+                    : 'text-secondary hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                {id === 'website' ? (
+                  <Globe2 className="w-3 h-3" />
+                ) : (
+                  <MapPin className="w-3 h-3" />
+                )}
+                {id === 'website' ? 'Website URL' : 'Google Maps'}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Locked previews — shown instead of the input when gated */}
         {mode === 'maps' && mapsLocked ? (
           <LockedMapsPreview
             isAuthenticated={isAuthenticated}
             plan={user?.plan ?? null}
             reason={accessChecked ? accessReason : null}
+          />
+        ) : mode === 'security' && securityLocked ? (
+          <LockedSecurityPreview
+            isAuthenticated={isAuthenticated}
+            plan={user?.plan ?? null}
+            reason={secAccessChecked ? secAccessReason : null}
           />
         ) : (
           <motion.form
@@ -1318,7 +717,8 @@ export default function LeadScanner() {
             className="relative flex flex-col sm:flex-row gap-2 sm:gap-3 p-2 rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md shadow-[0_24px_64px_rgba(0,0,0,0.45)]"
           >
             <div className="flex items-center gap-2 px-3 flex-1 min-w-0">
-              {mode === 'website' ? (
+              {mode === 'website' ||
+              (mode === 'security' && securitySub === 'website') ? (
                 <Globe2 className="w-4 h-4 text-tertiary flex-shrink-0" />
               ) : (
                 <MapPin className="w-4 h-4 text-tertiary flex-shrink-0" />
@@ -1328,12 +728,23 @@ export default function LeadScanner() {
                 inputMode="url"
                 autoComplete="url"
                 spellCheck={false}
-                placeholder={activeMode.placeholder}
+                placeholder={
+                  mode === 'security'
+                    ? securitySub === 'website'
+                      ? 'example.com'
+                      : 'https://maps.app.goo.gl/... or "Acme Cafe, Bengaluru"'
+                    : activeMode.placeholder
+                }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={loading}
                 className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-tertiary py-3 disabled:opacity-60"
-                aria-label={mode === 'website' ? 'Website URL' : 'Google Maps URL or business name'}
+                aria-label={
+                  mode === 'website' ||
+                  (mode === 'security' && securitySub === 'website')
+                    ? 'Website URL'
+                    : 'Google Maps URL or business name'
+                }
               />
             </div>
             <button
@@ -1348,6 +759,20 @@ export default function LeadScanner() {
         )}
 
         {error && !loading && <p className="mt-3 text-xs text-red-300/90 text-center">{error}</p>}
+
+        {/* Share button — surfaced once any result is available */}
+        {!loading && hasAnyResult && (
+          <div className="mt-5 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={onShareClick}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-sm font-semibold text-white transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Share this report
+            </button>
+          </div>
+        )}
 
         {/* Loading skeleton */}
         <AnimatePresence mode="wait">
@@ -1375,26 +800,9 @@ export default function LeadScanner() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="mt-10 space-y-6"
+              className="mt-10"
             >
-              <ScorecardCard scorecard={maps.scorecard} />
-              <BusinessCard business={maps.business} />
-              <MetricsCard metrics={maps.metrics} benchmark={maps.benchmark} />
-              <AttributesCard business={maps.business} />
-              <LocationCard business={maps.business} />
-              <RecommendationsCard recs={maps.recommendations} />
-              {!maps.business.website_uri && (
-                <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 p-5">
-                  <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-white/70 mt-0.5" />
-                    <p className="text-sm text-secondary">
-                      No website is listed on this Google Business Profile, so we ran the Maps-only
-                      audit. Add a website URL in Google Business Profile and re-run for the full
-                      SEO/AEO scorecard.
-                    </p>
-                  </div>
-                </div>
-              )}
+              <MapsAuditView maps={maps} />
             </motion.div>
           )}
 
@@ -1407,10 +815,7 @@ export default function LeadScanner() {
               transition={{ duration: 0.4 }}
               className="mt-6 space-y-6"
             >
-              <HeaderCard audit={audit} />
-              <CategoryGrid scores={audit.category_scores} />
-              <MetaSnippet audit={audit} />
-              <FindingsByCategory findings={allFindings} />
+              <WebsiteAuditView audit={audit} extraFindings={allFindings} />
 
               <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 p-6 text-center">
                 <p className="text-sm text-secondary mb-4">
@@ -1427,9 +832,72 @@ export default function LeadScanner() {
               </div>
 
               <p className="text-[11px] text-tertiary text-center pt-2">
-                Audits are performed live and not stored. Cold Scout never contacts the audited
-                business on your behalf without explicit setup.
+                Audits are performed live. Sharing a report captures a snapshot — recipients sign
+                in to view, so you always know who's reading it.
               </p>
+            </motion.div>
+          )}
+
+          {/* Security audit results */}
+          {!loading && (security || securityPlace) && (
+            <motion.div
+              key="security-result"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-10 space-y-6"
+            >
+              {/* When we ran security_place, render the business header from
+                  the Maps response above the security panels so the user
+                  knows which listing they audited. */}
+              {securityPlace && (
+                <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 backdrop-blur-md p-5">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 text-white">
+                      <MapPin className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-tertiary">
+                        Audited from Maps listing
+                      </div>
+                      <div className="mt-1 text-base font-semibold truncate">
+                        {securityPlace.business.display_name ?? 'Unnamed listing'}
+                      </div>
+                      {securityPlace.business.formatted_address && (
+                        <p className="text-xs text-secondary truncate">
+                          {securityPlace.business.formatted_address}
+                        </p>
+                      )}
+                      {securityPlace.business.website_uri ? (
+                        <p className="mt-2 text-xs text-tertiary truncate font-mono">
+                          {securityPlace.business.website_uri}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-xs text-red-300">
+                          This listing has no website on its Google Business Profile — there's
+                          nothing for the security scanner to audit. Ask the owner to add one.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {security && <SecurityAuditView audit={security} />}
+
+              <div className="rounded-2xl border border-white/[0.08] bg-surface-2/60 p-6 text-center">
+                <p className="text-sm text-secondary mb-4">
+                  This is a snapshot of public-facing security signals — same surface a hostile
+                  visitor sees. For a full pentest of authenticated routes and business logic,
+                  engage a qualified security consultant.
+                </p>
+                <Link
+                  to="/pricing"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold shadow-lg hover:bg-[#E5E5E5] transition-colors"
+                >
+                  See Cold Scout plans <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </motion.div>
           )}
 
@@ -1466,6 +934,12 @@ export default function LeadScanner() {
           )}
         </AnimatePresence>
       </main>
+
+      <ShareReportModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        payload={sharePayload}
+      />
 
       <PublicFooter />
     </div>

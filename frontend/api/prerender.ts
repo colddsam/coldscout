@@ -288,6 +288,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
   }
 
+  // /shared/audit/:token — always noindex. Snapshots are private and
+  // must never be exposed to crawlers regardless of token validity.
+  if (!meta && path.startsWith('/shared/audit/')) {
+    meta = {
+      title: 'Shared audit report — Cold Scout',
+      description: 'A Cold Scout audit report shared privately with you. Sign in to view.',
+      canonical: `${SITE_URL}${path}`,
+      index: false,
+    };
+  }
+
   // Fallback to homepage meta
   if (!meta) meta = STATIC_ROUTE_META['/'];
 

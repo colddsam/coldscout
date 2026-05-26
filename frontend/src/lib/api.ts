@@ -1847,6 +1847,147 @@ export const getAuditAccess = () =>
     .get<AuditAccessResponse>('/api/v1/audit/access')
     .then((r) => r.data);
 
+/* ───────────────────────── Security audit ───────────────────────── */
+
+export type SecurityCategory =
+  | 'tls'
+  | 'headers'
+  | 'cookies'
+  | 'content'
+  | 'info_disclosure'
+  | 'dns_email'
+  | 'fingerprinting'
+  | 'dependencies'
+  | 'privacy';
+
+export interface SecurityFinding {
+  category: SecurityCategory;
+  code: string;
+  title: string;
+  detail: string;
+  severity: AuditSeverity;
+  suggestion: string;
+  impact: 'high' | 'medium' | 'low';
+  evidence: string | null;
+}
+
+export interface SecurityCategoryScore {
+  category: SecurityCategory;
+  score: number;
+  headline: string;
+  findings_count: number;
+}
+
+export interface TLSDetails {
+  host: string;
+  port: number;
+  protocol: string | null;
+  cipher_name: string | null;
+  issuer: string | null;
+  subject: string | null;
+  valid_from_iso: string | null;
+  valid_until_iso: string | null;
+  days_until_expiry: number | null;
+  san: string[];
+  is_self_signed: boolean | null;
+  chain_ok: boolean | null;
+}
+
+export interface HeaderObservation {
+  name: string;
+  present: boolean;
+  value: string | null;
+  severity: AuditSeverity;
+  note: string | null;
+}
+
+export interface CookieObservation {
+  name: string;
+  secure: boolean;
+  http_only: boolean;
+  same_site: string | null;
+  severity: AuditSeverity;
+}
+
+export interface DNSEmailFacts {
+  domain: string;
+  has_mx: boolean | null;
+  spf_record: string | null;
+  dmarc_record: string | null;
+  caa_records: string[];
+  has_dnssec: boolean | null;
+}
+
+export interface ExposedPath {
+  path: string;
+  status: number;
+  severity: AuditSeverity;
+  note: string;
+}
+
+export interface DetectedLibrary {
+  name: string;
+  version: string | null;
+  severity: AuditSeverity;
+  note: string | null;
+}
+
+export interface SecurityAuditResponse {
+  url: string;
+  normalized_url: string;
+  final_url: string;
+  fetched_at_iso: string;
+  is_dns_valid: boolean;
+  is_http_valid: boolean;
+  http_status: number | null;
+  final_redirect_chain: string[];
+  has_ssl: boolean;
+  overall_score: number;
+  grade: AuditGrade;
+  summary: string;
+  category_scores: SecurityCategoryScore[];
+  findings: SecurityFinding[];
+  tls: TLSDetails | null;
+  headers: HeaderObservation[];
+  cookies: CookieObservation[];
+  dns_email: DNSEmailFacts | null;
+  exposed_paths: ExposedPath[];
+  detected_libraries: DetectedLibrary[];
+  server_software: string | null;
+  powered_by: string | null;
+  mixed_content_count: number;
+  insecure_form_count: number;
+  has_csp: boolean;
+  has_hsts: boolean;
+}
+
+export interface SecurityAuditPlaceResponse {
+  place_id: string;
+  business: MapsBusinessProfile;
+  fetched_at_iso: string;
+  website_security: SecurityAuditResponse | null;
+}
+
+/** Pro/Enterprise gate for the security audit. */
+export const getSecurityAuditAccess = () =>
+  client.get<AuditAccessResponse>('/api/v1/audit/security/access').then((r) => r.data);
+
+/** Run the security audit against a website URL. Pro/Enterprise. */
+export const auditSecurity = (url: string) =>
+  client
+    .post<SecurityAuditResponse>('/api/v1/audit/security', { url }, { timeout: 90_000 })
+    .then((r) => r.data);
+
+/** Resolve a Google Maps URL and run the security audit on the listed website. */
+export const auditSecurityPlace = (mapsUrl: string) =>
+  client
+    .post<SecurityAuditPlaceResponse>(
+      '/api/v1/audit/security/place',
+      { maps_url: mapsUrl },
+      { timeout: 90_000 },
+    )
+    .then((r) => r.data);
+
 /**
  * Audit a Google Maps share URL, place_id, or business name. Requires login
  * + an active Pro/Enterprise plan. Server-side rate limit: 20/min/IP.
@@ -1858,6 +1999,78 @@ export const auditPlace = (mapsUrl: string) =>
       { maps_url: mapsUrl },
       { timeout: 60_000 },
     )
+    .then((r) => r.data);
+
+/* ───────────────────────── Shared audit reports ──────────────────────────
+ * Powers the /scanner "Share report" feature. Authenticated users can
+ * snapshot an audit and email it to recipients; recipients must sign in
+ * (or sign up) to view via /shared/audit/:token.
+ */
+
+export type SharedAuditKind = 'website' | 'maps' | 'security' | 'security_place';
+
+export interface CreateSharedAuditRequest {
+  kind: SharedAuditKind;
+  title: string;
+  subject_url?: string | null;
+  message?: string | null;
+  recipients: string[];
+  payload: Record<string, unknown>;
+}
+
+export interface CreateSharedAuditResponse {
+  token: string;
+  url: string;
+  expires_at: string;
+  delivered: number;
+  failed: string[];
+}
+
+export interface SharedAuditSummary {
+  token: string;
+  kind: SharedAuditKind;
+  title: string;
+  subject_url: string | null;
+  recipients: string[];
+  view_count: number;
+  created_at: string;
+  expires_at: string;
+  revoked_at: string | null;
+  url: string;
+}
+
+export interface SharedAuditView {
+  token: string;
+  kind: SharedAuditKind;
+  title: string;
+  subject_url: string | null;
+  message: string | null;
+  owner_display_name: string | null;
+  owner_avatar_url: string | null;
+  payload: DeepAudit | MapsAuditResponse | SecurityAuditResponse | SecurityAuditPlaceResponse;
+  created_at: string;
+  expires_at: string;
+  is_owner: boolean;
+}
+
+/** Create + (optionally) email a shared audit report. */
+export const createSharedAudit = (body: CreateSharedAuditRequest) =>
+  client
+    .post<CreateSharedAuditResponse>('/api/v1/shared-audits', body, { timeout: 60_000 })
+    .then((r) => r.data);
+
+/** List the current user's shared reports. */
+export const listMyShares = () =>
+  client.get<SharedAuditSummary[]>('/api/v1/shared-audits/mine').then((r) => r.data);
+
+/** Revoke a shared report. */
+export const revokeSharedAudit = (token: string) =>
+  client.delete(`/api/v1/shared-audits/${encodeURIComponent(token)}`).then((r) => r.data);
+
+/** Fetch a shared report. The viewer must be authenticated. */
+export const getSharedAudit = (token: string) =>
+  client
+    .get<SharedAuditView>(`/api/v1/shared-audits/${encodeURIComponent(token)}`)
     .then((r) => r.data);
 
 // ── Public Lead Directory ─────────────────────────────────────────────────────

@@ -64,3 +64,6 @@ from app.models.infrastructure import APIProvider
 
 # ── Admin audit log (superuser actions on user accounts) ──────────────────────
 from app.models.admin_audit_log import AdminAuditLog
+
+# ── Shared audit reports (scanner "Share report" feature) ─────────────────────
+from app.models.shared_audit import SharedAuditReport

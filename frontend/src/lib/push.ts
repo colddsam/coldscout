@@ -65,6 +65,10 @@ function readActivePushEndpoint(): string | null {
   }
 }
 
+export function getActivePushEndpoint(): string | null {
+  return readActivePushEndpoint();
+}
+
 export function rememberActivePushEndpoint(endpoint: string): void {
   if (typeof window === 'undefined') return;
   try {
@@ -250,6 +254,16 @@ export async function disablePush(): Promise<PushResult> {
       // / ``registration``) and re-enabling without a hard reload would
       // leave the user receiving zero notifications until next launch.
       await detachAndroidRegistrationListeners();
+
+      const endpoint = readActivePushEndpoint();
+      if (endpoint) {
+        try {
+          await unsubscribePushByEndpoint(endpoint);
+        } catch (e) {
+          console.warn('[push] Failed to delete FCM token from backend:', e);
+        }
+      }
+
       await PushNotifications.unregister();
       forgetActivePushEndpoint();
       return { status: 'unsupported', message: 'Native push disabled on this device.' };

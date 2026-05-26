@@ -110,7 +110,8 @@ export default function Button({
           <span
             className={cn(
               size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4',
-              'flex items-center justify-center -ml-0.5',
+              'flex items-center justify-center',
+              children && (size === 'sm' ? 'sm:-ml-0.5' : '-ml-0.5'),
             )}
           >
             {icon}

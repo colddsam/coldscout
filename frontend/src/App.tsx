@@ -61,6 +61,7 @@ const LeadDemoViewer = lazy(() => import('./pages/LeadDemoViewer'));
 const BookingPage = lazy(() => import('./pages/BookingPage'));
 const DownloadApp = lazy(() => import('./pages/Download'));
 const LeadScanner = lazy(() => import('./pages/LeadScanner'));
+const SharedAuditViewPage = lazy(() => import('./pages/SharedAuditView'));
 const Faq = lazy(() => import('./pages/Faq'));
 const Compare = lazy(() => import('./pages/Compare'));
 const UseCases = lazy(() => import('./pages/UseCases'));
@@ -95,6 +96,7 @@ const PUBLIC_NO_SPLASH_PATTERNS: RegExp[] = [
   /^\/demo\//,
   /^\/book\//,
   /^\/scanner$/,
+  /^\/shared\/audit\//,
   /^\/download$/,
   /^\/privacy$/,
   /^\/terms$/,
@@ -226,6 +228,7 @@ function AppShell() {
             <Route path="/book/:username/:eventSlug" element={<BookingPage />} />
             <Route path="/download" element={<DownloadApp />} />
             <Route path="/scanner" element={<LeadScanner />} />
+            <Route path="/shared/audit/:token" element={<SharedAuditViewPage />} />
             <Route path="/faq" element={<Faq />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/use-cases" element={<UseCases />} />

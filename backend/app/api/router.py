@@ -22,6 +22,7 @@ from app.api.v1.seo import router as seo_router
 from app.api.v1.discovery_config import router as discovery_config_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.shared_audits import router as shared_audits_router
 from app.api.v1.directory import router as directory_router
 from app.api.v1.booking_integrations import router as booking_integrations_router
 from app.api.v1.booking_management import router as booking_management_router
@@ -65,6 +66,7 @@ private_router.include_router(billing.router, tags=["billing"])
 private_router.include_router(discovery_config_router, tags=["discovery-config"])
 private_router.include_router(notifications_router, tags=["notifications"])
 private_router.include_router(audit_router, tags=["audit"])
+private_router.include_router(shared_audits_router, tags=["shared-audits"])
 private_router.include_router(booking_management_router, tags=["booking-management"])
 private_router.include_router(analytics_router, tags=["analytics"])
 private_router.include_router(infrastructure_router, tags=["api-keys"])

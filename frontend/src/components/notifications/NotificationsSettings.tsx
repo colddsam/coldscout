@@ -22,6 +22,7 @@ import {
   currentPermission,
   disablePush,
   enablePush,
+  getActivePushEndpoint,
   isNativeAndroid,
   isWebPushSupported,
 } from '../../lib/push';
@@ -56,12 +57,16 @@ export default function NotificationsSettings() {
 
   const hasActiveLocalSub = useMemo(() => {
     if (!subs.data) return false;
-    if (native) return subs.data.some((s) => s.platform === 'android');
-    // We can't compare endpoints from the client without re-querying the SW,
-    // so we treat "any web subscription on this account" + "permission granted"
-    // as a good-enough signal for the toggle UI.
-    return permission === 'granted' && subs.data.some((s) => s.platform === 'web');
-  }, [subs.data, native, permission]);
+    const activeEndpoint = getActivePushEndpoint();
+    if (!activeEndpoint) return false;
+
+    // Generate the same preview as the backend
+    const preview = activeEndpoint.length > 28
+      ? `${activeEndpoint.slice(0, 18)}…${activeEndpoint.slice(-8)}`
+      : activeEndpoint;
+
+    return subs.data.some((s) => s.endpoint_preview === preview);
+  }, [subs.data]);
 
   const handleEnable = async () => {
     setBusy(true);

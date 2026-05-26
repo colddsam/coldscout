@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap><loc>https://coldscout.colddsam.com/sitemap.xml</loc><lastmod>2026-05-24</lastmod></sitemap>
-  <sitemap><loc>https://coldscout.colddsam.com/sitemap-images.xml</loc><lastmod>2026-05-24</lastmod></sitemap>
-  <sitemap><loc>https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml</loc><lastmod>2026-05-24</lastmod></sitemap>
-  <sitemap><loc>https://coldscout.colddsam.com/api/v1/seo/sitemap-directory.xml</loc><lastmod>2026-05-24</lastmod></sitemap>
+  <sitemap><loc>https://coldscout.colddsam.com/sitemap.xml</loc><lastmod>2026-05-26</lastmod></sitemap>
+  <sitemap><loc>https://coldscout.colddsam.com/sitemap-images.xml</loc><lastmod>2026-05-26</lastmod></sitemap>
+  <sitemap><loc>https://coldscout.colddsam.com/api/v1/seo/sitemap-profiles.xml</loc><lastmod>2026-05-26</lastmod></sitemap>
+  <sitemap><loc>https://coldscout.colddsam.com/api/v1/seo/sitemap-directory.xml</loc><lastmod>2026-05-26</lastmod></sitemap>
 </sitemapindex>

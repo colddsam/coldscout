@@ -25,7 +25,7 @@ export default function PublicNavbar() {
   // PWAs (where the WebView extends behind the system bar).
   const navWidth = useTransform(scrollY, [0, 80], ['100%', '92%']);
   const navTopBase = useTransform(scrollY, [0, 80], [12, 16]);
-  const navTop = useTransform(navTopBase, (v) => `calc(env(safe-area-inset-top) + ${v}px)`);
+  const navTop = useTransform(navTopBase, (v) => `calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + ${v}px)`);
   const navRadius = useTransform(scrollY, [0, 80], [20, 999]);
 
   useEffect(() => {
@@ -212,7 +212,7 @@ export default function PublicNavbar() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <div className="flex flex-col p-6 pt-[calc(env(safe-area-inset-top)+6rem)] gap-2 h-full pb-safe">
+            <div className="flex flex-col p-6 pt-[calc(var(--safe-area-inset-top,env(safe-area-inset-top,0px))+6rem)] gap-2 h-full pb-safe">
               {navLinks.map((link, i) => (
                 <motion.div
                   key={link.name}
