@@ -3,6 +3,11 @@ import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query
 import { SITE } from '@front/lib/seo/site';
 import { ogImageUrl } from '@/lib/seo';
 import { serverGet } from '@/lib/serverApi';
+import JsonLd from '@/components/json-ld';
+import {
+  directoryListJsonLd,
+  type DirectoryLeadCard,
+} from '@front/lib/seo/directory-schema';
 import Client from './client';
 
 export const revalidate = 3600;
@@ -66,14 +71,23 @@ export default async function Page({
 
   // Prefetch the same query the client uses so the list body server-renders.
   const qc = new QueryClient();
-  const data = await serverGet(
+  const data = await serverGet<{ total?: number; leads?: DirectoryLeadCard[] }>(
     `/api/v1/directory/${industry}/${city}?page=${page}&limit=20`,
     3600,
   );
   if (data) qc.setQueryData(['directory-list', industry, city, page, 20], data);
 
+  // Server-render BreadcrumbList + ItemList<LocalBusiness> for this
+  // city × industry page — the programmatic-SEO/GEO payload crawlers read.
+  const { breadcrumbLd, itemListLd } = directoryListJsonLd({ industry, city, page, data });
+  const blocks = [
+    { id: 'directory-list-breadcrumb', data: breadcrumbLd },
+    ...(itemListLd ? [{ id: 'directory-list-items', data: itemListLd }] : []),
+  ];
+
   return (
     <HydrationBoundary state={dehydrate(qc)}>
+      <JsonLd blocks={blocks} />
       <Client />
     </HydrationBoundary>
   );

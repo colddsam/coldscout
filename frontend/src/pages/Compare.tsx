@@ -19,6 +19,7 @@ import {
   faqSchema,
 } from '../lib/seo/schemas';
 import { buildOgImage } from '../lib/seo/og';
+import { COMPARE_FAQS } from '../lib/seo/page-data';
 
 const COMPARE_URL = `${SITE.url}/compare`;
 
@@ -94,25 +95,6 @@ const TOOLS: Tool[] = [
       { label: 'Native CRM sync', value: 'Limited' },
       { label: 'Starting price', value: '~$30/mo' },
     ],
-  },
-];
-
-const COMPARE_FAQS = [
-  {
-    q: 'Is Cold Scout an Apollo alternative?',
-    a: 'Yes for local-business outreach and self-hosting. Cold Scout sources leads from Google Maps and runs entirely on your infrastructure. Apollo wins for SaaS-to-SaaS targeting where its 260M-contact database is the product.',
-  },
-  {
-    q: 'Is Cold Scout an Outreach alternative?',
-    a: 'For solo founders, freelancers, and small teams — yes. Cold Scout covers discovery, qualification, and outreach without the enterprise overhead. Outreach is a better fit for sales teams of 20+ on annual contracts with deep Salesforce integration.',
-  },
-  {
-    q: 'Is Cold Scout an Instantly alternative?',
-    a: 'They overlap on cold email, but Cold Scout adds AI lead discovery and qualification before sending. Instantly is the right pick if you already have a list and just need affordable, deliverable sending.',
-  },
-  {
-    q: 'Why is Cold Scout cheaper?',
-    a: 'Two reasons. The OSS package is free — your only cost is third-party API usage on your own accounts. The Pro plan is priced for individual operators, not enterprise procurement.',
   },
 ];
 

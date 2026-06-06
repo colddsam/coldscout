@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
+import { faqSchema } from '../lib/seo/schemas';
+import { SUPPORT_FAQS } from '../lib/seo/page-data';
 import { Headphones, Mail, Clock, BookOpen, Zap, AlertCircle, MessageSquare } from 'lucide-react';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
@@ -28,44 +30,7 @@ const LD_SUPPORT = {
   },
 };
 
-const LD_FAQ_SUPPORT = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'How do I contact Cold Scout support?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Email us at admin@colddsam.com for technical and general support, or for billing and account inquiries. Include your account email, a description of the issue, and any relevant screenshots for fastest resolution.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What are Cold Scout support response times?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Critical issues (platform outages, data loss): within 4 hours. Standard issues (bugs, setup errors, billing): within 24 hours. General enquiries (feature requests, questions): within 72 hours. Response times are measured during business hours, Monday through Friday.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What can Cold Scout support help with?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Our support team assists with platform setup and onboarding, AI pipeline and automation troubleshooting, account and billing management, and reporting bugs or technical errors.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How do I escalate an unresolved Cold Scout support ticket?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'If your issue has not been resolved within the expected response window, reply to your original support thread and add "ESCALATE" in the subject line. A senior team member will review your case and respond within 24 hours.',
-      },
-    },
-  ],
-};
+const LD_FAQ_SUPPORT = faqSchema(SUPPORT_FAQS, 'https://coldscout.colddsam.com/support');
 
 export default function Support() {
   useSEO({

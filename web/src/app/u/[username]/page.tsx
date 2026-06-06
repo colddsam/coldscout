@@ -3,6 +3,9 @@ import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query
 import { SITE } from '@front/lib/seo/site';
 import { ogImageUrl } from '@/lib/seo';
 import { serverGet } from '@/lib/serverApi';
+import JsonLd from '@/components/json-ld';
+import { buildProfileJsonLd } from '@front/lib/seo/profile-schema';
+import type { PublicProfile } from '@front/lib/api';
 import Client from './client';
 
 export const revalidate = 1800;
@@ -69,11 +72,24 @@ export default async function Page({
 }) {
   const { username } = await params;
   const qc = new QueryClient();
-  const profile = await serverGet(profileEndpoint(username), 1800);
+  const profile = await serverGet<PublicProfile>(profileEndpoint(username), 1800);
   if (profile) qc.setQueryData(['public-profile', username], profile);
+
+  // Server-render the same ProfilePage / Person / Organization graph the client
+  // builds, so AI answer engines and social scrapers (no JS) see it. Same ids →
+  // the client adopts these tags on hydration instead of duplicating them.
+  const ld = profile ? buildProfileJsonLd(profile, username) : null;
+  const blocks = ld
+    ? [
+        { id: 'profile-breadcrumb', data: ld.breadcrumbLd },
+        { id: 'profile-page', data: ld.profilePageLd },
+        ...(ld.portfolioLd ? [{ id: 'profile-portfolio', data: ld.portfolioLd }] : []),
+      ]
+    : [];
 
   return (
     <HydrationBoundary state={dehydrate(qc)}>
+      <JsonLd blocks={blocks} />
       <Client />
     </HydrationBoundary>
   );

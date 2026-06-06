@@ -24,6 +24,7 @@ import {
   articleSchema,
   howToSchema,
 } from '../lib/seo/schemas';
+import { DOCS_HOWTO } from '../lib/seo/page-data';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 
@@ -931,40 +932,7 @@ const LD_TECH_ARTICLE_DOCS = articleSchema({
   ],
 });
 
-const LD_HOWTO_DOCS = howToSchema({
-  name: 'How to install and self-host Cold Scout',
-  description:
-    'Set up the Cold Scout AI lead generation pipeline on your own infrastructure with Docker or pip in about 15 minutes.',
-  totalTimeISO: 'PT15M',
-  pageId: DOCS_URL,
-  steps: [
-    {
-      name: 'Clone the repository',
-      text: 'Clone the open-source Cold Scout repo from GitHub and switch into the project directory.',
-      url: `${DOCS_URL}#setup`,
-    },
-    {
-      name: 'Provision API keys',
-      text: 'Create accounts on Google Cloud (Places API), Groq, Brevo, and Supabase. Each has a free tier sufficient for testing.',
-      url: `${DOCS_URL}#api-keys`,
-    },
-    {
-      name: 'Configure environment variables',
-      text: 'Copy .env.example to .env and fill in the API keys, database URL, and SMTP credentials.',
-      url: `${DOCS_URL}#env`,
-    },
-    {
-      name: 'Run with Docker Compose',
-      text: 'Run docker compose up to start the FastAPI backend, the React frontend, and the APScheduler worker together.',
-      url: `${DOCS_URL}#deployment`,
-    },
-    {
-      name: 'Configure your first pipeline',
-      text: 'Open the dashboard, define your Ideal Customer Profile (industry, location, ICP signals), and trigger your first discovery run.',
-      url: `${DOCS_URL}#configuration`,
-    },
-  ],
-});
+const LD_HOWTO_DOCS = howToSchema({ ...DOCS_HOWTO, pageId: DOCS_URL });
 
 const LD_SERVICE_MCP = {
   '@context': 'https://schema.org',

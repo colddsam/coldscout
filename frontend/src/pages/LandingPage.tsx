@@ -17,6 +17,7 @@ import JsonLd from '../components/seo/JsonLd';
 import { SITE } from '../lib/seo/site';
 import { BASE_PRICING } from '../lib/seo/pricing';
 import { HOMEPAGE_FAQS } from '../lib/seo/faq';
+import { HOMEPAGE_HOWTO } from '../lib/seo/page-data';
 import {
   softwareApplicationSchema,
   howToSchema,
@@ -502,34 +503,7 @@ function FaqSection() {
 
 const LD_SOFTWARE = softwareApplicationSchema();
 
-const LD_HOW_TO = howToSchema({
-  name: 'How to Generate Qualified Leads with Cold Scout AI',
-  description:
-    'Use Cold Scout to automatically discover, qualify, and engage local business leads in four steps.',
-  totalTimeISO: 'PT5M',
-  steps: [
-    {
-      name: 'Configure Your Target',
-      text: 'Set your target industry, location, and ideal customer criteria in the pipeline configuration.',
-      url: `${SITE.url}/docs#configuration`,
-    },
-    {
-      name: 'AI Lead Discovery',
-      text: 'Cold Scout AI scrapes Google Maps and enriches leads with business data, contact info, and social profiles.',
-      url: `${SITE.url}/docs#discovery`,
-    },
-    {
-      name: 'Score and Qualify',
-      text: 'Machine learning models rank leads by purchase intent and ICP fit, ensuring you focus on hot prospects.',
-      url: `${SITE.url}/docs#qualification`,
-    },
-    {
-      name: 'Automated Personalized Outreach',
-      text: 'AI-generated personalized email campaigns automatically reach your best prospects with tracked follow-ups.',
-      url: `${SITE.url}/docs#outreach`,
-    },
-  ],
-});
+const LD_HOW_TO = howToSchema({ ...HOMEPAGE_HOWTO, pageId: `${SITE.url}/` });
 
 // JSON-LD answers must match the visible FAQ on this page AND the /faq page
 // verbatim — diverging copy creates duplicate-FAQPage conflicts that Google

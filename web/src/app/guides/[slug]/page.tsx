@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { postMetadata, postSlugs } from '@/lib/seo';
+import JsonLd from '@/components/json-ld';
+import { postLd } from '@/lib/structured-data';
 import Client from './client';
 
 export const revalidate = 3600;
@@ -18,6 +20,16 @@ export async function generateMetadata({
   return postMetadata('guide', slug);
 }
 
-export default function Page() {
-  return <Client />;
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  return (
+    <>
+      <JsonLd blocks={postLd('guide', slug)} />
+      <Client />
+    </>
+  );
 }

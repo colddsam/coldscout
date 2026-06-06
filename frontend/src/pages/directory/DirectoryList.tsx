@@ -20,6 +20,7 @@ import { useDirectoryList } from '../../hooks/useDirectory';
 import { useSEO } from '../../hooks/useSEO';
 import JsonLd from '../../components/seo/JsonLd';
 import { buildOgImage } from '../../lib/seo/og';
+import { directoryListJsonLd } from '../../lib/seo/directory-schema';
 import PublicNavbar from '../../components/layout/PublicNavbar';
 import PublicFooter from '../../components/layout/PublicFooter';
 import {
@@ -67,44 +68,8 @@ export default function DirectoryList() {
     keywords: `${displayIndustry.toLowerCase()} leads, ${displayCity.toLowerCase()} leads, ${displayIndustry.toLowerCase()} ${displayCity.toLowerCase()}, local business leads, Cold Scout directory`,
   });
 
-  // JSON-LD
-  const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-      { '@type': 'ListItem', position: 2, name: 'Directory', item: `${BASE_URL}/directory` },
-      { '@type': 'ListItem', position: 3, name: `${displayIndustry} in ${displayCity}`, item: `${BASE_URL}/directory/${industry}/${city}` },
-    ],
-  };
-
-  const itemListLd = data?.leads?.length ? {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: `${displayIndustry} Leads in ${displayCity}`,
-    description: seoDesc,
-    numberOfItems: data.total,
-    itemListElement: data.leads.map((lead, i) => ({
-      '@type': 'ListItem',
-      position: (page - 1) * 20 + i + 1,
-      item: {
-        '@type': 'LocalBusiness',
-        name: lead.business_name,
-        url: `${BASE_URL}/directory/lead/${lead.slug}`,
-        ...(lead.category && { '@additionalType': lead.category }),
-        ...(lead.city && {
-          address: {
-            '@type': 'PostalAddress',
-            addressLocality: lead.city,
-            ...(lead.state && { addressRegion: lead.state }),
-            ...(lead.country && { addressCountry: lead.country }),
-          },
-        }),
-        ...(lead.rating && { aggregateRating: { '@type': 'AggregateRating', ratingValue: lead.rating, reviewCount: lead.review_count ?? 0 } }),
-        ...(lead.website_url && { url: lead.website_url }),
-      },
-    })),
-  } : null;
+  // JSON-LD (shared builder → identical schema server-renders in web/)
+  const { breadcrumbLd, itemListLd } = directoryListJsonLd({ industry, city, page, data });
 
   const goToPage = (p: number) => {
     setSearchParams({ page: String(p) });

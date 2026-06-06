@@ -13,6 +13,7 @@ import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
 import { SITE } from '../lib/seo/site';
 import { breadcrumbSchema, webPageSchema, itemListSchema } from '../lib/seo/schemas';
+import { USE_CASE_ITEMS } from '../lib/seo/page-data';
 import { buildOgImage } from '../lib/seo/og';
 
 const USE_CASES_URL = `${SITE.url}/use-cases`;
@@ -88,10 +89,10 @@ const LD_WEBPAGE = webPageSchema({
 });
 
 const LD_ITEMLIST = itemListSchema(
-  PERSONAS.map((p) => ({
-    url: `${USE_CASES_URL}#${p.id}`,
-    name: p.title,
-    description: p.summary,
+  USE_CASE_ITEMS.map((it) => ({
+    url: `${USE_CASES_URL}#${it.id}`,
+    name: it.name,
+    description: it.description,
   })),
   USE_CASES_URL,
 );

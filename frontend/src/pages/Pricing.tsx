@@ -33,6 +33,7 @@ import {
   webPageSchema,
 } from '../lib/seo/schemas';
 import { buildOgImage } from '../lib/seo/og';
+import { PRICING_FAQS } from '../lib/seo/page-data';
 
 type CurrencyInfo = CurrencyDisplay;
 
@@ -555,29 +556,6 @@ function CtaBanner() {
 /* ═══════════════ Main Pricing Page ═══════════════ */
 
 const PRICING_URL = `${SITE.url}/pricing`;
-
-const PRICING_FAQS = [
-  {
-    q: 'Is the platform truly free to self-host?',
-    a: 'Absolutely. Download the Cold Scout OSS package from our GitHub Releases page, set up your own API keys (Google Places, Groq, Brevo — all have free tiers), and run it on your own machine. You only pay for third-party API usage on your own accounts.',
-  },
-  {
-    q: 'What do I get with the Pro plan?',
-    a: 'The Pro plan gives you instant access to our pre-configured, managed API server and MCP server — no deployment, no Docker, no environment setup. You get a ready-to-use API key and start generating leads immediately.',
-  },
-  {
-    q: 'Can I cancel my subscription anytime?',
-    a: 'Yes. Both Pro and Enterprise plans are billed monthly with no long-term contracts. Cancel anytime from your dashboard. Your access continues until the end of the current billing period.',
-  },
-  {
-    q: 'What happens if I exceed the 2,000 leads/month on Pro?',
-    a: 'You will receive a notification when you approach your limit. Once reached, the pipeline pauses until the next billing cycle. You can upgrade to Enterprise at any time for unlimited leads.',
-  },
-  {
-    q: 'How does the Enterprise plan differ for agencies?',
-    a: 'Enterprise customers get a dedicated API instance, custom ICP model training tailored to their niche, white-label email templates, and priority support with a 4-hour response SLA.',
-  },
-];
 
 const LD_WEBPAGE_PRICING = webPageSchema({
   url: PRICING_URL,

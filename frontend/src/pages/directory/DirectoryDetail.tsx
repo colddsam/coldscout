@@ -20,6 +20,7 @@ import { useDirectoryLead } from '../../hooks/useDirectory';
 import { useSEO } from '../../hooks/useSEO';
 import JsonLd from '../../components/seo/JsonLd';
 import { buildOgImage } from '../../lib/seo/og';
+import { directoryDetailJsonLd } from '../../lib/seo/directory-schema';
 import PublicNavbar from '../../components/layout/PublicNavbar';
 import PublicFooter from '../../components/layout/PublicFooter';
 import {
@@ -77,50 +78,8 @@ export default function DirectoryDetail() {
       : 'digital presence audit, lead directory, Cold Scout',
   });
 
-  // JSON-LD
-  const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-      { '@type': 'ListItem', position: 2, name: 'Directory', item: `${BASE_URL}/directory` },
-      ...(lead ? [
-        { '@type': 'ListItem', position: 3, name: lead.business_name, item: `${BASE_URL}/directory/lead/${slug}` },
-      ] : []),
-    ],
-  };
-
-  const localBusinessLd = lead ? {
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: lead.business_name,
-    url: lead.website_url ?? `${BASE_URL}/directory/lead/${slug}`,
-    ...(lead.category && { '@additionalType': lead.category }),
-    ...(lead.address || lead.city ? {
-      address: {
-        '@type': 'PostalAddress',
-        ...(lead.address && { streetAddress: lead.address }),
-        ...(lead.city && { addressLocality: lead.city }),
-        ...(lead.state && { addressRegion: lead.state }),
-        ...(lead.country && { addressCountry: lead.country }),
-        ...(lead.postal_code && { postalCode: lead.postal_code }),
-      },
-    } : {}),
-    ...(lead.latitude && lead.longitude ? {
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: lead.latitude,
-        longitude: lead.longitude,
-      },
-    } : {}),
-    ...(lead.rating ? {
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: lead.rating,
-        reviewCount: lead.review_count ?? 0,
-      },
-    } : {}),
-  } : null;
+  // JSON-LD (shared builder → identical schema server-renders in web/)
+  const { breadcrumbLd, localBusinessLd } = directoryDetailJsonLd(slug, lead);
 
   return (
     <>

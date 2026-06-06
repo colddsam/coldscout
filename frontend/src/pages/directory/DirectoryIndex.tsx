@@ -16,20 +16,13 @@ import { useDirectoryLocations, useDirectoryIndustries } from '../../hooks/useDi
 import { useSEO } from '../../hooks/useSEO';
 import JsonLd from '../../components/seo/JsonLd';
 import { buildOgImage } from '../../lib/seo/og';
+import { directoryIndexJsonLd, slugifyCity } from '../../lib/seo/directory-schema';
+import { SITE } from '../../lib/seo/site';
 import PublicNavbar from '../../components/layout/PublicNavbar';
 import PublicFooter from '../../components/layout/PublicFooter';
 import {
   fadeInUp, staggerContainer, staggerItem, scaleIn, defaultViewport,
 } from '../../lib/motion';
-
-const BASE_URL = 'https://coldscout.colddsam.com';
-
-function slugifyCity(city: string): string {
-  return city
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 export default function DirectoryIndex() {
   const [search, setSearch] = useState('');
@@ -64,34 +57,13 @@ export default function DirectoryIndex() {
   useSEO({
     title: 'Business Lead Directory — Find Local Service Leads | Cold Scout',
     description: `Browse ${totalLeads.toLocaleString()}+ local business leads across ${data?.total_locations ?? 0} cities. Find plumbers, roofers, contractors, and more businesses that need digital services.`,
-    canonical: `${BASE_URL}/directory`,
+    canonical: `${SITE.url}/directory`,
     ogImage,
     keywords: 'business directory, local business leads, find leads by city, service leads, B2B leads, Cold Scout directory',
   });
 
-  // JSON-LD
-  const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE_URL}/` },
-      { '@type': 'ListItem', position: 2, name: 'Business Directory', item: `${BASE_URL}/directory` },
-    ],
-  };
-
-  const itemListLd = data?.locations?.length ? {
-    '@context': 'https://schema.org',
-    '@type': 'ItemList',
-    name: 'Cold Scout Business Lead Directory — Locations',
-    description: 'Browse local business leads by city and region.',
-    numberOfItems: data.locations.length,
-    itemListElement: data.locations.slice(0, 50).map((loc, i) => ({
-      '@type': 'ListItem',
-      position: i + 1,
-      name: `${loc.city}${loc.region ? `, ${loc.region}` : ''}${loc.country ? ` — ${loc.country}` : ''}`,
-      url: `${BASE_URL}/directory/all/${slugifyCity(loc.city)}`,
-    })),
-  } : null;
+  // JSON-LD (shared builder → identical schema server-renders in web/)
+  const { breadcrumbLd, itemListLd } = directoryIndexJsonLd(data);
 
   return (
     <>

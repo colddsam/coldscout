@@ -16,6 +16,7 @@ import { useSEO } from '../hooks/useSEO';
 import JsonLd from '../components/seo/JsonLd';
 import { SITE } from '../lib/seo/site';
 import { breadcrumbSchema, webPageSchema, itemListSchema } from '../lib/seo/schemas';
+import { INTEGRATION_ITEMS } from '../lib/seo/page-data';
 import { buildOgImage } from '../lib/seo/og';
 
 const INTEGRATIONS_URL = `${SITE.url}/integrations`;
@@ -140,10 +141,10 @@ const LD_WEBPAGE = webPageSchema({
 });
 
 const LD_ITEMLIST = itemListSchema(
-  INTEGRATIONS.map((i) => ({
-    url: i.url ?? `${INTEGRATIONS_URL}#${i.slug}`,
-    name: i.name,
-    description: i.description,
+  INTEGRATION_ITEMS.map((it) => ({
+    url: it.url ?? `${INTEGRATIONS_URL}#${it.id}`,
+    name: it.name,
+    description: it.description,
   })),
   INTEGRATIONS_URL,
 );

@@ -3,6 +3,11 @@ import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query
 import { SITE } from '@front/lib/seo/site';
 import { ogImageUrl } from '@/lib/seo';
 import { serverGet } from '@/lib/serverApi';
+import JsonLd from '@/components/json-ld';
+import {
+  directoryDetailJsonLd,
+  type DirectoryLeadDetail,
+} from '@front/lib/seo/directory-schema';
 import Client from './client';
 
 export const revalidate = 3600;
@@ -72,11 +77,20 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const qc = new QueryClient();
-  const lead = await serverGet(leadEndpoint(slug), 3600);
+  const lead = await serverGet<DirectoryLeadDetail>(leadEndpoint(slug), 3600);
   if (lead) qc.setQueryData(['directory-lead', slug], lead);
+
+  // Server-render LocalBusiness + BreadcrumbList for this lead — the rich
+  // local-business signal AI engines and Google rich results consume.
+  const { breadcrumbLd, localBusinessLd } = directoryDetailJsonLd(slug, lead);
+  const blocks = [
+    { id: 'directory-detail-breadcrumb', data: breadcrumbLd },
+    ...(localBusinessLd ? [{ id: 'directory-detail-business', data: localBusinessLd }] : []),
+  ];
 
   return (
     <HydrationBoundary state={dehydrate(qc)}>
+      <JsonLd blocks={blocks} />
       <Client />
     </HydrationBoundary>
   );
