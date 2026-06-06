@@ -27,6 +27,11 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
   // client. No behavioural change for the Vite/Android app — mount happens
   // immediately in the browser — and modal content is never SEO-relevant.
   const [mounted, setMounted] = useState(false);
+  // Intentional mount flag: this setState runs exactly once to flip from the
+  // server-rendered "not mounted" state to the client "mounted" state so the
+  // portal can target document.body. This is the canonical client-only-render
+  // pattern, not a cascading-render bug.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
