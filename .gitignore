@@ -3,6 +3,13 @@
 .env.*
 !.env.example
 
+# Node
+node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+.husky/_/
+
 # Python virtual environments
 venv/
 env/

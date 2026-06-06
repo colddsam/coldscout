@@ -208,7 +208,14 @@ export function installAuthStorageListeners(): void {
 
 // Install immediately on module load so any tab that imports the auth
 // plumbing automatically participates in the mirror contract.
-installAuthStorageListeners();
+//
+// Guarded for non-browser environments (Next.js SSR/SSG prerender, where this
+// module is imported transitively via lib/supabase): there is no window/document
+// on the server, so the eager hydration would throw. In a real browser (the
+// Vite app and the hydrated Next client) this runs exactly as before.
+if (typeof window !== 'undefined') {
+  installAuthStorageListeners();
 
-// Eagerly hydrate so the first Supabase read sees a populated sessionStorage.
-hydrateFromLastActive();
+  // Eagerly hydrate so the first Supabase read sees a populated sessionStorage.
+  hydrateFromLastActive();
+}

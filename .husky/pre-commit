@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Keep web (Next.js) routes in sync with the shared route manifest
+# (frontend/src/routes.manifest.ts). Android stays in sync automatically since
+# App.tsx is generated from the same manifest.
+#
+# 1) scaffold any web pages for new manifest routes, stage them
+# 2) fail the commit if anything is still out of parity (missing/orphan routes)
+node web/scripts/sync-routes.mjs --write
+git add web/src/app
+node web/scripts/sync-routes.mjs --check

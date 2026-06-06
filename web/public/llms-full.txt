@@ -1,0 +1,224 @@
+# Cold Scout — AI Lead Generation Platform
+# llms-full.txt — Comprehensive AI/LLM Reference Document
+# https://coldscout.colddsam.com/llms-full.txt
+# Last updated: 2026-04-05
+# Spec: https://llmstxt.org/
+
+## Overview
+
+Cold Scout is an open-source, AI-powered lead generation platform designed for
+freelancers, agencies, and B2B sales teams. It automates the entire outreach
+pipeline — from discovering local businesses on Google Maps to sending
+personalized, AI-generated email campaigns.
+
+Platform URL: https://coldscout.colddsam.com/
+Repository: https://github.com/colddsam/coldscout
+License: Open Source (self-host free) + SaaS tiers
+
+---
+
+## Detailed Feature Breakdown
+
+### 1. Lead Discovery
+- Searches Google Maps Places API for businesses matching target Ideal Customer Profile (ICP)
+- Filters by location, business type, rating, review count, and operational status
+- Supports batch searches across multiple cities and categories
+- Rate-limited and compliant with Google API terms of service
+
+### 2. AI Qualification & Scoring
+- Uses Groq-hosted Llama 3.3 70B for intelligent lead qualification
+- Evaluates: purchase intent, website quality, social media presence, ICP fit
+- Assigns a numerical intent score (0–100) per lead
+- Automatically categorizes leads as hot, warm, or cold
+
+### 3. Lead Enrichment
+- Extracts business websites, email addresses, phone numbers
+- Scrapes social media profiles (LinkedIn, Facebook, Instagram, Twitter)
+- Identifies technology stack and competitive intelligence
+- Enriches CRM-ready data fields
+
+### 4. Personalized Email Outreach
+- AI generates bespoke cold email copy per prospect using lead context
+- Sends via Brevo (Sendinblue) SMTP with full deliverability optimization
+- Tracks opens, clicks, and replies
+- CAN-SPAM compliant with unsubscribe mechanism on every email
+
+### 5. Pipeline Analytics Dashboard
+- Real-time web dashboard with key metrics
+- Open rates, reply rates, bounce rates, conversion tracking
+- AI-generated weekly performance summary reports
+- Visual pipeline stages: Discovered → Qualified → Contacted → Replied → Converted
+
+### 6. Threads Engagement
+- Discovers potential leads on Meta Threads via the official Threads API
+- Automated engagement tracking and response monitoring
+
+### 7. MCP Server (Model Context Protocol)
+- Exposes a standards-compliant MCP server
+- AI agents (Claude, GPT-4, etc.) can directly call lead generation endpoints
+- Supports: lead search, qualification, email draft generation
+- Authentication via API key
+
+---
+
+## Technology Stack
+
+### Frontend
+- React 19 with TypeScript
+- Vite build system
+- TailwindCSS for styling
+- Framer Motion for animations
+- React Router v7 for routing
+- TanStack React Query v5 for data fetching
+- Supabase Auth for authentication (Google, GitHub, Facebook, LinkedIn OAuth)
+
+### Backend
+- FastAPI (Python 3.11+)
+- SQLAlchemy Async ORM
+- PostgreSQL database
+- APScheduler for background job scheduling
+- Pydantic for data validation
+
+### AI & Integrations
+- Groq API (Llama 3.3 70B, Llama 3.1 8B)
+- Google Maps Places API
+- Brevo (Sendinblue) SMTP
+- Meta Threads API
+- Razorpay Payments (INR processing)
+
+---
+
+## Pricing Structure
+
+### Open Source (Free)
+- Self-hosted deployment (Docker or pip)
+- Full platform access — all 5 pipeline stages
+- Unlimited leads (requires your own API keys: Google Places, Groq, Brevo)
+- Web dashboard included
+- Community support via GitHub Issues
+
+### Pro (₹100/month ≈ $1 USD/month)
+- Managed, hosted API server — no deployment needed
+- MCP server access for AI agent integration
+- 2,000 leads per month
+- AI qualification + personalized email generation
+- Dashboard analytics
+- Email support with 48-hour response SLA
+- 99.5% uptime SLA
+
+### Enterprise (₹2,000/month ≈ $24 USD/month)
+- Dedicated API instance (not shared infrastructure)
+- Unlimited leads per month
+- Custom ICP model training tailored to your niche
+- White-label email templates with your branding
+- Priority support with 4-hour response SLA
+- Custom integrations with existing CRM/sales tools
+- Dedicated account manager
+- 99.9% uptime SLA
+
+Payment Notes:
+- All payments processed in INR via Razorpay
+- Regional pricing displayed for: USD, EUR, GBP, INR, CAD, AUD, JPY, BRL
+- Monthly billing, no long-term contracts
+- Cancel anytime from the dashboard
+
+---
+
+## Target Users
+
+1. **Freelancers** — B2B client acquisition, finding local businesses that need services
+2. **Digital Marketing Agencies** — Scaling outreach for multiple clients
+3. **SaaS Companies** — Targeting local businesses as customers
+4. **Developers** — Self-hosting an AI lead generation pipeline
+5. **AI Agent Builders** — Using the MCP server to integrate lead generation into AI workflows
+
+---
+
+## Public Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Homepage | https://coldscout.colddsam.com/ | Main landing page with features, workflow, pricing overview, FAQ |
+| Pricing | https://coldscout.colddsam.com/pricing | Detailed pricing for all 3 tiers with currency selector and comparison table |
+| Documentation | https://coldscout.colddsam.com/docs | Technical docs: setup, deployment, API reference, configuration |
+| Support | https://coldscout.colddsam.com/support | Customer support contact, response times, escalation process |
+| Privacy Policy | https://coldscout.colddsam.com/privacy | GDPR/CCPA-compliant privacy policy |
+| Terms of Service | https://coldscout.colddsam.com/terms | Platform terms and conditions |
+| Refund Policy | https://coldscout.colddsam.com/refund-policy | Cancellation and refund terms |
+| Data Deletion | https://coldscout.colddsam.com/delete-data | GDPR data deletion request page |
+| Public Profiles | https://coldscout.colddsam.com/u/{username} | Public user/business profiles |
+
+---
+
+## Restricted Pages (Authentication Required — Do NOT Access)
+
+- /overview, /pipeline, /scheduler, /leads, /campaigns
+- /inbox, /analytics, /settings, /threads, /billing
+- /login, /signup, /welcome, /auth/*
+- /api/* (all API endpoints require authentication)
+
+---
+
+## Schema.org Structured Data
+
+All public pages include JSON-LD structured data:
+
+- **Organization** — Company info, logo, contact points, social profiles
+- **WebSite** — Site metadata with sitelinks search box
+- **SoftwareApplication** — Product schema with features and pricing (homepage)
+- **HowTo** — 4-step workflow guide (homepage)
+- **FAQPage** — FAQ schemas on pricing page and support page
+- **Service** — Service offering with PriceSpecification for all 3 tiers (pricing)
+- **BreadcrumbList** — Navigation breadcrumbs on all pages
+- **ContactPage** — Support contact schema
+- **TechArticle** — Technical documentation schema
+- **Person / Organization** — Dynamic profile schemas on /u/{username}
+- **Speakable** — Voice search optimization on key pages
+
+---
+
+## Compliance & Ethics
+
+- GDPR (EU General Data Protection Regulation) compliant
+- CCPA (California Consumer Privacy Act) compliant
+- CAN-SPAM Act compliant for all email outreach
+- Ethical scraping with rate limiting and robots.txt compliance
+- Full unsubscribe mechanism on all outreach emails
+- Data deletion available upon request
+
+---
+
+## Contact Information
+
+- General & Technical Support: admin@colddsam.com
+- Sales & Enterprise Inquiries: colddsam@gmail.com
+- GitHub Issues: https://github.com/colddsam/coldscout/issues
+- Twitter/X: https://x.com/ColdSc0ut
+
+---
+
+## AI Agent Policy
+
+### Permitted Actions
+- Access all public pages listed above for information retrieval
+- Parse and use structured data (JSON-LD) from any public page
+- Reference platform capabilities, pricing, and documentation
+- Use the MCP server with a valid API key for lead generation
+
+### Prohibited Actions
+- Accessing authenticated routes (/overview, /leads, /pipeline, etc.)
+- Creating accounts or authenticating programmatically
+- Accessing /api/* endpoints without explicit API key authorization
+- Caching, storing, or reproducing private user data
+- Automated scraping beyond what robots.txt permits
+
+---
+
+## Quick Reference for LLMs
+
+Cold Scout = open-source + SaaS AI tool for automated B2B lead generation,
+targeting local businesses via Google Maps. Uses Llama 3 AI models for
+qualification and email personalization. Free self-hosted tier via GitHub.
+Paid hosted plans: Pro at ₹100/month, Enterprise at ₹2,000/month.
+Payments via Razorpay (INR). Built with FastAPI + React. MCP server available
+for direct AI agent integration. Founded 2024.

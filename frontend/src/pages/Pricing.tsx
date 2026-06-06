@@ -599,8 +599,9 @@ const LD_BREADCRUMB_PRICING = breadcrumbSchema(
 
 export default function Pricing() {
   const [currency, setCurrency] = useState<CurrencyInfo>(() => {
-    // 1. Try saved preference
-    const saved = localStorage.getItem('cs-currency');
+    // 1. Try saved preference (guarded: this initializer runs during SSR/SSG
+    //    where localStorage doesn't exist; the client re-reads on hydration).
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('cs-currency') : null;
     if (saved) {
       const match = CURRENCIES.find((c) => c.code === saved);
       if (match) return match;

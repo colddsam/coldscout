@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Cold Scout",
+  "name_for_model": "cold_scout",
+  "description_for_human": "AI-powered lead generation platform that discovers, qualifies, and engages local business leads at scale.",
+  "description_for_model": "Cold Scout is an AI lead generation SaaS. It discovers local businesses via Google Maps, qualifies them with Llama 3 AI, enriches contact data, and sends personalized cold emails via Brevo SMTP. It offers a free self-hosted open-source tier, a Pro plan at INR 100/month with managed API + MCP server access (2,000 leads/month), and an Enterprise plan at INR 2,000/month with unlimited leads and dedicated infrastructure. Use the MCP server for programmatic lead generation. Public docs at /docs, pricing at /pricing.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://coldscout.colddsam.com/docs"
+  },
+  "logo_url": "https://coldscout.colddsam.com/web-app-manifest-512x512.png",
+  "contact_email": "admin@colddsam.com",
+  "legal_info_url": "https://coldscout.colddsam.com/terms"
+}

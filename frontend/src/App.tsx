@@ -1,112 +1,78 @@
 /**
- * Root Application Component.
+ * Root Application Component (Android / Vite build).
  *
- * Orchestrates the global providers (QueryClient, React Router, AuthContext)
- * and defines the primary routing architecture for the Cold Scout dashboard.
- * Includes public-facing pages, OAuth callback handling, and protected dashboard routes.
+ * Orchestrates global providers (QueryClient, Router, Auth) and renders the
+ * route tree. Routes are NOT hand-written here anymore — they are generated
+ * from the shared single-source manifest in ./routes.manifest.ts, so the
+ * Android route table can never drift from the web (Next.js) route table.
+ * See routes.manifest.ts for the full rationale + the sync guard.
  *
- * Route Structure:
- * - Public: Landing, Login, SignUp, Docs, Pricing, Legal pages
- * - Auth: OAuth callback handler
- * - Protected (Client): Welcome page
- * - Protected (Freelancer): Full dashboard access
+ * Everything Android/native-specific (splash screen, Capacitor deep-link OAuth
+ * handler, update banner, session-expiry modal) is preserved here.
  */
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, createElement } from 'react';
+import type { ComponentType, LazyExoticComponent } from 'react';
 
 import Shell from './components/layout/Shell';
 import SplashScreen from './components/SplashScreen';
 import UpdateBanner from './components/UpdateBanner';
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import AuthCallback from './pages/AuthCallback';
-import NotFound from './pages/NotFound';
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute, { FreelancerRoute, ClientRoute, SuperuserRoute } from './components/auth/ProtectedRoute';
 import SessionExpiredModal from './components/auth/SessionExpiredModal';
+import { ROUTES, NOT_FOUND_COMPONENT, type RouteDef } from './routes.manifest';
 
-// ── Lazy-loaded routes ──────────────────────────────────────────────
-// Splitting heavy pages out of the critical path keeps the marketing-page
-// JS budget tiny — Landing/Login/SignUp ship as the only eager bundle.
-// Each lazy route resolves in its own chunk, so users only pay for what
-// they actually navigate to.
-const Welcome = lazy(() => import('./pages/Welcome'));
-const Documentation = lazy(() => import('./pages/Documentation'));
-const Pricing = lazy(() => import('./pages/Pricing'));
-const Overview = lazy(() => import('./pages/Overview'));
-const Pipeline = lazy(() => import('./pages/Pipeline'));
-const Scheduler = lazy(() => import('./pages/Scheduler'));
-const Leads = lazy(() => import('./pages/Leads'));
-const LeadDetail = lazy(() => import('./pages/LeadDetail'));
-const Campaigns = lazy(() => import('./pages/Campaigns'));
-const Inbox = lazy(() => import('./pages/Inbox'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const Settings = lazy(() => import('./pages/Settings'));
-const APIKeys = lazy(() => import('./pages/APIKeys'));
-const Threads = lazy(() => import('./pages/Threads'));
-const Billing = lazy(() => import('./pages/Billing'));
-const Bookings = lazy(() => import('./pages/Bookings'));
-const DiscoveryTargets = lazy(() => import('./pages/DiscoveryTargets'));
-const Privacy = lazy(() => import('./pages/Privacy'));
-const Terms = lazy(() => import('./pages/Terms'));
-const DataDeletion = lazy(() => import('./pages/DataDeletion.tsx'));
-const Support = lazy(() => import('./pages/Support'));
-const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
-const Profile = lazy(() => import('./pages/Profile'));
-const PublicProfile = lazy(() => import('./pages/PublicProfile'));
-const LeadDemoViewer = lazy(() => import('./pages/LeadDemoViewer'));
-const BookingPage = lazy(() => import('./pages/BookingPage'));
-const DownloadApp = lazy(() => import('./pages/Download'));
-const LeadScanner = lazy(() => import('./pages/LeadScanner'));
-const SharedAuditViewPage = lazy(() => import('./pages/SharedAuditView'));
-const Faq = lazy(() => import('./pages/Faq'));
-const Compare = lazy(() => import('./pages/Compare'));
-const UseCases = lazy(() => import('./pages/UseCases'));
-const Integrations = lazy(() => import('./pages/Integrations'));
-const Changelog = lazy(() => import('./pages/Changelog'));
-const Blog = lazy(() => import('./pages/Blog'));
-const Guides = lazy(() => import('./pages/Guides'));
-const Post = lazy(() => import('./pages/Post'));
-const DirectoryIndex = lazy(() => import('./pages/directory/DirectoryIndex'));
-const DirectoryList = lazy(() => import('./pages/directory/DirectoryList'));
-const DirectoryDetail = lazy(() => import('./pages/directory/DirectoryDetail'));
-const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+// ── Component registry ──────────────────────────────────────────────
+// Every page module is lazy-loaded so each route ships in its own chunk.
+// `import.meta.glob` (Vite) builds the loader map at build time; the manifest's
+// `component` string keys into it. Single source of truth: add a page file + a
+// manifest row and the route is wired automatically for the Android app.
+const pageModules = import.meta.glob('./pages/**/*.tsx');
+const lazyCache = new Map<string, LazyExoticComponent<ComponentType<Record<string, unknown>>>>();
 
-// Routes where SplashScreen must NOT play — these are public marketing /
-// SEO surfaces where the 2.8 s splash would cap LCP above the
-// Core-Web-Vitals "good" threshold (<2.5 s) and tank ranking. The splash
-// stays for the authenticated app entry, which is where it actually adds
-// brand polish.
-const PUBLIC_NO_SPLASH_PATTERNS: RegExp[] = [
-  /^\/$/,
-  /^\/pricing$/,
-  /^\/docs/,
-  /^\/blog/,
-  /^\/guides/,
-  /^\/faq$/,
-  /^\/compare$/,
-  /^\/use-cases$/,
-  /^\/integrations$/,
-  /^\/changelog$/,
-  /^\/directory/,
-  /^\/u\//,
-  /^\/demo\//,
-  /^\/book\//,
-  /^\/scanner$/,
-  /^\/shared\/audit\//,
-  /^\/download$/,
-  /^\/privacy$/,
-  /^\/terms$/,
-  /^\/delete-data$/,
-  /^\/support$/,
-  /^\/refund-policy$/,
-];
+function getComponent(component: string): LazyExoticComponent<ComponentType<Record<string, unknown>>> {
+  const cached = lazyCache.get(component);
+  if (cached) return cached;
+  const key = `./pages/${component}.tsx`;
+  const loader = pageModules[key] as
+    | (() => Promise<{ default: ComponentType<Record<string, unknown>> }>)
+    | undefined;
+  if (!loader) {
+    throw new Error(
+      `[routes] page component not found for "${component}" (expected ${key}). Check routes.manifest.ts.`,
+    );
+  }
+  const comp = lazy(loader);
+  lazyCache.set(component, comp);
+  return comp;
+}
+
+function renderRoute(r: RouteDef) {
+  const Comp = getComponent(r.component);
+  return <Route key={r.path} path={r.path} element={createElement(Comp, r.props ?? {})} />;
+}
+
+const NotFound = getComponent(NOT_FOUND_COMPONENT);
+
+// ── Splash suppression (derived from the manifest) ──────────────────
+// Skip the splash on public surfaces so first paint is instant; the
+// authenticated app entry (dashboard / welcome — non-public) still gets the
+// branded splash.
+function pathToRegExp(p: string): RegExp {
+  const body = p
+    .split('/')
+    .filter(Boolean)
+    .map((s) => (s.startsWith(':') ? '[^/]+' : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('/');
+  return new RegExp(`^/${body}$`);
+}
+const PUBLIC_MATCHERS = ROUTES.filter((r) => r.access === 'public').map((r) => pathToRegExp(r.path));
 
 function shouldSkipSplash(pathname: string): boolean {
-  return PUBLIC_NO_SPLASH_PATTERNS.some((p) => p.test(pathname));
+  if (pathname === '/') return true;
+  return PUBLIC_MATCHERS.some((re) => re.test(pathname));
 }
 
 function PageFallback() {
@@ -122,7 +88,7 @@ function PageFallback() {
 }
 
 /**
- * Shared QueryClient instance with optimized development defaults.
+ * Shared QueryClient instance with optimized defaults.
  */
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -191,11 +157,17 @@ function DeepLinkHandler() {
 
 function AppShell() {
   // The splash-suppression check needs router context (useLocation), so it
-  // lives inside <BrowserRouter>. Calling it here keeps the wrapper tree
-  // tidy without a second router instance.
+  // lives inside <BrowserRouter>.
   const location = useLocation();
   const [splashSuppressed] = useState(() => shouldSkipSplash(location.pathname));
   const [splashDone, setSplashDone] = useState(splashSuppressed);
+
+  // Manifest-driven route groups (single source of truth: routes.manifest.ts).
+  const publicRoutes = ROUTES.filter((r) => r.access === 'public');
+  const clientRoutes = ROUTES.filter((r) => r.access === 'auth-client');
+  const freelancerRoutes = ROUTES.filter((r) => r.access === 'freelancer');
+  const sharedRoutes = ROUTES.filter((r) => r.access === 'shared');
+  const superuserRoutes = ROUTES.filter((r) => r.access === 'superuser');
 
   return (
     <>
@@ -210,83 +182,37 @@ function AppShell() {
         </div>
         <Suspense fallback={<PageFallback />}>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/docs" element={<Documentation />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/delete-data" element={<DataDeletion />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/refund-policy" element={<RefundPolicy />} />
-            <Route path="/u/:username" element={<PublicProfile />} />
-            <Route path="/demo/:leadId" element={<LeadDemoViewer />} />
-            <Route path="/book/:username" element={<BookingPage />} />
-            <Route path="/book/:username/:eventSlug" element={<BookingPage />} />
-            <Route path="/download" element={<DownloadApp />} />
-            <Route path="/scanner" element={<LeadScanner />} />
-            <Route path="/shared/audit/:token" element={<SharedAuditViewPage />} />
-            <Route path="/faq" element={<Faq />} />
-            <Route path="/compare" element={<Compare />} />
-            <Route path="/use-cases" element={<UseCases />} />
-            <Route path="/integrations" element={<Integrations />} />
-            <Route path="/changelog" element={<Changelog />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<Post kind="blog" />} />
-            <Route path="/guides" element={<Guides />} />
-            <Route path="/guides/:slug" element={<Post kind="guide" />} />
-            <Route path="/directory" element={<DirectoryIndex />} />
-            <Route path="/directory/:industry/:city" element={<DirectoryList />} />
-            <Route path="/directory/lead/:slug" element={<DirectoryDetail />} />
+            {/* Public routes */}
+            {publicRoutes.map(renderRoute)}
 
-            {/* Protected: Client Welcome (clients only — freelancers redirected to /overview) */}
+            {/* Protected: Client-only (e.g. /welcome) */}
             <Route element={<ClientRoute />}>
-              <Route path="/welcome" element={<Welcome />} />
+              {clientRoutes.map(renderRoute)}
             </Route>
 
-            {/* Protected: Freelancer Dashboard (full access) */}
+            {/* Protected: Freelancer dashboard (inside Shell) */}
             <Route element={<FreelancerRoute />}>
               <Route element={<Shell />}>
-                <Route path="/overview" element={<Overview />} />
-                <Route path="/bookings" element={<Bookings />} />
-                <Route path="/pipeline" element={<Pipeline />} />
-                <Route path="/scheduler" element={<Scheduler />} />
-                <Route path="/discovery-targets" element={<DiscoveryTargets />} />
-                <Route path="/leads" element={<Leads />} />
-                <Route path="/leads/:id" element={<LeadDetail />} />
-                <Route path="/threads" element={<Threads />} />
-                <Route path="/campaigns" element={<Campaigns />} />
-                <Route path="/inbox" element={<Inbox />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/billing" element={<Billing />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/api-keys" element={<APIKeys />} />
+                {freelancerRoutes.map(renderRoute)}
               </Route>
             </Route>
 
-            {/* Protected: Shared pages (both clients and freelancers) */}
+            {/* Protected: Shared dashboard pages (client + freelancer) */}
             <Route element={<ProtectedRoute />}>
               <Route element={<Shell />}>
-                <Route path="/profile" element={<Profile />} />
+                {sharedRoutes.map(renderRoute)}
               </Route>
             </Route>
 
-            {/* Protected: Superuser-only admin tooling. The route guard
-                redirects non-superusers to their normal dashboard so the
-                page never even mounts for unauthorized users. The
-                backend gate on /api/v1/admin/* is the authoritative
-                check; this is defence-in-depth at the render layer. */}
+            {/* Protected: Superuser-only admin tooling */}
             <Route element={<SuperuserRoute />}>
               <Route element={<Shell />}>
-                <Route path="/admin/users" element={<AdminUsers />} />
+                {superuserRoutes.map(renderRoute)}
               </Route>
             </Route>
 
             {/* 404 */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={createElement(NotFound)} />
           </Routes>
         </Suspense>
       </AuthProvider>

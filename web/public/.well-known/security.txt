@@ -1,0 +1,8 @@
+# Cold Scout Security Contact
+# https://securitytxt.org/
+
+Contact: mailto:admin@colddsam.com
+Preferred-Languages: en
+Canonical: https://coldscout.colddsam.com/.well-known/security.txt
+Expires: 2027-04-05T00:00:00.000Z
+Policy: https://coldscout.colddsam.com/terms

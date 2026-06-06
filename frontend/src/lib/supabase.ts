@@ -40,8 +40,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
  *
  * VITE_APP_URL pins the callback to the correct origin at build time.
  */
-const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '')
-  ?? window.location.origin;
+// Use `||` (not `??`) so an EMPTY/whitespace VITE_APP_URL falls back to the
+// real browser origin. Under Next.js the env is injected at build time and can
+// resolve to "" if unset — with `??` that empty string would slip through and
+// make redirectTo relative (e.g. "/auth/callback"), which Supabase then
+// resolves against its dashboard "Site URL", sending users to the wrong port.
+// The `typeof window` guard keeps this safe during SSR/SSG (no window there).
+const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '').trim()
+  || (typeof window !== 'undefined' ? window.location.origin : '');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   // Supabase environment variables not configured.

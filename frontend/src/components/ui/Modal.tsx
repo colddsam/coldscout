@@ -4,7 +4,7 @@
  * Handles focus trapping, keyboard closure (Escape), and backdrop interactions.
  * Enhanced with spring-physics animations and staggered content reveal.
  */
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -22,6 +22,13 @@ interface ModalProps {
 export default function Modal({ open, onClose, title, children, maxWidth = 'max-w-md' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  // Portals target document.body, which doesn't exist during server rendering
+  // (Next.js SSR/SSG). Defer the portal until the component has mounted on the
+  // client. No behavioural change for the Vite/Android app — mount happens
+  // immediately in the browser — and modal content is never SEO-relevant.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -35,6 +42,8 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
       document.body.style.overflow = 'unset';
     };
   }, [open, onClose]);
+
+  if (!mounted) return null;
 
   return createPortal(
     <AnimatePresence>

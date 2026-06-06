@@ -51,6 +51,7 @@
 | [Brand Identity](#-brand-identity) | Vision, mission, and design philosophy |
 | [Project Overview](#-project-overview) | What Cold Scout does and why |
 | [Monorepo Structure](#-monorepo-structure) | How the repo is organized |
+| [Web App (Next.js)](#-web-app-nextjs) | The SEO website — see `web/` |
 | [System Architecture](#-system-architecture) | Full pipeline and data flow diagrams |
 | [Tech Stack](#-tech-stack) | Complete technology inventory |
 | [Key Features](#-key-features) | Platform capabilities overview |
@@ -125,19 +126,28 @@ coldscout/                          ← Monorepo Root
 │   ├── README.md                   ← Backend documentation
 │   └── DEPLOYMENT.md               ← Backend deployment guide
 │
-├── 📂 frontend/                    ← React 19 Dashboard (Vite + TypeScript)
-│   ├── src/
+├── 📂 frontend/                    ← React 19 source + Android build (Vite + Capacitor)
+│   ├── src/                        ← Shared React source (reused by web/ — see below)
 │   │   ├── components/             ← Reusable UI components
 │   │   ├── hooks/                  ← Custom React hooks
 │   │   ├── lib/                    ← Utilities, API client, Supabase
-│   │   └── pages/                  ← Route-level page components (24 pages)
+│   │   └── pages/                  ← Route-level page components
+│   ├── android/                    ← Capacitor Android project (APK build)
 │   ├── server/                     ← Dev-only Node.js proxy server
 │   ├── public/                     ← Static assets
-│   ├── nginx.conf                  ← Production nginx configuration
-│   ├── vercel.json                 ← Vercel deployment configuration
-│   ├── Dockerfile                  ← Frontend container image
 │   ├── README.md                   ← Frontend documentation
 │   └── DEPLOYMENT.md               ← Frontend deployment guide
+│   # NOTE: frontend/ now builds the Android (Capacitor) app. The website is
+│   #       served by web/ (Next.js), which reuses this frontend/src directly.
+│
+├── 📂 web/                         ← Website — Next.js App Router (SSG/ISR, SEO)
+│   ├── src/app/                    ← Routes (public SSG/ISR + dashboard + auth + api/og)
+│   ├── src/compat/                 ← react-router-dom → next/navigation shim
+│   ├── src/lib/                    ← SEO metadata + server data fetch helpers
+│   ├── next.config.mjs             ← Reuses ../frontend/src; env + router bridges
+│   ├── README.md                   ← Web local-dev guide
+│   └── MIGRATION.md                ← Vite→Next migration architecture + deploy checklist
+│   # Reuses ../frontend/src (no duplication). See web/README.md to run locally.
 │
 ├── 📂 .github/
 │   └── workflows/
@@ -151,6 +161,27 @@ coldscout/                          ← Monorepo Root
 ├── README.md                       ← This file
 └── DEPLOYMENT.md                   ← Production deployment master guide
 ```
+
+---
+
+## 🌐 Web App (Next.js)
+
+The public **website** is served by [`web/`](web/README.md) — a **Next.js (App Router)**
+app using **SSG/ISR** for SEO. It **reuses `frontend/src` directly** (no code
+duplication) via a `react-router-dom` → `next/navigation` compat shim plus an
+`import.meta.env` build shim, so the same components power both surfaces:
+
+- **`web/`** → the website (Next.js): server-rendered metadata + content, dynamic OG cards, sitemap
+- **`frontend/`** → the **Android (Capacitor)** app build (Vite) + the shared React source
+
+```bash
+cd web
+# create web/.env.local with the same VITE_* vars (see web/README.md)
+npm install
+npm run dev                         # http://localhost:3000
+```
+
+📖 Details: **[`web/README.md`](web/README.md)** (local dev) · **[`web/MIGRATION.md`](web/MIGRATION.md)** (architecture + deploy checklist).
 
 ---
 

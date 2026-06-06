@@ -1,0 +1,4 @@
+/* Reuse the exact global stylesheet from the shared source (design tokens,
+   Tailwind layers, custom components, animations). Single source of truth so
+   the web and Android UIs never diverge. */
+@import '../../../frontend/src/index.css';

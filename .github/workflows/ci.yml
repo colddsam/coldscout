@@ -87,3 +87,56 @@ jobs:
       
     - name: Build frontend
       run: npm run build
+
+  route-parity:
+    # Guards that the web (Next.js) route table and the Android (Vite) route
+    # table never drift. Both derive from frontend/src/routes.manifest.ts; this
+    # fails the build if a web page is missing for a manifest route, an orphan
+    # web page exists, or App.tsx stops being manifest-driven.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install root tooling (esbuild)
+      run: npm install --no-audit --no-fund --ignore-scripts
+
+    - name: Check web ⇄ manifest ⇄ Android route parity
+      run: node web/scripts/sync-routes.mjs --check
+
+  web-build:
+    # Catches web (Next.js) build breakage on every push/PR. The web app reuses
+    # ../frontend/src, so this also exercises the shared source under Next.
+    # Dummy VITE_* values are supplied so supabase.createClient() (which runs
+    # during SSG prerender) doesn't throw — no real secrets are needed to build.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build web (Next.js)
+      env:
+        VITE_API_BASE_URL: https://api.example.com
+        VITE_API_KEY: dummy_api_key
+        VITE_SITE_NAME: Cold Scout
+        VITE_APP_BOOKING_URL: https://example.com
+        VITE_SUPABASE_URL: https://dummy.supabase.co
+        VITE_SUPABASE_ANON_KEY: dummy_anon_key
+        VITE_APP_URL: https://example.com
+      run: npm run build
