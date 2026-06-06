@@ -71,7 +71,9 @@ alembic_*.txt
 .cron_setup_cached
 sqlcommands/
 
-docs/
+# Root-level local notes/planning folder only — must stay anchored so it does
+# NOT match app route dirs like web/src/app/docs/ (a real, committed page).
+/docs/
 FILES/
 
 .agent/
