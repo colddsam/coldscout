@@ -210,6 +210,21 @@ class FreelancerProfileUpdate(BaseModel):
     scheduling_preferences: Optional[dict] = None
     booking_confirmation_mode: Optional[str] = None
     meeting_link: Optional[str] = Field(None, max_length=500)
+    agency_primary_color: Optional[str] = Field(None, max_length=20)
+    meeting_provider: Optional[str] = Field(None, max_length=20)
+
+    @field_validator("meeting_provider")
+    @classmethod
+    def validate_meeting_provider(cls, v: Optional[str]) -> Optional[str]:
+        """Conferencing provider for public bookings. 'native' uses branded
+        /meet rooms; 'auto' (or empty) keeps Google Meet → permanent link."""
+        if v is None or v == "":
+            return v
+        allowed = {"auto", "native"}
+        v = v.strip().lower()
+        if v not in allowed:
+            raise ValueError(f"meeting_provider must be one of: {', '.join(sorted(allowed))}")
+        return v
 
     @field_validator("booking_url", "meeting_link")
     @classmethod
@@ -219,6 +234,18 @@ class FreelancerProfileUpdate(BaseModel):
         if not v.startswith(("https://", "http://")):
             raise ValueError("URL must start with https:// or http://")
         return v
+
+    @field_validator("agency_primary_color")
+    @classmethod
+    def validate_hex_color(cls, v: Optional[str]) -> Optional[str]:
+        """Accept an empty value or a #RGB / #RRGGBB hex colour; reject anything
+        else so the value can be safely inlined into CSS on the meeting page."""
+        if v is None or v == "":
+            return v
+        import re
+        if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", v.strip()):
+            raise ValueError("agency_primary_color must be a hex colour like #6366f1")
+        return v.strip()
 
     @field_validator("availability")
     @classmethod
@@ -257,6 +284,8 @@ class FreelancerProfileOut(BaseModel):
     booking_confirmation_mode: Optional[str] = None
     is_calendar_connected: bool = False
     meeting_link: Optional[str] = None
+    agency_primary_color: Optional[str] = None
+    meeting_provider: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

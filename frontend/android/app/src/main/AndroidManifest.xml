@@ -58,6 +58,20 @@
          grant it on install. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Native in-app video meetings (/meet/{room_id}, LiveKit WebRTC in the
+         WebView). Capacitor's BridgeWebChromeClient grants the WebView's
+         getUserMedia request only after these are declared + granted at runtime;
+         without them camera/mic capture silently fails on Android. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Camera/mic are optional so the app still installs on devices without
+         them (e.g. tablets); a guest can still join a call audio-only. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <!-- Required so the install intent can be resolved on Android 11+ (queries restriction) -->
     <queries>
         <intent>

@@ -169,6 +169,17 @@ class FreelancerProfile(Base):
     meeting_link = Column(String(500), nullable=True)
     """Permanent meeting link (e.g. Google Meet, Zoom) for automated delivery."""
 
+    # White-labeling for native in-app video rooms (/meet/{room_id})
+    agency_primary_color = Column(String(20), nullable=True)
+    """Hex accent colour (e.g. '#6366f1') applied to branded meeting-room controls/background."""
+
+    meeting_provider = Column(String(20), nullable=True)
+    """Preferred conferencing provider for bookings made on this freelancer's public
+    page. ``'native'`` mints a branded in-app /meet/{room_id} room; NULL/``'auto'``
+    keeps the legacy behaviour (Google Meet when the calendar is connected, else the
+    permanent ``meeting_link``). Native selection degrades gracefully to the legacy
+    chain when the workspace isn't Pro/Enterprise or LiveKit isn't configured."""
+
     @property
     def is_calendar_connected(self) -> bool:
         """Checks if a Google Calendar refresh token is present."""

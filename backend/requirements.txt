@@ -85,3 +85,11 @@ setuptools<81
 google-api-python-client==2.115.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.0
+
+# ── Native In-App Video (LiveKit branded meeting rooms) ──────────────────────
+# Server SDK: AccessToken (scoped join JWTs) + WebhookReceiver (signature
+# verification). Lazy-imported in app.modules.meetings.livekit_client so the
+# server still boots when LiveKit is unconfigured. Deepgram / OpenAI Whisper for
+# OPTIONAL transcription are intentionally NOT pinned here — they're reached via
+# httpx only when MEETING_TRANSCRIPTION_PROVIDER is set.
+livekit-api==1.1.0

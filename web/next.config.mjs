@@ -43,12 +43,15 @@ const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-XSS-Protection', value: '1; mode=block' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // camera/microphone/display-capture allowed for SAME-ORIGIN only (the
+  // /meet video rooms need them; the browser still prompts the user). All
+  // other pages simply never request these, so this is safe site-wide.
+  { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), display-capture=(self), geolocation=()' },
   { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
   {
     key: 'Content-Security-Policy',
     value:
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.jsdelivr.net https://plausible.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.coldscout.colddsam.com https://api.razorpay.com https://lumberjack.razorpay.com https://bbmvzahgkrmkciiejunt.supabase.co wss://bbmvzahgkrmkciiejunt.supabase.co https://api.github.com https://objects.githubusercontent.com https://github.com https://cdn.jsdelivr.net https://plausible.io; worker-src 'self' blob:; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self'; upgrade-insecure-requests",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://cdn.jsdelivr.net https://plausible.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.coldscout.colddsam.com https://api.razorpay.com https://lumberjack.razorpay.com https://bbmvzahgkrmkciiejunt.supabase.co wss://bbmvzahgkrmkciiejunt.supabase.co https://api.github.com https://objects.githubusercontent.com https://github.com https://cdn.jsdelivr.net https://plausible.io https://*.livekit.cloud wss://*.livekit.cloud; media-src 'self' blob: mediastream:; worker-src 'self' blob:; frame-src https://api.razorpay.com; object-src 'none'; base-uri 'self'; upgrade-insecure-requests",
   },
 ];
 
@@ -83,6 +86,11 @@ const nextConfig = {
       '@tanstack/react-query',
       'framer-motion',
       '@supabase/supabase-js',
+      // LiveKit UI carries its own React context — dedupe to THIS package's
+      // copy so the shared MeetingRoom source never pulls a second instance
+      // from ../frontend/node_modules (which would break its hooks/context).
+      '@livekit/components-react',
+      'livekit-client',
     ]) {
       config.resolve.alias[pkg] = path.resolve(__dirname, 'node_modules', pkg);
     }

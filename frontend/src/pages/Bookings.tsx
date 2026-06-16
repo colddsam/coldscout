@@ -1,21 +1,23 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import {
   Calendar, Clock, Mail, Loader2, CheckCircle2, XCircle, ExternalLink, Plus,
-  Link2, Copy, Trash2, ToggleLeft, ToggleRight, Globe
+  Link2, Copy, Trash2, ToggleLeft, ToggleRight, Globe, Video
 } from 'lucide-react';
 import {
   getMyBookings, approveBooking, rejectBooking, cancelBooking, createManualBlock,
   getMyEventTypes, createEventType, updateEventType, deleteEventType,
-  createInstantMeeting, getMyFreelancerProfile
+  createInstantMeeting, getMyFreelancerProfile, getMeetingConfig
 } from '../lib/api';
 import type { EventTypeItem } from '../lib/api';
 import AvailabilitySettings from '../components/bookings/AvailabilitySettings';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
+import { Capacitor } from '@capacitor/core';
 
 interface Booking {
   id: number;
@@ -29,6 +31,11 @@ interface Booking {
   booking_type: 'standard' | 'custom_link' | 'instant' | 'custom_request' | 'manual_block';
   proposed_times?: string;
   google_meet_link?: string;
+  meeting_link?: string | null;
+  // Native in-app video
+  room_id?: string | null;
+  provider?: string | null;
+  meeting_status?: 'planned' | 'active' | 'completed' | null;
 }
 
 // Duration presets for the Event Type creation UI
@@ -36,6 +43,7 @@ const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
 
 export default function Bookings() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'appointments' | 'event-types' | 'availability'>('appointments');
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'cancelled'>('all');
 
@@ -53,6 +61,7 @@ export default function Bookings() {
   const [imTitle, setIMTitle] = useState('Discovery Call');
   const [imDesc, setIMDesc] = useState('');
   const [imDuration, setIMDuration] = useState(30);
+  const [imNativeVideo, setIMNativeVideo] = useState(true);
 
   // Event Type modal state
   const [isETModalOpen, setIsETModalOpen] = useState(false);
@@ -127,16 +136,26 @@ export default function Bookings() {
         title: imTitle.trim(),
         description: imDesc.trim() || undefined,
         duration_minutes: imDuration,
+        use_native_video: imNativeVideo && videoEnabled,
       });
     },
     onSuccess: (data) => {
       toast.success('Instant meeting created!');
-      if (data.meeting_link) {
-        toast.success(`Meeting Link: ${data.meeting_link}`, { duration: 6000 });
-      }
       setIsInstantModalOpen(false);
       setIMGuestName(''); setIMGuestEmail(''); setIMTitle('Discovery Call'); setIMDesc(''); setIMDuration(30);
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      if (data.room_id) {
+        // Branded room — open it as host. In the Capacitor (Android) WebView a
+        // window.open('_blank') doesn't open a usable tab, so navigate in-app;
+        // on web keep the new tab so the Bookings page stays open to copy the link.
+        if (Capacitor.isNativePlatform()) {
+          navigate(`/meet/${data.room_id}`);
+        } else {
+          window.open(`/meet/${data.room_id}`, '_blank', 'noopener');
+        }
+      } else if (data.meeting_link) {
+        toast.success(`Meeting Link: ${data.meeting_link}`, { duration: 6000 });
+      }
     },
     onError: (err: Error) => toast.error(err.message || 'Failed to create instant meeting'),
   });
@@ -156,6 +175,16 @@ export default function Bookings() {
     queryKey: ['profile'],
     queryFn: () => getMyFreelancerProfile(),
   });
+
+  // Whether native in-app video is configured for this workspace. When it
+  // isn't, the "Cold Scout Video" toggle is hidden and instant meetings keep
+  // using Google Meet / the profile link (no behaviour change).
+  const { data: meetingCfg } = useQuery({
+    queryKey: ['meeting-config'],
+    queryFn: () => getMeetingConfig(),
+    staleTime: 300_000,
+  });
+  const videoEnabled = !!meetingCfg?.enabled;
 
   const eventTypes: EventTypeItem[] = Array.isArray(etData?.event_types) ? etData.event_types : [];
 
@@ -375,10 +404,19 @@ export default function Bookings() {
                         </div>
                       )}
 
+                      {booking.provider === 'livekit' && booking.room_id && booking.meeting_status !== 'completed' && (
+                        <button
+                          onClick={() => navigate(`/meet/${booking.room_id}`)}
+                          className="mt-3 w-full flex items-center justify-center gap-2 bg-info/[0.08] border border-info/25 text-info text-xs font-medium py-2 rounded-lg hover:bg-info/15 transition-colors"
+                        >
+                          <Video className="w-3 h-3" /> Join branded room
+                        </button>
+                      )}
+
                       {booking.google_meet_link && booking.status === 'approved' && (
-                        <a 
-                          href={booking.google_meet_link} 
-                          target="_blank" 
+                        <a
+                          href={booking.google_meet_link}
+                          target="_blank"
                           rel="noreferrer"
                           className="mt-3 w-full flex items-center justify-center gap-2 bg-info/[0.08] border border-info/25 text-info text-xs font-medium py-2 rounded-lg hover:bg-info/15 transition-colors"
                         >
@@ -724,7 +762,7 @@ export default function Bookings() {
           </div>
           <div>
             <label className="block text-sm font-medium text-white mb-2">Description (optional)</label>
-            <textarea 
+            <textarea
               value={imDesc}
               onChange={e => setIMDesc(e.target.value)}
               rows={2}
@@ -732,6 +770,26 @@ export default function Bookings() {
               placeholder="What's this meeting about?"
             />
           </div>
+          {videoEnabled && (
+            <button
+              type="button"
+              onClick={() => setIMNativeVideo((v) => !v)}
+              className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left hover:bg-white/[0.06] transition-colors"
+            >
+              <Video className="w-4 h-4 text-white/70 shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-white">Cold Scout Video (branded room)</span>
+                <span className="block text-xs text-white/50">
+                  Host in-app with the lead CRM sidebar. Off = Google Meet / your link.
+                </span>
+              </span>
+              {imNativeVideo ? (
+                <ToggleRight className="w-6 h-6 text-success shrink-0" />
+              ) : (
+                <ToggleLeft className="w-6 h-6 text-white/40 shrink-0" />
+              )}
+            </button>
+          )}
           <div className="pt-4 flex justify-end gap-3">
             <Button variant="outline" type="button" onClick={() => setIsInstantModalOpen(false)}>
               Cancel

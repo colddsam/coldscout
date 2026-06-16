@@ -109,6 +109,9 @@ export const ROUTES: RouteDef[] = [
   { path: '/book/:username/:eventSlug', component: 'BookingPage', access: 'public', web: { mode: 'dynamic', revalidate: 1800, og: { badge: 'BOOKING' } } },
   { path: '/demo/:leadId', component: 'LeadDemoViewer', access: 'public', web: { mode: 'client', index: false, revalidate: 1800 } },
   { path: '/shared/audit/:token', component: 'SharedAuditView', access: 'public', web: { mode: 'client', index: false } },
+  // Native branded video room. Public route: leads join via the link; the host
+  // (freelancer) is identified inside the page via the authed host-token call.
+  { path: '/meet/:roomId', component: 'MeetingRoom', access: 'public', web: { mode: 'client', index: false } },
 
   /* ── Auth ───────────────────────────────────────────────────────────── */
   { path: '/login', component: 'Login', access: 'public', web: { mode: 'client', index: false } },

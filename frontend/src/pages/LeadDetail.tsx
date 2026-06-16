@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { pageTransition, staggerContainer, staggerItem } from '../lib/motion';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -11,9 +12,9 @@ import { PageLoader } from '../components/ui/Spinner';
 import PageHeader from '../components/layout/PageHeader';
 import { formatDate, cn } from '../lib/utils';
 import { LEAD_STATUSES } from '../lib/constants';
-import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map, Monitor, RefreshCw, Eye, Send } from 'lucide-react';
+import { ArrowLeft, ExternalLink, MapPin, Phone, Mail, Star, Trash2, Globe, Save, Map, Monitor, RefreshCw, Eye, Send, Video } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { client } from '../lib/api';
+import { client, createMeetingRoom, getMeetingConfig } from '../lib/api';
 import LeadOutreachActions from '../components/dashboard/LeadOutreachActions';
 
 /**
@@ -28,14 +29,38 @@ export default function LeadDetail() {
   const { data: lead, isLoading } = useLead(id!);
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
+  const { data: meetingCfg } = useQuery({
+    queryKey: ['meeting-config'],
+    queryFn: () => getMeetingConfig(),
+    staleTime: 300_000,
+  });
+  const videoEnabled = !!meetingCfg?.enabled;
   const [editStatus, setEditStatus] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [startingMeeting, setStartingMeeting] = useState(false);
 
   if (isLoading) return <PageLoader />;
   if (!lead) return <div className="text-center py-12 text-tertiary font-mono text-sm">Lead not found</div>;
+
+  const handleStartMeeting = async () => {
+    setStartingMeeting(true);
+    try {
+      const res = await createMeetingRoom({
+        lead_id: lead.id,
+        title: `Strategy Call — ${lead.business_name}`,
+      });
+      navigate(`/meet/${res.room_id}`);
+    } catch (e) {
+      // 402 (free plan) is surfaced as the global upgrade modal by the API
+      // interceptor; show a toast for any other failure.
+      toast.error(e instanceof Error ? e.message : 'Could not start the meeting');
+    } finally {
+      setStartingMeeting(false);
+    }
+  };
 
   const handleStatusSave = () => {
     if (!editStatus) return;
@@ -59,9 +84,22 @@ export default function LeadDetail() {
           lead.category,
         ].filter(Boolean).join(' · ')}
         actions={
-          <Button variant="ghost" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />} onClick={() => navigate('/leads')}>
-            Back to Leads
-          </Button>
+          <div className="flex items-center gap-2">
+            {videoEnabled && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Video className="w-3.5 h-3.5" />}
+                onClick={handleStartMeeting}
+                loading={startingMeeting}
+              >
+                Start Video Meeting
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />} onClick={() => navigate('/leads')}>
+              Back to Leads
+            </Button>
+          </div>
         }
       />
 

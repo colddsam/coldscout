@@ -518,6 +518,41 @@ class Settings(BaseSettings):
     Example: ``mysite.com,client-portal.io``
     """
 
+    # ── Native In-App Video (LiveKit branded meeting rooms) ───────────────────
+    # When all three LiveKit values are blank the meeting feature degrades
+    # gracefully: the server still boots, every other feature works, and the
+    # meeting endpoints return a clear "video not configured" (503). Obtain a
+    # project from https://cloud.livekit.io → Settings → Keys.
+    LIVEKIT_URL: str = ""
+    """LiveKit server URL, e.g. ``wss://your-project.livekit.cloud``. Handed to the browser SDK."""
+
+    LIVEKIT_API_KEY: str = ""
+    """LiveKit API key. Used server-side to mint scoped join tokens and verify webhooks."""
+
+    LIVEKIT_API_SECRET: str = ""
+    """LiveKit API secret. Treat as a secret — never expose to the frontend."""
+
+    MEETING_HOST_TOKEN_TTL_MINUTES: int = 120
+    """Lifetime of a host (freelancer) LiveKit join token."""
+
+    MEETING_GUEST_TOKEN_TTL_MINUTES: int = 120
+    """Lifetime of a guest (lead) LiveKit join token."""
+
+    MEETING_INTERVIEW_THRESHOLD_SECONDS: int = 300
+    """Live-meeting duration after which the linked lead is auto-advanced to 'interviewed' (5 min)."""
+
+    MEETING_RECORDING_ENABLED: bool = False
+    """Master switch for LiveKit Egress recording. Requires Egress + cloud storage configured."""
+
+    MEETING_TRANSCRIPTION_PROVIDER: str = ""
+    """Audio→text provider for post-call transcription: '' (off) | 'deepgram' | 'openai'."""
+
+    DEEPGRAM_API_KEY: str = ""
+    """Deepgram API key. Required only when MEETING_TRANSCRIPTION_PROVIDER='deepgram'."""
+
+    OPENAI_API_KEY: str = ""
+    """OpenAI API key (Whisper). Required only when MEETING_TRANSCRIPTION_PROVIDER='openai'."""
+
     # Safety Intervals (Preventing Spam Triggers)
     EMAIL_SEND_INTERVAL_SECONDS: int = 360
     """

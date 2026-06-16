@@ -807,6 +807,8 @@ function FreelancerTab({
     personal_website: data?.personal_website || '',
     booking_url: data?.booking_url || '',
     meeting_link: data?.meeting_link || '',
+    agency_primary_color: data?.agency_primary_color || '',
+    meeting_provider: data?.meeting_provider || 'auto',
     booking_confirmation_mode: data?.booking_confirmation_mode || 'manual',
     include_profile_signature: data?.include_profile_signature ?? false,
   });
@@ -887,6 +889,51 @@ function FreelancerTab({
             <p className="mt-1 text-xs text-white/70">
               Virtual Meeting Link: Your permanent Google Meet/Zoom link. This will be automatically sent to guests 1 hour before meetings booked through the platform.
             </p>
+
+            <div className="mt-6 pt-5 border-t border-white/10">
+              <SelectField
+                label="Booking Video Provider"
+                value={form.meeting_provider}
+                onChange={set('meeting_provider')}
+                placeholder="Select provider"
+                options={[
+                  { value: 'auto', label: 'Google Meet / permanent link (default)' },
+                  { value: 'native', label: 'Cold Scout branded video room (/meet)' },
+                ]}
+              />
+              <p className="mt-2 text-xs text-white/70">
+                Controls the link new bookings on your public page generate. <span className="font-mono">Cold Scout branded room</span> mints a
+                unique in-app <span className="font-mono">/meet</span> room per booking — with your colour, logo, and the live lead sidebar.
+                Requires a Pro/Enterprise plan; bookings fall back to Google Meet or your permanent link automatically when it's unavailable.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-white/10">
+              <label className="block text-sm font-medium text-white mb-2">Branded Video Room Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={form.agency_primary_color || '#6366f1'}
+                  onChange={(e) => set('agency_primary_color')(e.target.value)}
+                  className="w-10 h-10 rounded-lg border border-white/10 cursor-pointer bg-transparent"
+                  aria-label="Branded video room accent color"
+                />
+                <span className="text-xs text-white/50 font-mono">{form.agency_primary_color || '#6366f1'}</span>
+                {form.agency_primary_color && (
+                  <button
+                    type="button"
+                    onClick={() => set('agency_primary_color')('')}
+                    className="text-xs text-white/40 hover:text-white"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-white/70">
+                Accent colour for your in-app <span className="font-mono">/meet</span> video rooms — applied to controls, the
+                waiting room, and the lead sidebar.
+              </p>
+            </div>
           </div>
         </SectionCard>
       </motion.div>

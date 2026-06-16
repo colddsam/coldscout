@@ -13,6 +13,7 @@ export const STATUS_COLORS: Record<string, string> = {
   phone_qualified: 'teal',
   contacted: 'teal',
   email_sent: 'teal',
+  interviewed: 'green',
   replied: 'green',
   closed: 'green',
   rejected: 'red',
@@ -24,6 +25,7 @@ export const STATUS_LABELS: Record<string, string> = {
   phone_qualified: 'Phone Qualified',
   contacted: 'Contacted',
   email_sent: 'Email Sent',
+  interviewed: 'Interviewed',
   replied: 'Replied',
   closed: 'Closed',
   rejected: 'Rejected',
@@ -54,7 +56,7 @@ export const PIPELINE_STAGES = [
   { id: 'weekly_optimization', label: 'Optimization', icon: 'TrendingUp', description: 'Run weekly AI optimization on email performance' },
 ] as const;
 
-export const LEAD_STATUSES: LeadStatus[] = ['discovered', 'qualified', 'phone_qualified', 'contacted', 'replied', 'closed', 'rejected', 'email_sent'];
+export const LEAD_STATUSES: LeadStatus[] = ['discovered', 'qualified', 'phone_qualified', 'contacted', 'interviewed', 'replied', 'closed', 'rejected', 'email_sent'];
 
 export const NAV_ITEMS = [
   { path: '/overview', label: 'Overview', icon: 'LayoutDashboard', roles: ['freelancer'] },

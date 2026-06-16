@@ -44,7 +44,12 @@ _MEETING_LINK_ALLOWED_HOSTS = {
 
 
 def _safe_meeting_link(url: Optional[str]) -> Optional[str]:
-    """Return ``url`` only if it parses to https + an allowlisted host."""
+    """Return ``url`` only if it parses to https + an allowlisted host.
+
+    The configured ``FRONTEND_DOMAIN`` host is allowed in addition to the
+    static provider allowlist so native in-app video links
+    (``https://<frontend>/meet/{room_id}``) survive when emailed.
+    """
     if not url:
         return None
     try:
@@ -54,7 +59,15 @@ def _safe_meeting_link(url: Optional[str]) -> Optional[str]:
     if parsed.scheme not in ("https",):
         return None
     host = (parsed.netloc or "").lower().split(":")[0]
-    if host not in _MEETING_LINK_ALLOWED_HOSTS:
+    allowed = set(_MEETING_LINK_ALLOWED_HOSTS)
+    try:
+        fe = urlparse(get_settings().FRONTEND_DOMAIN or "")
+        fe_host = (fe.netloc or "").lower().split(":")[0]
+        if fe_host:
+            allowed.add(fe_host)
+    except Exception:
+        pass
+    if host not in allowed:
         return None
     return url
 settings = get_settings()
@@ -289,32 +302,6 @@ async def create_booking(
     # Determine status based on confirmation mode
     mode = freelancer.booking_confirmation_mode or 'auto'
     status = 'approved' if mode == 'auto' else 'pending'
-    
-    meeting_link = None
-    google_event_id = None
-    
-    # If auto-approved and google calendar connected, create Google Meet link immediately
-    if status == 'approved' and freelancer.google_calendar_credentials:
-        try:
-            event = await create_google_meet_event(
-                creds_data=freelancer.google_calendar_credentials,
-                summary=f"Meeting with {req.guest_name}",
-                description=req.guest_notes or "",
-                start_time=req.start_time,
-                end_time=end_time,
-                attendee_email=req.guest_email
-            )
-            meeting_link = event.get('meet_link')
-            google_event_id = event.get('event_id')
-        except Exception as e:
-            import logging
-            logging.error(f"Failed to create Google Meet event: {e}")
-            # Fall back to pending/manual if Google Calendar fails
-            pass
-            
-    # NEW: Fallback to permanent meeting link from profile if still None
-    if status == 'approved' and not meeting_link:
-        meeting_link = getattr(freelancer, "meeting_link", None)
 
     booking = Booking(
         freelancer_id=freelancer.user_id,
@@ -324,11 +311,60 @@ async def create_booking(
         start_time=req.start_time,
         end_time=end_time,
         status=status,
-        meeting_link=meeting_link,
-        google_event_id=google_event_id,
         event_type_id=active_event.id if active_event else None,
-        event_type_title=active_event.title if active_event else "Standard Meeting"
+        event_type_title=active_event.title if active_event else "Standard Meeting",
     )
+
+    meeting_link = None
+    google_event_id = None
+
+    # Resolve the meeting link for auto-approved bookings. Provider precedence:
+    #   1. Native branded /meet room — when the freelancer opted in (meeting_provider
+    #      == 'native') AND can host it (paid plan + LiveKit configured). Falls
+    #      through silently otherwise so a public booker never hits a 402/503.
+    #   2. Google Meet — when a Google Calendar is connected.
+    #   3. The freelancer's permanent meeting_link.
+    # Manual-mode (pending) bookings receive their link at approval time instead.
+    if status == 'approved':
+        want_native = (getattr(freelancer, "meeting_provider", None) or "").lower() == "native"
+        if want_native:
+            from app.core.plan_gate import is_paid_plan_active
+            from app.modules.meetings import livekit_client
+            if is_paid_plan_active(user) and livekit_client.is_configured():
+                from app.modules.meetings import service as meetings_service
+                await meetings_service.assign_native_room_to_booking(
+                    db, booking,
+                    match_lead_email=req.guest_email,
+                    freelancer_id=freelancer.user_id,
+                )
+                meeting_link = booking.meeting_link
+
+        # Google Meet (only if a native room wasn't minted above).
+        if not meeting_link and freelancer.google_calendar_credentials:
+            try:
+                event = await create_google_meet_event(
+                    creds_data=freelancer.google_calendar_credentials,
+                    summary=f"Meeting with {req.guest_name}",
+                    description=req.guest_notes or "",
+                    start_time=req.start_time,
+                    end_time=end_time,
+                    attendee_email=req.guest_email
+                )
+                meeting_link = event.get('meet_link')
+                google_event_id = event.get('event_id')
+                booking.meeting_link = meeting_link
+                booking.google_event_id = google_event_id
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to create Google Meet event: {e}")
+                # Fall back to the permanent link below if Google Calendar fails.
+                pass
+
+        # Fallback to permanent meeting link from profile if still None
+        if not meeting_link:
+            meeting_link = getattr(freelancer, "meeting_link", None)
+            booking.meeting_link = meeting_link
+
     db.add(booking)
     await db.commit()
     await db.refresh(booking)

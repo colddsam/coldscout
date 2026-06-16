@@ -19,6 +19,7 @@ from app.modules.outreach.email_sender import send_email
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+from uuid import UUID
 
 router = APIRouter(prefix="/bookings", tags=["booking-management"])
 
@@ -34,6 +35,10 @@ class InstantMeetingRequest(BaseModel):
     description: Optional[str] = None
     duration_minutes: int = 30
     start_time: Optional[datetime] = None
+    use_native_video: bool = False
+    """When True, mint a branded in-app /meet/{room_id} room (Pro/Enterprise) instead of Google Meet."""
+    lead_id: Optional[UUID] = None
+    """Optional CRM lead to link to a native-video room (powers the in-call sidebar)."""
 
 @router.post("/manual-block")
 async def create_manual_block(
@@ -76,43 +81,75 @@ async def create_instant_meeting(
 
     meeting_link = None
     google_event_id = None
+    room_id = None
 
-    # Create Google Meet link if connected
-    if freelancer.google_calendar_credentials:
-        try:
-            event = await create_google_meet_event(
-                creds_data=freelancer.google_calendar_credentials,
-                summary=req.title,
-                description=req.description or "Instant meeting generated via Cold Scout.",
-                start_time=start_time,
-                end_time=end_time,
-                attendee_email=req.guest_email
+    if req.use_native_video:
+        # ── Native branded video room (LiveKit) ──────────────────────────────
+        from app.core.plan_gate import is_paid_plan_active
+        from app.modules.meetings import livekit_client
+        from app.modules.meetings import service as meetings_service
+
+        if not is_paid_plan_active(current_user):
+            raise HTTPException(
+                status_code=402,
+                detail="Branded in-app video rooms are a Pro / Enterprise feature.",
             )
-            meeting_link = event.get('meet_link')
-            google_event_id = event.get('event_id')
-        except Exception as e:
-            import logging
-            logging.error(f"Failed to create Google Meet event for instant meeting: {e}")
-            
-    # NEW: Fallback to permanent meeting link from profile if still None
-    if not meeting_link:
-        meeting_link = getattr(freelancer, "meeting_link", None)
+        if not livekit_client.is_configured():
+            raise HTTPException(
+                status_code=503,
+                detail="Video is not configured for this workspace yet.",
+            )
+        try:
+            booking = await meetings_service.create_room(
+                db,
+                host=current_user,
+                title=req.title,
+                guest_name=req.guest_name,
+                guest_email=req.guest_email,
+                lead_id=req.lead_id,
+                duration_minutes=req.duration_minutes,
+            )
+        except meetings_service.LeadNotFound:
+            raise HTTPException(status_code=404, detail="Lead not found.")
+        meeting_link = booking.meeting_link
+        room_id = booking.room_id
+    else:
+        # ── External provider (Google Meet, or the profile's permanent link) ──
+        if freelancer.google_calendar_credentials:
+            try:
+                event = await create_google_meet_event(
+                    creds_data=freelancer.google_calendar_credentials,
+                    summary=req.title,
+                    description=req.description or "Instant meeting generated via Cold Scout.",
+                    start_time=start_time,
+                    end_time=end_time,
+                    attendee_email=req.guest_email
+                )
+                meeting_link = event.get('meet_link')
+                google_event_id = event.get('event_id')
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to create Google Meet event for instant meeting: {e}")
 
-    booking = Booking(
-        freelancer_id=current_user.id,
-        guest_name=req.guest_name,
-        guest_email=req.guest_email,
-        guest_notes=req.description,
-        start_time=start_time,
-        end_time=end_time,
-        status="approved",
-        booking_type="instant",
-        meeting_link=meeting_link,
-        google_event_id=google_event_id
-    )
-    db.add(booking)
-    await db.commit()
-    await db.refresh(booking)
+        # Fallback to permanent meeting link from profile if still None
+        if not meeting_link:
+            meeting_link = getattr(freelancer, "meeting_link", None)
+
+        booking = Booking(
+            freelancer_id=current_user.id,
+            guest_name=req.guest_name,
+            guest_email=req.guest_email,
+            guest_notes=req.description,
+            start_time=start_time,
+            end_time=end_time,
+            status="approved",
+            booking_type="instant",
+            meeting_link=meeting_link,
+            google_event_id=google_event_id
+        )
+        db.add(booking)
+        await db.commit()
+        await db.refresh(booking)
 
     # Send Notifications
     from_name = current_user.full_name
@@ -180,6 +217,7 @@ async def create_instant_meeting(
         "status": "success",
         "booking_id": booking.id,
         "meeting_link": meeting_link,
+        "room_id": room_id,
         "start_time": start_time.isoformat()
     }
 
@@ -218,7 +256,25 @@ async def approve_booking(
     )
     freelancer = fl_result.scalars().first()
     
-    if freelancer and freelancer.google_calendar_credentials:
+    # Mint the meeting link on approval. Native branded /meet room takes
+    # precedence when the freelancer opted in (meeting_provider == 'native') and
+    # can host it (paid plan + LiveKit configured); otherwise Google Meet when the
+    # calendar is connected. Native selection degrades silently to Google Meet.
+    minted_native = False
+    want_native = bool(freelancer) and (getattr(freelancer, "meeting_provider", None) or "").lower() == "native"
+    if want_native and booking.provider != "livekit":
+        from app.core.plan_gate import is_paid_plan_active
+        from app.modules.meetings import livekit_client
+        if is_paid_plan_active(current_user) and livekit_client.is_configured():
+            from app.modules.meetings import service as meetings_service
+            await meetings_service.assign_native_room_to_booking(
+                db, booking,
+                match_lead_email=booking.guest_email,
+                freelancer_id=current_user.id,
+            )
+            minted_native = True
+
+    if not minted_native and freelancer and freelancer.google_calendar_credentials:
         try:
             event = await create_google_meet_event(
                 creds_data=freelancer.google_calendar_credentials,

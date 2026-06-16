@@ -165,6 +165,7 @@ export type LeadStatus =
   | 'qualified'
   | 'phone_qualified'
   | 'contacted'
+  | 'interviewed'
   | 'replied'
   | 'closed'
   | 'rejected'
@@ -1119,6 +1120,8 @@ export interface FreelancerProfile {
   personal_website?: string | null;
   booking_url?: string | null;
   meeting_link?: string | null;
+  agency_primary_color?: string | null;
+  meeting_provider?: 'auto' | 'native' | null;
   booking_confirmation_mode?: 'auto' | 'manual';
   scheduling_preferences?: SchedulingPrefs;
   is_public: boolean;
@@ -1157,6 +1160,8 @@ export interface FreelancerProfileUpdate {
   personal_website?: string;
   booking_url?: string;
   meeting_link?: string;
+  agency_primary_color?: string;
+  meeting_provider?: 'auto' | 'native';
   booking_confirmation_mode?: 'manual' | 'auto';
   is_public?: boolean;
   show_rates?: boolean;
@@ -2281,10 +2286,22 @@ export interface InstantMeetingRequest {
   description?: string;
   duration_minutes: number;
   start_time?: string;
+  /** Mint a branded in-app /meet/{room_id} room (Pro/Enterprise) instead of Google Meet. */
+  use_native_video?: boolean;
+  /** Optional CRM lead to link to a native-video room. */
+  lead_id?: string;
+}
+
+export interface InstantMeetingResponse {
+  status: string;
+  booking_id: number;
+  meeting_link: string | null;
+  room_id: string | null;
+  start_time: string;
 }
 
 export const createInstantMeeting = (payload: InstantMeetingRequest) =>
-  client.post(`/api/v1/bookings/instant`, payload).then(r => r.data);
+  client.post<InstantMeetingResponse>(`/api/v1/bookings/instant`, payload).then(r => r.data);
 
 // ── Event Types ──────────────────────────────────────────────────────────────
 
@@ -2337,6 +2354,134 @@ export const updateEventType = (id: number, payload: EventTypeUpdateRequest) =>
 
 export const deleteEventType = (id: number) =>
   client.delete(`/api/v1/bookings/event-types/${id}`).then(r => r.data);
+
+// ── Native In-App Video Meetings (branded LiveKit rooms) ─────────────────────
+
+export interface MeetingConfig {
+  enabled: boolean;
+  livekit_url: string;
+}
+
+export interface CreateMeetingRoomRequest {
+  title?: string;
+  guest_name?: string;
+  guest_email?: string;
+  lead_id?: string;
+  duration_minutes?: number;
+}
+
+export interface CreateMeetingRoomResponse {
+  room_id: string;
+  booking_id: number;
+  join_url: string;
+  livekit_url: string;
+}
+
+export interface MeetingTokenResponse {
+  room_id: string;
+  token: string;
+  livekit_url: string;
+  identity: string;
+}
+
+export interface MeetingAuditTeaser {
+  business_name?: string | null;
+  has_website?: boolean | null;
+  website_score_tier?: string | null;
+  headline?: string | null;
+}
+
+export interface MeetingBranding {
+  room_id: string;
+  title: string;
+  /** planned | active | completed */
+  status: string;
+  host_name: string;
+  agency_name?: string | null;
+  agency_logo_url?: string | null;
+  agency_primary_color?: string | null;
+  audit_teaser?: MeetingAuditTeaser | null;
+}
+
+export interface MeetingOutreachHistoryItem {
+  subject?: string | null;
+  sent_at?: string | null;
+  status?: string | null;
+}
+
+export interface MeetingCrm {
+  room_id: string;
+  has_lead: boolean;
+  lead_id?: string | null;
+  business_name?: string | null;
+  category?: string | null;
+  city?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website_url?: string | null;
+  ai_score?: number | null;
+  lead_tier?: string | null;
+  status?: string | null;
+  qualification_notes?: string | null;
+  competitor_intel?: string | null;
+  has_website?: boolean | null;
+  is_mobile_responsive?: boolean | null;
+  has_online_booking?: boolean | null;
+  has_ecommerce?: boolean | null;
+  notes?: string | null;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  outreach_history: MeetingOutreachHistoryItem[];
+}
+
+export interface EndMeetingResponse {
+  room_id: string;
+  meeting_status: string;
+  duration_seconds: number | null;
+  lead_promoted: boolean;
+}
+
+/** Public: whether native video is live + which LiveKit URL to use. */
+export const getMeetingConfig = () =>
+  client.get<MeetingConfig>('/api/v1/meetings/config').then((r) => r.data);
+
+/** Public: white-label + waiting-room branding for a room. */
+export const getMeetingBranding = (roomId: string) =>
+  client.get<MeetingBranding>(`/api/v1/meetings/${roomId}/branding`).then((r) => r.data);
+
+/** Public: request a guest join token (rate-limited server-side). */
+export const getMeetingGuestToken = (
+  roomId: string,
+  payload: { guest_name: string; guest_email?: string },
+) =>
+  client
+    .post<MeetingTokenResponse>(`/api/v1/meetings/${roomId}/guest-token`, payload)
+    .then((r) => r.data);
+
+/** Host (Pro/Enterprise): create a branded room, optionally linked to a lead. */
+export const createMeetingRoom = (payload: CreateMeetingRoomRequest) =>
+  client.post<CreateMeetingRoomResponse>('/api/v1/meetings/rooms', payload).then((r) => r.data);
+
+/** Host (Pro/Enterprise, owner): request a host join token. */
+export const getMeetingHostToken = (roomId: string) =>
+  client.post<MeetingTokenResponse>(`/api/v1/meetings/${roomId}/host-token`).then((r) => r.data);
+
+/** Host (owner): fetch the in-call CRM sidebar payload. */
+export const getMeetingCrm = (roomId: string) =>
+  client.get<MeetingCrm>(`/api/v1/meetings/${roomId}/crm`).then((r) => r.data);
+
+/** Host (owner): autosave meeting notes (mirrored to the linked lead). */
+export const saveMeetingNotes = (roomId: string, notes: string) =>
+  client
+    .patch<{ room_id: string; saved: boolean; mirrored_to_lead: boolean }>(
+      `/api/v1/meetings/${roomId}/notes`,
+      { notes },
+    )
+    .then((r) => r.data);
+
+/** Host (owner): end the meeting (fallback completion + 5-min interview rule). */
+export const endMeeting = (roomId: string) =>
+  client.post<EndMeetingResponse>(`/api/v1/meetings/${roomId}/end`).then((r) => r.data);
 
 // ── API Key Orchestrator (superuser) ─────────────────────────────────────────
 

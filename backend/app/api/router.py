@@ -26,6 +26,11 @@ from app.api.v1.shared_audits import router as shared_audits_router
 from app.api.v1.directory import router as directory_router
 from app.api.v1.booking_integrations import router as booking_integrations_router
 from app.api.v1.booking_management import router as booking_management_router
+from app.api.v1.meetings import (
+    public_router as meetings_public_router,
+    webhook_router as meetings_webhook_router,
+    router as meetings_private_router,
+)
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.infrastructure import router as infrastructure_router
 from app.api.v1.admin_users import router as admin_users_router
@@ -54,6 +59,10 @@ public_router.include_router(booking_router, tags=["booking"])
 public_router.include_router(seo_router, tags=["seo"])
 public_router.include_router(directory_router, tags=["directory"])
 public_router.include_router(booking_integrations_router, tags=["booking-integrations"])
+# Native video: config/branding/guest-token + the LiveKit webhook are public
+# (LiveKit servers and unauthenticated leads can't send the X-API-Key).
+public_router.include_router(meetings_public_router, tags=["meetings"])
+public_router.include_router(meetings_webhook_router, tags=["meetings"])
 
 # Private routes (System-level authentication required)
 private_router.include_router(auth.router, tags=["auth"])
@@ -68,6 +77,7 @@ private_router.include_router(notifications_router, tags=["notifications"])
 private_router.include_router(audit_router, tags=["audit"])
 private_router.include_router(shared_audits_router, tags=["shared-audits"])
 private_router.include_router(booking_management_router, tags=["booking-management"])
+private_router.include_router(meetings_private_router, tags=["meetings"])
 private_router.include_router(analytics_router, tags=["analytics"])
 private_router.include_router(infrastructure_router, tags=["api-keys"])
 private_router.include_router(admin_users_router, tags=["admin"])

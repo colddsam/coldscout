@@ -65,6 +65,12 @@ class Lead(Base):
     email_sent
       → opened → clicked → replied
     (any active stage can become bounced or unsubscribed)
+
+    Out-of-band milestone:
+      interviewed       set when a native video meeting (see Booking.room_id)
+                        with this lead exceeds the configured threshold
+                        (default 5 min). Applied without regressing a more
+                        advanced status (replied / closed).
     """
     __tablename__ = "leads"
     __table_args__ = (
