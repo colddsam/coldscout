@@ -28,6 +28,7 @@ import PublicNavbar from '../components/layout/PublicNavbar';
 import PublicFooter from '../components/layout/PublicFooter';
 import ScrollReveal from '../components/ui/ScrollReveal';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
+import HeroPipeline3D from '../components/ui/HeroPipeline3D';
 import WordsPullUp from '../components/animations/WordsPullUp';
 import StaggeredCard from '../components/animations/StaggeredCard';
 import FadeUpBlock from '../components/animations/FadeUpBlock';
@@ -127,10 +128,10 @@ function HeroSection() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5, type: "spring", stiffness: 100 }}
-              className="relative w-full max-w-[600px] aspect-square bg-black border border-white/10 border-dashed rounded-3xl flex items-center justify-center"
+              className="relative w-full max-w-[600px] aspect-square flex items-center justify-center"
             >
-              <span className="text-[#555] text-sm font-mono uppercase tracking-[0.2em]">Image Placeholder</span>
-              {/* Optional glowing effect behind image */}
+              <HeroPipeline3D />
+              {/* Glow behind the illustration */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-white/5 blur-[100px] rounded-full pointer-events-none -z-10" />
             </motion.div>
           </div>
